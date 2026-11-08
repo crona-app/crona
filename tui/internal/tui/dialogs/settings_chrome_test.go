@@ -21,15 +21,13 @@ func restProtection(step int) controllerpkg.State {
 	return state
 }
 
-func dayBoundary(step int) controllerpkg.State {
-	state := controllerpkg.OpenEditDayBoundary(
+func dayBoundary() controllerpkg.State {
+	return controllerpkg.OpenEditDayBoundary(
 		controllerpkg.State{},
 		sharedtypes.CoreSettingsKey("startOfDay"),
-		sharedtypes.DayBoundarySchedule{},
+		sharedtypes.DayBoundarySchedule{Enabled: true, DefaultTime: "06:00", WeekdayOverrides: map[int]string{3: "07:30"}},
 		"Asia/Kolkata",
 	)
-	state.DayBoundaryStep = step
-	return state
 }
 
 func telemetry(step int) controllerpkg.State {
@@ -62,28 +60,12 @@ func TestSettingsDialogs(t *testing.T) {
 		},
 		{
 			formCase{
-				name:    "boundary default",
-				state:   dayBoundary(controllerpkg.DayBoundaryStepOverview),
-				title:   "Start of Day Schedule",
+				name:    "boundary",
+				state:   dayBoundary(),
+				title:   "Start of Day",
 				context: "Asia/Kolkata",
 			},
-			[]string{"Enabled", "Default", "ctrl+s save"},
-		},
-		{
-			formCase{
-				name:  "boundary days",
-				state: dayBoundary(controllerpkg.DayBoundaryStepDays),
-				title: "Start of Day Schedule",
-			},
-			[]string{"Monday", "enter next", "esc back"},
-		},
-		{
-			formCase{
-				name:  "boundary time",
-				state: dayBoundary(controllerpkg.DayBoundaryStepTime),
-				title: "Start of Day Schedule",
-			},
-			[]string{"Time", "ctrl+s apply", "esc back"},
+			[]string{"Enabled", "● on", "Default", "Mo", "07:30   custom", "Su", "ctrl+s save", "r use default"},
 		},
 		{
 			formCase{
@@ -121,12 +103,7 @@ func TestSettingsDialogs(t *testing.T) {
 func TestWizardsKeepOneWidthAcrossSteps(t *testing.T) {
 	steps := map[string][]controllerpkg.State{
 		"telemetry": {telemetry(0), telemetry(1), telemetry(2)},
-		"day boundary": {
-			dayBoundary(controllerpkg.DayBoundaryStepOverview),
-			dayBoundary(controllerpkg.DayBoundaryStepDays),
-			dayBoundary(controllerpkg.DayBoundaryStepTime),
-		},
-		"momentum": {editMomentum(1), editMomentum(2), editMomentum(3)},
+		"momentum":  {editMomentum(1), editMomentum(2), editMomentum(3)},
 	}
 	for name, states := range steps {
 		width := -1

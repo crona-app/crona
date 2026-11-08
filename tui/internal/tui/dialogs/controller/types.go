@@ -129,19 +129,19 @@ type State struct {
 	ViewBody            string
 	ViewPath            string
 	// ViewScroll is how far a view_entity dialog's body is scrolled.
-	ViewScroll         int
-	SupportBundlePath  string
-	DateTitle          string
-	DateHeader         string
-	DateMonth          string
-	DateGrid           string
-	CalendarScores     map[string]api.FocusScoreRangeDay
-	ProtectionStep     int
-	ProtectionCursor   int
+	ViewScroll        int
+	SupportBundlePath string
+	DateTitle         string
+	DateHeader        string
+	DateMonth         string
+	DateGrid          string
+	CalendarScores    map[string]api.FocusScoreRangeDay
+	ProtectionStep    int
+	ProtectionCursor  int
 	// ConfirmDiscard asks "Discard changes?" before esc closes a dialog whose state differs
 	// from DiscardBaseline.
-	ConfirmDiscard  bool
-	DiscardBaseline string
+	ConfirmDiscard     bool
+	DiscardBaseline    string
 	ProtectionStreaks  []sharedtypes.StreakKind
 	ProtectionWeekdays []int
 	// CadenceIdx is the cadence picker choice (see CadenceLabels); CadenceDays the custom
@@ -158,13 +158,7 @@ type State struct {
 	DayBoundaryEnabled             bool
 	DayBoundaryTimezone            string
 	SettingKey                     sharedtypes.CoreSettingsKey
-	DayBoundaryStep                int
 	DayBoundarySchedule            sharedtypes.DayBoundarySchedule
-	DayBoundaryOverrides           []DayBoundaryOverride
-	DayBoundaryOverrideCursor      int
-	DayBoundarySelectedDays        []int
-	DayBoundaryEditingTime         string
-	DayBoundaryEditingOverride     bool
 	HabitItems                     []sharedtypes.HabitWithMeta
 	MomentumRepos                  []api.Repo
 	MomentumStreams                []api.Stream

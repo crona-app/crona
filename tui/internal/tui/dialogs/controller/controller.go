@@ -166,13 +166,7 @@ func Close(state State) State {
 	state.DayBoundaryEnabled = false
 	state.DayBoundaryTimezone = ""
 	state.SettingKey = ""
-	state.DayBoundaryStep = 0
 	state.DayBoundarySchedule = sharedtypes.DayBoundarySchedule{}
-	state.DayBoundaryOverrides = nil
-	state.DayBoundaryOverrideCursor = 0
-	state.DayBoundarySelectedDays = nil
-	state.DayBoundaryEditingTime = ""
-	state.DayBoundaryEditingOverride = false
 	state.CheckInDate = ""
 	state.ExportStart = ""
 	state.ExportEnd = ""
@@ -233,12 +227,8 @@ func SyncDialogFocus(state State) State {
 		return state
 	}
 	if state.Kind == "edit_day_boundary" {
-		if state.DayBoundaryStep == DayBoundaryStepOverview && state.FocusIdx == 0 &&
-			len(state.Inputs) > 0 {
-			state.Inputs[0].Focus()
-		}
-		if state.DayBoundaryStep == DayBoundaryStepTime && len(state.Inputs) > 1 {
-			state.Inputs[1].Focus()
+		if idx, ok := DayBoundaryInputForRow(state, state.FocusIdx); ok {
+			state.Inputs[idx].Focus()
 		}
 		return state
 	}

@@ -301,13 +301,7 @@ type Model struct {
 	dialogDayBoundaryEnabled             bool
 	dialogDayBoundaryTimezone            string
 	dialogSettingKey                     sharedtypes.CoreSettingsKey
-	dialogDayBoundaryStep                int
 	dialogDayBoundarySchedule            sharedtypes.DayBoundarySchedule
-	dialogDayBoundaryOverrides           []dialogstate.DayBoundaryOverride
-	dialogDayBoundaryOverrideCursor      int
-	dialogDayBoundarySelectedDays        []int
-	dialogDayBoundaryEditingTime         string
-	dialogDayBoundaryEditingOverride     bool
 	dialogPomodoroFocusSeconds           int
 	dialogPomodoroFocusChoice            int
 	dialogPomodoroBreakSeconds           int

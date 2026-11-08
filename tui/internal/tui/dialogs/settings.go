@@ -3,6 +3,7 @@ package dialogs
 import (
 	"fmt"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 	"slices"
 	"strings"
 	"time"
@@ -193,91 +194,67 @@ func restProtectionContext(state controllerpkg.State, upcoming int) string {
 		map[bool]string{true: "date", false: "dates"}[upcoming == 1])
 }
 
+// renderDayBoundaryDialog is one screen: Enabled, the default time and a row per weekday in
+// week-start order. A day on the default shows that time dim; its own time reads "custom".
 func renderDayBoundaryDialog(theme Theme, state controllerpkg.State) string {
-	title := "Start of Day Schedule"
+	title, help := "Start of Day", "A new day begins here; work before it counts toward the previous day."
 	if state.SettingKey == "endOfDay" {
-		title = "End of Day Schedule"
+		title, help = "End of Day", "The day winds down here; end-of-day prompts and summaries use it."
 	}
-	steps := []string{"Default", "Add Override", "Time"}
-	active := min(max(0, state.DayBoundaryStep), len(steps)-1)
-	body := []string{stepStrip(theme, steps, active), ""}
+	column := len("Default")
+	focused := func(row int) bool { return state.FocusIdx == row }
+	enabled := theme.StyleDim.Render("○ off")
+	if state.DayBoundaryEnabled {
+		enabled = theme.StyleSelected.Render("● on")
+	}
+	body := []string{
+		Field(theme, "Enabled", column, enabled, focused(controllerpkg.DayBoundaryRowEnabled)),
+		Field(theme, "Default", column, bareInput(state.Inputs[0], 5, "HH:mm"), focused(controllerpkg.DayBoundaryRowDefault)),
+		"",
+	}
+	focus := -1
+	if state.FocusIdx <= controllerpkg.DayBoundaryRowDefault {
+		focus = state.FocusIdx
+	}
+	defaultTime := strings.TrimSpace(state.Inputs[0].Value())
+	names := []string{"", "Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"}
+	for i, day := range controllerpkg.DayBoundaryWeekdays(state.DueDateWeekStart) {
+		row := controllerpkg.DayBoundaryRowDefault + 1 + i
+		own := strings.TrimSpace(state.Inputs[day].Value())
+		value := ""
+		switch {
+		case focused(row):
+			value = bareInput(state.Inputs[day], 5, defaultTime)
+		case own == "" || own == defaultTime:
+			value = theme.StyleDim.Render(fallback(defaultTime, "--:--"))
+		default:
+			value = own
+		}
+		if own != "" && own != defaultTime {
+			value += theme.StyleDim.Render("   custom")
+		}
+		if focused(row) {
+			focus = len(body)
+		}
+		line := Field(theme, names[day], column, value, focused(row))
+		if !state.DayBoundaryEnabled {
+			line = theme.StyleDim.Render(ansi.Strip(line))
+		}
+		body = append(body, line)
+	}
+	body = append(body, "", theme.StyleDim.Render(help))
+	hints := []string{"↑/↓ row", "type a time", "r use default"}
+	if focused(controllerpkg.DayBoundaryRowEnabled) {
+		hints = []string{"↑/↓ row", "space toggle"}
+	}
 	d := listDialog{
-		wide:    true,
-		title:   title,
-		context: fallbackTimezone(state.DayBoundaryTimezone),
-		focus:   -1,
+		wide: true, title: title, context: fallbackTimezone(state.DayBoundaryTimezone),
+		focus: focus, body: body, primary: "ctrl+s save", hints: hints,
 	}
-	column := len("Enabled")
-	switch state.DayBoundaryStep {
-	case controllerpkg.DayBoundaryStepDays:
-		body = append(body, theme.StyleDim.Render("Select available days"))
-		labels, cursor := []string{}, -1
-		for day, label := range []string{"Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"} {
-			day++
-			line := checkbox(containsInt(state.DayBoundarySelectedDays, day), label)
-			if !controllerpkg.DayBoundaryDayAvailable(state, day) {
-				line = theme.StyleDim.Render(line + " (configured)")
-			} else if day == state.FocusIdx {
-				cursor = day - 1
-			}
-			labels = append(labels, line)
-		}
-		if cursor >= 0 {
-			d.focus = len(body) + cursor
-		}
-		body = append(body, selectList(theme, labels, cursor)...)
-		d.primary, d.hints, d.esc = "enter next", []string{"↑/↓ move", "space toggle"}, "esc back"
-	case controllerpkg.DayBoundaryStepTime:
-		full, _ := formColumns(formInner(state.Width), column)
-		body = append(
-			body,
-			Field(
-				theme,
-				"Days",
-				column,
-				dayBoundaryDaysLabel(state.DayBoundarySelectedDays),
-				false,
-			),
-			Field(theme, "Time", column, bareInput(state.Inputs[1], full, "HH:mm"), true),
-		)
-		d.focus = len(body) - 1
-		d.primary, d.esc = "ctrl+s apply", "esc back"
-	default:
-		allOverridden := controllerpkg.AllDayBoundaryDaysOverridden(state.DayBoundarySchedule)
-		full, _ := formColumns(formInner(state.Width), column)
-		value := bareInput(state.Inputs[0], full, "HH:mm")
-		if allOverridden {
-			value = theme.StyleDim.Render(state.Inputs[0].Value() + "  (all days have overrides)")
-		}
-		body = append(body,
-			Field(theme, "Enabled", column, enabledLabel(state.DayBoundaryEnabled), false),
-			Field(theme, "Default", column, value, state.DayBoundaryOverrideCursor == 0),
-			"", theme.StyleDim.Render("Configured overrides"),
-		)
-		if state.DayBoundaryOverrideCursor == 0 {
-			d.focus = len(body) - 3
-		}
-		if len(state.DayBoundaryOverrides) == 0 {
-			body = append(body, theme.StyleDim.Render("None"))
-		}
-		labels := []string{}
-		for _, override := range state.DayBoundaryOverrides {
-			labels = append(
-				labels,
-				fmt.Sprintf("%-22s %s", dayBoundaryDaysLabel(override.Days), override.Time),
-			)
-		}
-		if state.DayBoundaryOverrideCursor > 0 {
-			d.focus = len(body) + state.DayBoundaryOverrideCursor - 1
-		}
-		body = append(body, selectList(theme, labels, state.DayBoundaryOverrideCursor-1)...)
-		add := "a add override"
-		if allOverridden {
-			add = "a add override (unavailable)"
-		}
-		d.primary, d.hints = "ctrl+s save", []string{"space toggle", add, "enter edit", "D remove"}
+	if state.ConfirmDiscard {
+		d.body = append(d.body, "", theme.StyleError.Render("Discard changes?"))
+		d.primary, d.hints, d.esc = "y discard", nil, "n keep editing"
 	}
-	d.body = body
 	return renderListDialog(theme, state, d)
 }
 

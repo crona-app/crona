@@ -915,13 +915,7 @@ func (m Model) dialogState() dialogstate.State {
 		DayBoundaryEnabled:             m.dialogDayBoundaryEnabled,
 		DayBoundaryTimezone:            m.dialogDayBoundaryTimezone,
 		SettingKey:                     m.dialogSettingKey,
-		DayBoundaryStep:                m.dialogDayBoundaryStep,
 		DayBoundarySchedule:            m.dialogDayBoundarySchedule,
-		DayBoundaryOverrides:           m.dialogDayBoundaryOverrides,
-		DayBoundaryOverrideCursor:      m.dialogDayBoundaryOverrideCursor,
-		DayBoundarySelectedDays:        m.dialogDayBoundarySelectedDays,
-		DayBoundaryEditingTime:         m.dialogDayBoundaryEditingTime,
-		DayBoundaryEditingOverride:     m.dialogDayBoundaryEditingOverride,
 		PomodoroFocusSeconds:           m.dialogPomodoroFocusSeconds,
 		PomodoroFocusChoice:            m.dialogPomodoroFocusChoice,
 		PomodoroBreakSeconds:           m.dialogPomodoroBreakSeconds,
@@ -1069,13 +1063,7 @@ func (m Model) withDialogState(state dialogstate.State) Model {
 	m.dialogDayBoundaryEnabled = state.DayBoundaryEnabled
 	m.dialogDayBoundaryTimezone = state.DayBoundaryTimezone
 	m.dialogSettingKey = state.SettingKey
-	m.dialogDayBoundaryStep = state.DayBoundaryStep
 	m.dialogDayBoundarySchedule = state.DayBoundarySchedule
-	m.dialogDayBoundaryOverrides = state.DayBoundaryOverrides
-	m.dialogDayBoundaryOverrideCursor = state.DayBoundaryOverrideCursor
-	m.dialogDayBoundarySelectedDays = state.DayBoundarySelectedDays
-	m.dialogDayBoundaryEditingTime = state.DayBoundaryEditingTime
-	m.dialogDayBoundaryEditingOverride = state.DayBoundaryEditingOverride
 	m.dialogPomodoroFocusSeconds = state.PomodoroFocusSeconds
 	m.dialogPomodoroFocusChoice = state.PomodoroFocusChoice
 	m.dialogPomodoroBreakSeconds = state.PomodoroBreakSeconds

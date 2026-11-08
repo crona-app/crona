@@ -26,9 +26,6 @@ func hasStreakKind(values []sharedtypes.StreakKind, target sharedtypes.StreakKin
 	return slices.Contains(values, target)
 }
 
-
-
-
 func renderViewEntityBody(theme Theme, body string) string {
 	lines := strings.Split(body, "\n")
 	rendered := make([]string, 0, len(lines))
