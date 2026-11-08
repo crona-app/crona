@@ -64,17 +64,21 @@ func handleReviewStepDay(s State, deps Deps, dir int) (tea.Model, tea.Cmd, bool)
 	date := deps.CurrentDate(s)
 	start, end := uistate.ReviewRange(date, s.ReviewWindowEnd, s.ReviewWindowDays)
 	s.ReviewWindowEnd = end
+	if s.ReviewWindowDays > 14 {
+		dir *= 7
+	}
 	next := shiftInputISODate(date, dir)
-	if next < start || next > end {
+	if next < start {
+		next = start
+	}
+	if next > end {
+		next = end
+	}
+	if next == date {
 		return s, nil, true
 	}
 	s.Date = next
 	return s, deps.ReloadDateSurfaces(s), true
-}
-
-func handleToggleReviewTime(s State, _ Deps) (tea.Model, tea.Cmd, bool) {
-	s.ReviewShowTime = !s.ReviewShowTime
-	return s, nil, true
 }
 
 // loadReviewWindow re-anchors Review's window on the shared date and loads it.

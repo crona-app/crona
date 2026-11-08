@@ -24,15 +24,25 @@ func (m Model) workRows() []uistate.WorkRow {
 	return rows
 }
 
+// workRange is the breakdown's dates: Review's window there, else the shown day.
+func (m Model) workRange() (string, string) {
+	if m.view == ViewReview {
+		return m.reviewRange()
+	}
+	return m.currentDate(), m.currentDate()
+}
+
 func (m Model) workKey() string {
-	return uistate.WorkKey(m.currentDate(), m.workGroup, m.workPath)
+	start, end := m.workRange()
+	return uistate.WorkKey(start+".."+end, m.workGroup, m.workPath)
 }
 
 // applyWorkSelect takes the breakdown's grouping, drill and selection from input. The
 // selection lasts only while the Day summary is focused; leaving it drops the drill.
 func (m Model) applyWorkSelect(state inputpkg.State) Model {
 	m.workGroup = state.DailyWorkGroup
-	m.workSelect = state.DailyWorkSelect && m.dailyDetailFocus && m.dailyDetailSummary
+	m.workSelect = state.DailyWorkSelect &&
+		(state.ActiveView == ViewReview || (m.dailyDetailFocus && m.dailyDetailSummary))
 	if !m.workSelect {
 		m.workCursor, m.workPath = 0, nil
 		return m
@@ -55,7 +65,12 @@ func (m Model) ensureWorkBreakdown(force bool) (Model, tea.Cmd) {
 	m.workWantKey = key
 	repoID, streamID, tag := uistate.WorkFilters(m.workPath)
 	group := uistate.WorkLevelGroup(m.workGroup, m.workPath)
-	return m, commands.LoadWorkBreakdown(m.client, key, m.currentDate(), group, repoID, streamID, tag)
+	start, end := m.workRange()
+	var columns [][]string
+	if m.view == ViewReview {
+		columns = uistate.ReviewColumns(start, end, m.currentWeekStart())
+	}
+	return m, commands.LoadWorkBreakdown(m.client, key, start, end, group, repoID, streamID, tag, columns)
 }
 
 // workBreakdownShown is the breakdown when it answers the current query, else nil (loading).
@@ -64,4 +79,12 @@ func (m Model) workBreakdownShown() *api.TimeDistributionSummary {
 		return nil
 	}
 	return m.workBreakdown
+}
+
+// workColumnsShown is the breakdown per Review column, when it answers the current query.
+func (m Model) workColumnsShown() []*api.TimeDistributionSummary {
+	if m.workBreakdownKey != m.workKey() {
+		return nil
+	}
+	return m.workColumns
 }

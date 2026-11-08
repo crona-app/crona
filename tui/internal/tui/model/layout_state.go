@@ -53,6 +53,9 @@ func (m Model) viewContentState(
 		DailyPlanSelect:     m.dailyPlanSelect,
 		DailyPlanCursor:     m.planCursor(m.planItems()),
 		WorkBreakdown:       m.workBreakdownShown(),
+		WorkColumns:         m.workColumnsShown(),
+		ReviewScores:        m.reviewScores,
+		ReviewPrev:          m.reviewPrev,
 		DailyWorkSelect:     m.workSelect,
 		DailyWorkCursor:     m.workCursor,
 		DailyWorkGroup:      m.workGroup,
@@ -125,11 +128,6 @@ func (m Model) viewContentState(
 		DashboardWindow:       m.dashboardWindow,
 		DailyFocusScore:       m.dailyFocusScore,
 		WeeklyFocusScore:      m.weeklyFocusScore,
-		RepoDistribution:      m.repoDistribution,
-		StreamDistribution:    m.streamDistribution,
-		IssueDistribution:     m.issueDistribution,
-		SegmentDistribution:   m.segmentDistribution,
-		TagDistribution:       m.tagDistribution,
 		GoalProgress:          m.goalProgress,
 		ExportAssets:          m.exportAssets,
 		ExportReports:         m.exportReports,
@@ -168,7 +166,6 @@ func (m Model) viewContentState(
 	selectedDate := m.currentDate()
 	state.RollupStartDate, state.RollupEndDate = m.reviewRange()
 	state.ReviewWindowDays, state.ReviewWindowEnd = m.reviewWindowDays, state.RollupEndDate
-	state.ReviewShowTime = m.reviewShowTime
 	if m.view == ViewDaily {
 		state.DailyIssueIndices = selectionpkg.FilteredIndices(snapshot, PaneIssues)
 		state.DailyHabitIndices = selectionpkg.FilteredIndices(snapshot, PaneHabits)

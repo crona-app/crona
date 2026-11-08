@@ -44,9 +44,8 @@ type State struct {
 	// Date is the one date every dated view shows; "" means the logical today.
 	Date             string
 	ReviewWindowDays int
-	// ReviewWindowEnd anchors Review's window; ReviewShowTime puts Time in Trends' slot.
+	// ReviewWindowEnd anchors Review's window.
 	ReviewWindowEnd           string
-	ReviewShowTime            bool
 	MomentumWindowDays        int
 	Dialog                    string
 	DialogState               dialogstate.State
@@ -110,10 +109,7 @@ type Deps struct {
 	// reports whether it did.
 	OpenDaySummary func(*State) bool
 	// DailyCalendarMonthFits reports whether Today has room for the calendar's full month.
-	DailyCalendarMonthFits func(State) bool
-	// OpenReviewDialog opens Review's "day" or "time" as a dialog on narrow screens, where
-	// neither has a pane, and reports whether it did.
-	OpenReviewDialog             func(*State, string) bool
+	DailyCalendarMonthFits       func(State) bool
 	OpenHelpDialog               func(*State) bool
 	ConfigChangeSelected         func(*State) tea.Cmd
 	OpenCheckoutContextDialog    func(*State) bool
@@ -746,36 +742,26 @@ func newRouter(deps Deps) *router {
 		}
 		return s, nil, false
 	})
-	r.RegisterView(
-		uistate.ViewReview,
-		"up",
-		func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-			return handleReviewStepDay(s, deps, -1)
-		},
-	)
-	r.RegisterView(
-		uistate.ViewReview,
-		"down",
-		func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-			return handleReviewStepDay(s, deps, 1)
-		},
-	)
-	r.RegisterView(uistate.ViewReview, "S", func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-		if deps.OpenReviewDialog != nil && deps.OpenReviewDialog(&s, "time") {
-			return s, nil, true
-		}
-		return handleToggleReviewTime(s, deps)
+	// ←/→ (and ↑/↓) move the matrix's selected column: a day, or a week in a long window.
+	for key, dir := range map[string]int{"left": -1, "up": -1, "right": 1, "down": 1} {
+		r.RegisterView(uistate.ViewReview, key, func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+			return handleReviewStepDay(s, deps, dir)
+		})
+	}
+	// enter opens the selected day in Today, which owns the day's detail.
+	r.RegisterView(uistate.ViewReview, "enter", func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+		return enterView(s, deps, uistate.ViewDaily)
 	})
-	r.RegisterView(
-		uistate.ViewReview,
-		"enter",
-		func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
-			if deps.OpenReviewDialog != nil {
-				deps.OpenReviewDialog(&s, "day")
-			}
-			return s, nil, true
-		},
-	)
+	r.RegisterView(uistate.ViewReview, "b", func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+		s.DailyWorkGroup = uistate.NextWorkGroup(s.DailyWorkGroup, 1)
+		return s, nil, true
+	})
+	r.RegisterView(uistate.ViewReview, "B", func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+		if len(s.DailyWorkRows) > 0 && uistate.WorkDrillable(uistate.WorkLevelGroup(s.DailyWorkGroup, nil)) {
+			s.DailyWorkSelect, s.DailyWorkCursor = true, 0
+		}
+		return s, nil, true
+	})
 	r.RegisterView(uistate.ViewReview, "w", func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 		return handleOpenCheckIn(s, deps)
 	})
@@ -911,7 +897,8 @@ func dailyHabitsFolded(s State) bool {
 // repo's streams or a stream's issues, and esc to step back out (leaving the list at the
 // top). b still cycles the grouping at the top level; other keys are held back.
 func handleWorkSelect(s State, key tea.KeyMsg) (State, bool) {
-	if !s.DailyWorkSelect || !s.DailyDetailFocus || s.ActiveView != uistate.ViewDaily ||
+	onSummary := s.ActiveView == uistate.ViewDaily && s.DailyDetailFocus
+	if !s.DailyWorkSelect || (!onSummary && s.ActiveView != uistate.ViewReview) ||
 		s.Dialog != "" || s.HelpOpen {
 		return s, false
 	}
@@ -925,6 +912,9 @@ func handleWorkSelect(s State, key tea.KeyMsg) (State, bool) {
 		s.DailyWorkSelect = false
 	case "tab", "shift+tab":
 		s.DailyWorkSelect, s.DailyWorkPath = false, nil
+		if !onSummary {
+			return s, false
+		}
 		return handleFocusedDailyDetail(s, key)
 	case "up", "k":
 		s.DailyWorkCursor = max(0, s.DailyWorkCursor-1)

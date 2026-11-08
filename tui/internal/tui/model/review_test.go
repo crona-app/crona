@@ -7,7 +7,6 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 
-	uistate "crona.work/tui/internal/tui/state"
 	viewtypes "crona.work/tui/internal/tui/views/types"
 )
 
@@ -26,20 +25,6 @@ func reviewModel() Model {
 func reviewContent(m Model) viewtypes.ContentState {
 	snapshot := m.selectionSnapshot()
 	return m.viewContentState(m.width, m.height, snapshot, nil)
-}
-
-func TestReviewShowTimeSurvivesTabSwitch(t *testing.T) {
-	m := reviewModel()
-	m.reviewShowTime = true
-	s := m.inputState()
-	s.ActiveView, s.ActivePane = uistate.ViewDaily, uistate.PaneIssues
-	m = m.applyInputState(s)
-	s = m.inputState()
-	s.ActiveView, s.ActivePane = uistate.ViewReview, uistate.PaneReviewDays
-	m = m.applyInputState(s)
-	if !m.reviewShowTime || !reviewContent(m).ReviewShowTime {
-		t.Fatalf("expected Time kept after leaving and re-entering Review")
-	}
 }
 
 func TestReviewWindowCarriedWhenDateLeaves(t *testing.T) {
@@ -95,40 +80,12 @@ func pressReview(m Model, key tea.KeyMsg) Model {
 	return next.(Model)
 }
 
-func TestNarrowReviewEnterOpensDayDialog(t *testing.T) {
+func TestReviewEnterOpensDayInToday(t *testing.T) {
 	m := reviewModel()
 	m.width = 80
 	m = pressReview(m, tea.KeyMsg{Type: tea.KeyEnter})
-	if m.dialogState().Kind != "view_entity" ||
-		!strings.Contains(m.dialogState().ViewTitle, "Day") {
-		t.Fatalf(
-			"expected the day dialog, got %q %q",
-			m.dialogState().Kind,
-			m.dialogState().ViewTitle,
-		)
-	}
-	wide := pressReview(reviewModel(), tea.KeyMsg{Type: tea.KeyEnter})
-	if wide.dialogState().Kind != "" {
-		t.Fatalf(
-			"expected no dialog on enter when the detail is visible, got %q",
-			wide.dialogState().Kind,
-		)
-	}
-}
-
-func TestNarrowReviewSOpensTimeDialog(t *testing.T) {
-	m := reviewModel()
-	m.width = 80
-	m = pressReview(m, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'S'}})
-	if m.dialogState().Kind != "view_entity" ||
-		!strings.Contains(m.dialogState().ViewTitle, "Time") ||
-		m.reviewShowTime {
-		t.Fatalf(
-			"expected the Time dialog without toggling, got %q %q show=%t",
-			m.dialogState().Kind,
-			m.dialogState().ViewTitle,
-			m.reviewShowTime,
-		)
+	if m.view != ViewDaily || m.dialogState().Kind != "" {
+		t.Fatalf("expected enter to open Today, got view %s dialog %q", m.view, m.dialogState().Kind)
 	}
 }
 

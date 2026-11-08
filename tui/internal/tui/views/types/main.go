@@ -58,10 +58,9 @@ type ContentState struct {
 	MomentumWindowDays  int
 	WellbeingDate       string
 	WellbeingWindowDays int
-	// ReviewWindowDays days end on ReviewWindowEnd; ReviewShowTime puts Time in Trends' slot.
+	// ReviewWindowDays days end on ReviewWindowEnd.
 	ReviewWindowDays    int
 	ReviewWindowEnd     string
-	ReviewShowTime      bool
 	WeekStart           sharedtypes.WeekStart
 	DefaultIssueSection string
 	DailyTaskSection    string
@@ -94,7 +93,9 @@ type ContentState struct {
 	DailyPlanCursor int
 	// WorkBreakdown is the shown day's worked time by DailyWorkGroup (or the drill's level),
 	// nil while loading. DailyWorkSelect makes its rows selectable at DailyWorkCursor.
-	WorkBreakdown   *api.TimeDistributionSummary
+	WorkBreakdown *api.TimeDistributionSummary
+	// WorkColumns is WorkBreakdown per Review column (a day, or a week of a long window).
+	WorkColumns     []*api.TimeDistributionSummary
 	DailyWorkSelect bool
 	DailyWorkCursor int
 	DailyWorkGroup  string
@@ -123,16 +124,14 @@ type ContentState struct {
 	DashboardWindow       *api.DashboardWindowSummary
 	DailyFocusScore       *api.FocusScoreSummary
 	WeeklyFocusScore      *api.FocusScoreSummary
-	RepoDistribution      *api.TimeDistributionSummary
-	StreamDistribution    *api.TimeDistributionSummary
-	IssueDistribution     *api.TimeDistributionSummary
-	SegmentDistribution   *api.TimeDistributionSummary
-	// TagDistribution counts each session toward every tag on its issue, so rows overlap.
-	TagDistribution *api.TimeDistributionSummary
-	GoalProgress    *api.GoalProgressSummary
-	ExportAssets    *api.ExportAssetStatus
-	ExportReports   []api.ExportReportFile
-	IssueSessions   []api.Session
+	// ReviewScores are the window's focus scores by day; ReviewPrev is the window of the
+	// same length just before it, for Review's comparison column.
+	ReviewScores  []api.FocusScoreRangeDay
+	ReviewPrev    *ReviewPrev
+	GoalProgress  *api.GoalProgressSummary
+	ExportAssets  *api.ExportAssetStatus
+	ExportReports []api.ExportReportFile
+	IssueSessions []api.Session
 	// DetailSessions are the sessions of DetailSessionsIssueID, the issue Daily's detail pane
 	// shows.
 	DetailSessions        []api.SessionHistoryEntry
@@ -169,4 +168,11 @@ func (s ContentState) AwayDates() []string {
 		return nil
 	}
 	return s.Settings.AwayDates
+}
+
+// ReviewPrev is the window before Review's: its totals, plan and focus score.
+type ReviewPrev struct {
+	Rollup *api.MetricsRollup
+	Window *api.DashboardWindowSummary
+	Focus  *api.FocusScoreSummary
 }

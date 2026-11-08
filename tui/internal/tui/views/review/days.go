@@ -1,16 +1,9 @@
 package review
 
 import (
-	"fmt"
-	"slices"
 	"time"
 
-	"crona.work/tui/internal/api"
-	viewchrome "crona.work/tui/internal/tui/views/chrome"
-	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	types "crona.work/tui/internal/tui/views/types"
-
-	sharedtypes "crona.work/shared/types"
 )
 
 const isoDate = "2006-01-02"
@@ -34,96 +27,4 @@ func WindowDates(state types.ContentState) []string {
 		dates[i] = last.AddDate(0, 0, i-days+1).Format(isoDate)
 	}
 	return dates
-}
-
-func renderDays(
-	theme types.Theme,
-	state types.ContentState,
-	width, height int,
-	meta string,
-) string {
-	dates := WindowDates(state)
-	metrics := map[string]api.DailyMetricsDay{}
-	for _, day := range state.MetricsRange {
-		metrics[day.Date] = day
-	}
-	plans := map[string]sharedtypes.DashboardWindowDay{}
-	if state.DashboardWindow != nil {
-		for _, day := range state.DashboardWindow.Days {
-			plans[day.Date] = day
-		}
-	}
-	meanMood, moods := 0.0, 0
-	for _, date := range dates {
-		if day, ok := metrics[date]; ok && day.CheckIn != nil {
-			meanMood += float64(day.CheckIn.Mood)
-			moods++
-		}
-	}
-	if moods > 0 {
-		meanMood /= float64(moods)
-	}
-	cur := slices.Index(dates, state.DashboardDate)
-	start, end := viewchrome.ListWindow(max(0, cur), len(dates), max(1, height-1))
-	lines := make([]string, 0, end-start)
-	for i := start; i < end; i++ {
-		line := dayRow(theme, dates[i], plans[dates[i]], metrics[dates[i]], meanMood)
-		if i == cur {
-			lines = append(lines, viewchrome.SelectedRow(theme, line))
-		} else {
-			lines = append(lines, "  "+line)
-		}
-	}
-	return viewchrome.RenderSection(theme, viewchrome.Section{
-		Title: "Days", Meta: meta, Focused: true, Width: width, Height: height, Lines: lines,
-	})
-}
-
-func dayRow(
-	theme types.Theme,
-	date string,
-	plan sharedtypes.DashboardWindowDay,
-	metrics api.DailyMetricsDay,
-	meanMood float64,
-) string {
-	label := date
-	if t, err := time.Parse(isoDate, date); err == nil {
-		label = t.Format("Mon 2")
-	}
-	mark := " "
-	if metrics.CheckIn != nil {
-		mood := float64(metrics.CheckIn.Mood)
-		switch {
-		case mood > meanMood+0.25:
-			mark = "▲"
-		case mood < meanMood-0.25:
-			mark = "▼"
-		default:
-			mark = "▬"
-		}
-	}
-	return fmt.Sprintf("%-6s  %s %d/%d  %4s %s",
-		label,
-		statusStyle(theme, string(plan.Status)).Render(statusMark(plan.Status)),
-		plan.CompletedCount, plan.PlannedCount,
-		viewhelpers.FormatCompactDurationSeconds(metrics.WorkedSeconds),
-		mark,
-	)
-}
-
-func statusMark(status sharedtypes.DashboardWindowDayStatus) string {
-	switch status {
-	case sharedtypes.DashboardWindowDayDone:
-		return "✓"
-	case sharedtypes.DashboardWindowDayMissed:
-		return "✗"
-	case sharedtypes.DashboardWindowDayCarryOver:
-		return "↷"
-	case sharedtypes.DashboardWindowDayPlanned:
-		return "·"
-	case sharedtypes.DashboardWindowDayMixed:
-		return "~"
-	default:
-		return " "
-	}
 }

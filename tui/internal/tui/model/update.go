@@ -260,9 +260,16 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, workCmd
 		}
 		return m, batchCmds(workCmd, commands.LoadSummaryCalendarScores(m.client, start, end))
+	case commands.ReviewCompareLoadedMsg:
+		start, end := m.reviewRange()
+		if msg.Start == start && msg.End == end {
+			prev := msg.Prev
+			m.reviewScores, m.reviewPrev, m.reviewCompareRange = msg.Scores, &prev, start+".."+end
+		}
+		return m, nil
 	case commands.WorkBreakdownLoadedMsg:
 		if msg.Key == m.workWantKey {
-			m.workBreakdown, m.workBreakdownKey = msg.Summary, msg.Key
+			m.workBreakdown, m.workColumns, m.workBreakdownKey = msg.Summary, msg.Columns, msg.Key
 			m.workCursor = min(m.workCursor, max(0, len(m.workRows())-1))
 		}
 		return m, nil
@@ -394,11 +401,6 @@ func (m Model) dispatchMessageState() dispatchpkg.MessageState {
 		DashboardWindow:         m.dashboardWindow,
 		DailyFocusScore:         m.dailyFocusScore,
 		WeeklyFocusScore:        m.weeklyFocusScore,
-		RepoDistribution:        m.repoDistribution,
-		StreamDistribution:      m.streamDistribution,
-		IssueDistribution:       m.issueDistribution,
-		SegmentDistribution:     m.segmentDistribution,
-		TagDistribution:         m.tagDistribution,
 		GoalProgress:            m.goalProgress,
 		ExportAssets:            m.exportAssets,
 		ExportReports:           m.exportReports,
@@ -497,11 +499,6 @@ func (m Model) applyDispatchMessageState(state dispatchpkg.MessageState) Model {
 	m.dashboardWindow = state.DashboardWindow
 	m.dailyFocusScore = state.DailyFocusScore
 	m.weeklyFocusScore = state.WeeklyFocusScore
-	m.repoDistribution = state.RepoDistribution
-	m.streamDistribution = state.StreamDistribution
-	m.issueDistribution = state.IssueDistribution
-	m.segmentDistribution = state.SegmentDistribution
-	m.tagDistribution = state.TagDistribution
 	m.goalProgress = state.GoalProgress
 	m.exportAssets = state.ExportAssets
 	m.exportReports = state.ExportReports

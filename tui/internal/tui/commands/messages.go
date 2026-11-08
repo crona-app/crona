@@ -72,10 +72,6 @@ type FocusScoreLoadedMsg struct {
 	WindowDays int
 	Summary    *api.FocusScoreSummary
 }
-type DistributionLoadedMsg struct {
-	GroupBy string
-	Summary *api.TimeDistributionSummary
-}
 type GoalProgressLoadedMsg struct{ Summary *api.GoalProgressSummary }
 
 // RollupRefreshRequestedMsg asks for Review's window again; the model knows its range.

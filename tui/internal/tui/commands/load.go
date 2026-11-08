@@ -1,6 +1,7 @@
 package commands
 
 import (
+	viewtypes "crona.work/tui/internal/tui/views/types"
 	"time"
 
 	sharedtypes "crona.work/shared/types"
@@ -625,6 +626,7 @@ func LoadWellbeingDay(c *api.Client, date string) tea.Cmd {
 // LoadReviewWindow loads everything Review shows over start..end.
 func LoadReviewWindow(c *api.Client, start, end string) tea.Cmd {
 	return tea.Batch(
+		LoadReviewCompare(c, start, end),
 		LoadRollupSummaries(c, start, end),
 		LoadMetricsRange(c, start, end),
 		LoadMetricsRollup(c, start, end),
@@ -641,11 +643,6 @@ func LoadRollupSummaries(c *api.Client, start, end string) tea.Cmd {
 		LoadDashboardWindow(c, start, end),
 		LoadFocusScore(c, start, end, 7),
 		LoadRollupFocusWindow(c, start, end),
-		LoadDistribution(c, start, end, string(sharedtypes.DistributionGroupRepo)),
-		LoadDistribution(c, start, end, string(sharedtypes.DistributionGroupStream)),
-		LoadDistribution(c, start, end, string(sharedtypes.DistributionGroupIssue)),
-		LoadDistribution(c, start, end, string(sharedtypes.DistributionGroupSegmentType)),
-		LoadDistribution(c, start, end, string(sharedtypes.DistributionGroupTag)),
 		LoadGoalProgress(c, start, end),
 	)
 }
@@ -695,22 +692,6 @@ func LoadFocusScore(c *api.Client, start, end string, windowDays int) tea.Cmd {
 			return ErrMsg{Err: err}
 		}
 		return FocusScoreLoadedMsg{WindowDays: windowDays, Summary: summary}
-	}
-}
-
-func LoadDistribution(c *api.Client, start, end, groupBy string) tea.Cmd {
-	return func() tea.Msg {
-		repoID, streamID, issueID, err := currentContextScope(c)
-		if err != nil {
-			logger.Errorf("loadDistribution(%s): %v", groupBy, err)
-			return ErrMsg{Err: err}
-		}
-		summary, err := c.GetTimeDistributionSummary(start, end, groupBy, repoID, streamID, issueID)
-		if err != nil {
-			logger.Errorf("loadDistribution(%s): %v", groupBy, err)
-			return ErrMsg{Err: err}
-		}
-		return DistributionLoadedMsg{GroupBy: groupBy, Summary: summary}
 	}
 }
 
@@ -776,14 +757,54 @@ func LoadSessionPreview(c *api.Client, id string) tea.Cmd {
 type WorkBreakdownLoadedMsg struct {
 	Key     string
 	Summary *api.TimeDistributionSummary
+	// Columns is the breakdown per Review column, in order; empty off Review.
+	Columns []*api.TimeDistributionSummary
 }
 
-func LoadWorkBreakdown(c *api.Client, key, date, group string, repoID, streamID *int64, tag string) tea.Cmd {
+// LoadWorkBreakdown loads the breakdown over start..end and, for Review's grid, over each
+// of columns (each a run of dates). A failed column is left empty.
+func LoadWorkBreakdown(
+	c *api.Client, key, start, end, group string, repoID, streamID *int64, tag string, columns [][]string,
+) tea.Cmd {
 	return func() tea.Msg {
-		summary, err := c.GetWorkBreakdown(date, group, repoID, streamID, tag)
+		summary, err := c.GetWorkBreakdown(start, end, group, repoID, streamID, tag)
 		if err != nil {
 			return ErrMsg{Err: err, Operation: "load work breakdown"}
 		}
-		return WorkBreakdownLoadedMsg{Key: key, Summary: summary}
+		msg := WorkBreakdownLoadedMsg{Key: key, Summary: summary}
+		for _, dates := range columns {
+			column, _ := c.GetWorkBreakdown(dates[0], dates[len(dates)-1], group, repoID, streamID, tag)
+			msg.Columns = append(msg.Columns, column)
+		}
+		return msg
+	}
+}
+
+// ReviewCompareLoadedMsg is the window's daily focus scores and the previous window's
+// totals, for Review's matrix.
+type ReviewCompareLoadedMsg struct {
+	Start, End string
+	Scores     []api.FocusScoreRangeDay
+	Prev       viewtypes.ReviewPrev
+}
+
+// LoadReviewCompare loads the window's daily focus scores and the same-length window
+// before it. A failed comparison leaves the column blank rather than failing the view.
+func LoadReviewCompare(c *api.Client, start, end string) tea.Cmd {
+	return func() tea.Msg {
+		msg := ReviewCompareLoadedMsg{Start: start, End: end}
+		msg.Scores, _ = c.GetFocusScoreRange(start, end)
+		first, err1 := time.Parse("2006-01-02", start)
+		last, err2 := time.Parse("2006-01-02", end)
+		if err1 != nil || err2 != nil {
+			return msg
+		}
+		days := int(last.Sub(first).Hours()/24) + 1
+		prevEnd := first.AddDate(0, 0, -1).Format("2006-01-02")
+		prevStart := first.AddDate(0, 0, -days).Format("2006-01-02")
+		msg.Prev.Rollup, _ = c.GetMetricsRollup(prevStart, prevEnd)
+		msg.Prev.Window, _ = c.GetDashboardWindowSummary(prevStart, prevEnd, nil, nil, nil)
+		msg.Prev.Focus, _ = c.GetFocusScoreSummary(prevStart, prevEnd)
+		return msg
 	}
 }

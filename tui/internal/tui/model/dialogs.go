@@ -17,7 +17,6 @@ import (
 	selectionpkg "crona.work/tui/internal/tui/selection"
 	uistate "crona.work/tui/internal/tui/state"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
-	reviewview "crona.work/tui/internal/tui/views/review"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	viewsummary "crona.work/tui/internal/tui/views/summary"
 	tagsmeta "crona.work/tui/internal/tui/views/tagsmeta"
@@ -559,32 +558,6 @@ func (m Model) openDaySummaryDialog() Model {
 		m.layoutState().ContentState,
 		viewEntityBodyWidth(m.width),
 	)
-	return m.openViewEntityDialog(
-		"Day",
-		helperpkg.FormatDisplayDate(m.currentDate(), m.settings),
-		"",
-		strings.Join(lines, "\n"),
-	)
-}
-
-// openReviewDialog shows Review's selected day, or its Time breakdown, as a dialog.
-func (m Model) openReviewDialog(kind string) Model {
-	theme, state, width := layoutpkg.ViewTheme(), m.layoutState().ContentState, viewEntityBodyWidth(
-		m.width,
-	)
-	if kind == "time" {
-		lines := reviewview.TimeLines(theme, state, width)
-		start, end := m.reviewRange()
-		name := helperpkg.FormatDisplayDate(
-			start,
-			m.settings,
-		) + " – " + helperpkg.FormatDisplayDate(
-			end,
-			m.settings,
-		)
-		return m.openViewEntityDialog("Time", name, "", strings.Join(lines, "\n"))
-	}
-	lines := reviewview.DetailLines(theme, state, width)
 	return m.openViewEntityDialog(
 		"Day",
 		helperpkg.FormatDisplayDate(m.currentDate(), m.settings),

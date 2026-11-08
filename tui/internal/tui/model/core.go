@@ -2,6 +2,7 @@ package model
 
 import (
 	"crona.work/tui/internal/tui/scope"
+	types "crona.work/tui/internal/tui/views/types"
 	"time"
 
 	shareddto "crona.work/shared/dto"
@@ -116,10 +117,9 @@ type Model struct {
 	tagFiltersRestored bool
 	// date is the shared date every dated view shows; "" follows the logical today.
 	date string
-	// reviewWindowDays end on reviewWindowEnd; reviewShowTime puts Time in Trends' slot.
+	// reviewWindowDays end on reviewWindowEnd.
 	reviewWindowDays int
 	reviewWindowEnd  string
-	reviewShowTime   bool
 	summarySnapshot  *api.SummarySnapshot
 	// dailyDetailFocus shows the selection in Daily's detail pane (enter) instead of the Day
 	// summary, until esc or the selection moves; dailyDetailScroll scrolls it.
@@ -137,9 +137,14 @@ type Model struct {
 	workSelect       bool
 	workCursor       int
 	workBreakdown    *api.TimeDistributionSummary
+	workColumns      []*api.TimeDistributionSummary
 	workBreakdownKey string
 	workWantKey      string
-	dailyPlanIssueID int64
+	// reviewScores and reviewPrev fill Review's matrix for reviewCompareRange.
+	reviewScores       []api.FocusScoreRangeDay
+	reviewPrev         *types.ReviewPrev
+	reviewCompareRange string
+	dailyPlanIssueID   int64
 	// detailSessions are the sessions of detailSessionsIssueID, loaded when Daily's detail
 	// pane opens on an issue.
 	detailSessions        []api.SessionHistoryEntry
@@ -160,11 +165,6 @@ type Model struct {
 	dashboardWindow       *api.DashboardWindowSummary
 	dailyFocusScore       *api.FocusScoreSummary
 	weeklyFocusScore      *api.FocusScoreSummary
-	repoDistribution      *api.TimeDistributionSummary
-	streamDistribution    *api.TimeDistributionSummary
-	issueDistribution     *api.TimeDistributionSummary
-	segmentDistribution   *api.TimeDistributionSummary
-	tagDistribution       *api.TimeDistributionSummary
 	goalProgress          *api.GoalProgressSummary
 	exportAssets          *api.ExportAssetStatus
 	exportReports         []api.ExportReportFile

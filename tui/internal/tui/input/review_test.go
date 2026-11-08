@@ -67,18 +67,6 @@ func TestReviewStepDayStaysInWindow(t *testing.T) {
 	}
 }
 
-func TestReviewToggleTime(t *testing.T) {
-	reloads := 0
-	s, _ := Handle(reviewState("2026-10-14"), runeKey('S'), dateDeps(&reloads))
-	if !s.ReviewShowTime {
-		t.Fatalf("expected S to show Time")
-	}
-	s, _ = Handle(s, runeKey('S'), dateDeps(&reloads))
-	if s.ReviewShowTime {
-		t.Fatalf("expected S again to show Trends")
-	}
-}
-
 func TestReviewEOpensDateDialog(t *testing.T) {
 	reloads, opened := 0, false
 	deps := dateDeps(&reloads)
@@ -87,5 +75,13 @@ func TestReviewEOpensDateDialog(t *testing.T) {
 	Handle(reviewState("2026-10-14"), runeKey('E'), deps)
 	if !opened {
 		t.Fatalf("expected E to open the calendar")
+	}
+}
+
+func TestReviewEnterOpensDayInToday(t *testing.T) {
+	reloads := 0
+	s, _ := Handle(reviewState("2026-10-12"), tea.KeyMsg{Type: tea.KeyEnter}, dateDeps(&reloads))
+	if s.ActiveView != uistate.ViewDaily || s.Date != "2026-10-12" {
+		t.Fatalf("enter should open the selected day in Today, got %s %s", s.ActiveView, s.Date)
 	}
 }

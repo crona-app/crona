@@ -61,11 +61,6 @@ type MessageState struct {
 	DashboardWindow        *api.DashboardWindowSummary
 	DailyFocusScore        *api.FocusScoreSummary
 	WeeklyFocusScore       *api.FocusScoreSummary
-	RepoDistribution       *api.TimeDistributionSummary
-	StreamDistribution     *api.TimeDistributionSummary
-	IssueDistribution      *api.TimeDistributionSummary
-	SegmentDistribution    *api.TimeDistributionSummary
-	TagDistribution        *api.TimeDistributionSummary
 	GoalProgress           *api.GoalProgressSummary
 	ExportAssets           *api.ExportAssetStatus
 	ExportReports          []api.ExportReportFile
@@ -366,20 +361,6 @@ func HandleMessage(
 			state.DailyFocusScore = msg.Summary
 		default:
 			state.WeeklyFocusScore = msg.Summary
-		}
-		return state, nil, true
-	case commands.DistributionLoadedMsg:
-		switch msg.GroupBy {
-		case "repo":
-			state.RepoDistribution = msg.Summary
-		case "stream":
-			state.StreamDistribution = msg.Summary
-		case "issue":
-			state.IssueDistribution = msg.Summary
-		case "segment_type":
-			state.SegmentDistribution = msg.Summary
-		case "tag":
-			state.TagDistribution = msg.Summary
 		}
 		return state, nil, true
 	case commands.GoalProgressLoadedMsg:

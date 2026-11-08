@@ -41,51 +41,31 @@ func burnoutSummary(burnout *api.BurnoutIndicator) string {
 	}
 }
 
-func burnoutContributorLines(burnout *api.BurnoutIndicator) (risks []string, recoveries []string) {
-	type factor struct {
-		name  string
-		score float64
-	}
-	positive := make([]factor, 0, len(burnout.Factors))
-	negative := make([]factor, 0, len(burnout.Factors))
+// burnoutDriver is one factor of the risk score, in points: positive raises it.
+type burnoutDriver struct {
+	name   string
+	points int
+}
+
+// burnoutDrivers are the factors easing the score (most first) and raising it (most first),
+// up to three of each; factors under a point say nothing and are left out.
+func burnoutDrivers(burnout *api.BurnoutIndicator) (easing, raising []burnoutDriver) {
 	for name, score := range burnout.Factors {
-		if score >= 0 {
-			positive = append(positive, factor{name: name, score: score})
-			continue
+		points := int(math.Round(score * 100))
+		switch {
+		case points > 0:
+			raising = append(raising, burnoutDriver{prettifyBurnoutFactor(name), points})
+		case points < 0:
+			easing = append(easing, burnoutDriver{prettifyBurnoutFactor(name), points})
 		}
-		negative = append(negative, factor{name: name, score: score})
 	}
-	slices.SortFunc(positive, func(left, right factor) int {
-		return cmp.Compare(right.score, left.score)
+	slices.SortFunc(raising, func(a, b burnoutDriver) int {
+		return cmp.Or(cmp.Compare(b.points, a.points), cmp.Compare(a.name, b.name))
 	})
-	slices.SortFunc(negative, func(left, right factor) int {
-		return cmp.Compare(left.score, right.score)
+	slices.SortFunc(easing, func(a, b burnoutDriver) int {
+		return cmp.Or(cmp.Compare(a.points, b.points), cmp.Compare(a.name, b.name))
 	})
-	riskLimit := min(3, len(positive))
-	recoveryLimit := min(2, len(negative))
-	risks = make([]string, 0, riskLimit)
-	recoveries = make([]string, 0, recoveryLimit)
-	for i := range riskLimit {
-		risks = append(
-			risks,
-			fmt.Sprintf(
-				"- %s: +%d",
-				prettifyBurnoutFactor(positive[i].name),
-				int(math.Round(positive[i].score*100)),
-			),
-		)
-	}
-	for i := range recoveryLimit {
-		recoveries = append(
-			recoveries,
-			fmt.Sprintf(
-				"- %s: -%d",
-				prettifyBurnoutFactor(negative[i].name),
-				int(math.Round(math.Abs(negative[i].score)*100)),
-			),
-		)
-	}
-	return risks, recoveries
+	return easing[:min(3, len(easing))], raising[:min(3, len(raising))]
 }
 
 func prettifyBurnoutFactor(name string) string {

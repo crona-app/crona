@@ -114,7 +114,6 @@ func (m Model) inputState() inputpkg.State {
 		Date:                      m.date,
 		ReviewWindowDays:          m.reviewWindowDays,
 		ReviewWindowEnd:           m.reviewWindowEnd,
-		ReviewShowTime:            m.reviewShowTime,
 		MomentumWindowDays:        m.currentMomentumWindowDays(),
 		Dialog:                    m.dialog,
 		DialogState:               m.dialogState(),
@@ -173,7 +172,6 @@ func (m Model) applyInputState(state inputpkg.State) Model {
 	m.reviewWindowDays = state.ReviewWindowDays
 	m.reviewWindowEnd = state.ReviewWindowEnd
 	m = m.anchorReviewWindow()
-	m.reviewShowTime = state.ReviewShowTime
 	m.momentumWindowDays = state.MomentumWindowDays
 	m = m.withDialogState(state.DialogState)
 	if state.DialogState.Kind == "" {
@@ -270,15 +268,6 @@ func (m Model) inputDeps() inputpkg.Deps {
 				return false
 			}
 			next = next.openDaySummaryDialog()
-			*state = next.inputState()
-			return true
-		},
-		OpenReviewDialog: func(state *inputpkg.State, kind string) bool {
-			next := m.applyInputState(*state)
-			if viewhelpers.ClassFor(next.width) != viewhelpers.WidthNarrow {
-				return false
-			}
-			next = next.openReviewDialog(kind)
 			*state = next.inputState()
 			return true
 		},

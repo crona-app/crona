@@ -35,7 +35,8 @@ func DayLines(theme types.Theme, state types.ContentState, width int) []string {
 	lines = append(lines, renderPlan(theme, state, snapshot.Plan, width)...)
 	lines = append(lines, renderPlanIssues(theme, state, width)...)
 	lines = append(lines, "")
-	lines = append(lines, renderWork(theme, state, width)...)
+	lines = append(lines, WorkLines(theme, state, width,
+		state.DailyDetailFocus && state.DailyDetailSummary && !state.DailyPlanSelect)...)
 	lines = append(lines, "")
 	lines = append(lines, renderWellbeing(theme, snapshot.CheckIn, snapshot.Rollup, state.Settings, width)...)
 	lines = append(lines, lastCheckInLine(theme, snapshot.LastCheckIn, state.Settings, time.Now(), width)...)
@@ -741,21 +742,22 @@ var workGroupNames = map[string][2]string{
 	"tag": {"Tag", "tags"}, "segment_type": {"Segment", "segment types"},
 }
 
-// renderWork is where the day's worked time went, grouped by repo, stream, issue, tag or
+// WorkLines is where the day's (or Review's window's) worked time went, grouped by repo, stream, issue, tag or
 // segment (b cycles). With its rows selected (B) enter opens a repo's streams or a stream's
 // issues and esc steps back; at rest it shows the top five.
-func renderWork(theme types.Theme, state types.ContentState, width int) []string {
+// keys shows the b/B hints in the title, for when the section takes them.
+func WorkLines(theme types.Theme, state types.ContentState, width int, keys bool) []string {
 	group := uistate.WorkLevelGroup(state.DailyWorkGroup, state.DailyWorkPath)
 	selecting := state.DailyWorkSelect
 	title := theme.StylePaneTitle.Render("Work")
-	if state.DailyDetailFocus && state.DailyDetailSummary && !selecting && !state.DailyPlanSelect {
-		keys := "[b] group"
+	if keys && !selecting {
+		hint := "[b] group"
 		if uistate.WorkDrillable(group) {
-			keys += "  [B] select"
+			hint += "  [B] select"
 		}
-		title += "   " + theme.StyleDim.Render(keys)
+		title += "   " + theme.StyleDim.Render(hint)
 	}
-	lines := []string{title, workHeading(theme, state, group, width)}
+	lines := []string{title, WorkHeading(theme, state, group, width)}
 	summary := state.WorkBreakdown
 	if summary == nil {
 		return append(lines, theme.StyleDim.Render("Loading"))
@@ -818,9 +820,9 @@ func renderWork(theme types.Theme, state types.ContentState, width int) []string
 	return append(lines, "  "+theme.StyleDim.Render(foot))
 }
 
-// workHeading names what the rows are: the groupings with the current one lit, or the drill
+// WorkHeading names what the rows are: the groupings with the current one lit, or the drill
 // path down to the level shown.
-func workHeading(theme types.Theme, state types.ContentState, group string, width int) string {
+func WorkHeading(theme types.Theme, state types.ContentState, group string, width int) string {
 	if len(state.DailyWorkPath) > 0 {
 		parts := []string{theme.StyleDim.Render(workGroupNames[state.DailyWorkPath[0].Group][0])}
 		for _, crumb := range state.DailyWorkPath {
