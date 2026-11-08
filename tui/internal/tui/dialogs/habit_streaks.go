@@ -7,26 +7,10 @@ import (
 	sharedtypes "crona.work/shared/types"
 	sharedutils "crona.work/shared/utils"
 	"crona.work/tui/internal/api"
-	helperpkg "crona.work/tui/internal/tui/helpers"
-
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
-func habitStreakWizardSteps(kind string) []string {
-	if kind == "create_momentum" {
-		return []string{"Kind", "Targets", "Details", "Review"}
-	}
-	return []string{"Targets", "Details", "Review"}
-}
-
-func isMomentumDialogKind(kind string) bool {
-	switch kind {
-	case "create_momentum", "edit_momentum":
-		return true
-	default:
-		return false
-	}
+func habitStreakWizardSteps() []string {
+	return []string{"What counts", "Goal"}
 }
 
 func habitStreakPeriodLabel(period sharedtypes.HabitStreakPeriod) string {
@@ -62,49 +46,6 @@ func habitStreakHabitSummary(ids []int64, habits []sharedtypes.HabitWithMeta) st
 	return fmt.Sprintf("%s, %s, %s +%d", labels[0], labels[1], labels[2], len(labels)-3)
 }
 
-func momentumTargetKindLabel(kind sharedtypes.MomentumTargetKind) string {
-	switch sharedtypes.NormalizeMomentumTargetKind(kind) {
-	case sharedtypes.MomentumTargetKindContext:
-		return "Contexts"
-	default:
-		return "Habits"
-	}
-}
-
-func habitStreakTargetLabel(def sharedtypes.HabitStreakDefinition) string {
-	switch sharedtypes.NormalizeMomentumTargetKind(def.TargetKind) {
-	case sharedtypes.MomentumTargetKindContext:
-		return "Contexts"
-	default:
-		return "Habits"
-	}
-}
-
-func habitStreakMatchTypeSummary(def sharedtypes.HabitStreakDefinition) string {
-	kind := "habits"
-	if sharedtypes.NormalizeMomentumTargetKind(
-		def.TargetKind,
-	) == sharedtypes.MomentumTargetKindContext {
-		kind = "contexts"
-	}
-	switch sharedtypes.NormalizeMomentumMatchMode(def.MatchMode) {
-	case sharedtypes.MomentumMatchModeAll:
-		return fmt.Sprintf("All of the selected %s", kind)
-	default:
-		return fmt.Sprintf("Any of the selected %s", kind)
-	}
-}
-
-func habitStreakRequirementLabel(def sharedtypes.HabitStreakDefinition) string {
-	period := habitStreakPeriodUnitLabel(def.Period)
-	switch sharedtypes.NormalizeMomentumTargetKind(def.TargetKind) {
-	case sharedtypes.MomentumTargetKindContext:
-		return fmt.Sprintf("Required work per %s", period)
-	default:
-		return fmt.Sprintf("Required completions per %s", period)
-	}
-}
-
 func habitStreakPeriodUnitLabel(period sharedtypes.HabitStreakPeriod) string {
 	switch sharedtypes.NormalizeHabitStreakPeriod(period) {
 	case sharedtypes.HabitStreakPeriodWeek:
@@ -113,40 +54,6 @@ func habitStreakPeriodUnitLabel(period sharedtypes.HabitStreakPeriod) string {
 		return "month"
 	default:
 		return "day"
-	}
-}
-
-func habitStreakTargetSummary(def sharedtypes.HabitStreakDefinition) string {
-	mode := cases.Title(language.Und).String(sharedtypes.MomentumMatchModeLabel(def.MatchMode))
-	switch sharedtypes.NormalizeMomentumTargetKind(def.TargetKind) {
-	case sharedtypes.MomentumTargetKindContext:
-		if sharedtypes.NormalizeMomentumMatchMode(
-			def.MatchMode,
-		) == sharedtypes.MomentumMatchModeAll {
-			return fmt.Sprintf(
-				"%s · %d contexts, %s each",
-				mode,
-				max(1, len(def.Contexts)),
-				helperpkg.FormatCompactDurationSeconds(max(1, def.RequiredCount)),
-			)
-		}
-		return fmt.Sprintf(
-			"%s · %s work",
-			mode,
-			helperpkg.FormatCompactDurationSeconds(max(1, def.RequiredCount)),
-		)
-	default:
-		if sharedtypes.NormalizeMomentumMatchMode(
-			def.MatchMode,
-		) == sharedtypes.MomentumMatchModeAll {
-			return fmt.Sprintf(
-				"%s · %d habits, %d each",
-				mode,
-				max(1, len(def.HabitIDs)),
-				max(1, def.RequiredCount),
-			)
-		}
-		return fmt.Sprintf("%s · %d completions", mode, max(1, def.RequiredCount))
 	}
 }
 

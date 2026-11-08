@@ -278,6 +278,7 @@ type Model struct {
 	dialogProtectionDates                []string
 	dialogHabitStreakStep                int
 	dialogHabitStreakCursor              int
+	dialogMomentum                       dialogstate.MomentumWizard
 	dialogHabitStreakOriginalDefs        []sharedtypes.HabitStreakDefinition
 	dialogHabitStreakDefs                []sharedtypes.HabitStreakDefinition
 	dialogHabitStreakDraft               sharedtypes.HabitStreakDefinition

@@ -87,7 +87,7 @@ func TestMomentumDialogAllowsQInDescriptionField(t *testing.T) {
 	}
 }
 
-func TestMomentumCreateUsesCtrlSToAdvanceKindStep(t *testing.T) {
+func TestMomentumCreateCtrlSNeedsAPick(t *testing.T) {
 	state := OpenCreateMomentumDirect(State{}, nil, nil, nil, nil, nil)
 
 	next, action, status := Update(
@@ -102,12 +102,12 @@ func TestMomentumCreateUsesCtrlSToAdvanceKindStep(t *testing.T) {
 	if action != nil {
 		t.Fatalf("expected no action, got %+v", action)
 	}
-	if next.HabitStreakStep != 2 {
-		t.Fatalf("expected ctrl+s to advance to target step, got %d", next.HabitStreakStep)
+	if next.HabitStreakStep != 1 || next.ErrorMessage != "Pick at least one habit" {
+		t.Fatalf("expected ctrl+s to stay with an error, got step %d %q", next.HabitStreakStep, next.ErrorMessage)
 	}
 }
 
-func TestMomentumDetailsUseCtrlSToAdvanceToReview(t *testing.T) {
+func TestMomentumGoalCtrlSSaves(t *testing.T) {
 	state := OpenEditMomentumDirect(State{}, nil, []api.HabitWithMeta{{
 		Habit: sharedtypes.Habit{
 			ID:           1,
@@ -134,11 +134,8 @@ func TestMomentumDetailsUseCtrlSToAdvanceToReview(t *testing.T) {
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
 	}
-	if action != nil {
-		t.Fatalf("expected no action, got %+v", action)
-	}
-	if next.HabitStreakStep != 3 {
-		t.Fatalf("expected ctrl+s to advance to review, got %d", next.HabitStreakStep)
+	if action == nil || action.Kind != "update_momentum" || next.Kind != "" {
+		t.Fatalf("expected ctrl+s to save and close, got %+v (kind %q)", action, next.Kind)
 	}
 }
 

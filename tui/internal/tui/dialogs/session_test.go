@@ -20,8 +20,8 @@ func TestMomentumDialogUsesMomentumTitle(t *testing.T) {
 	if !strings.Contains(rendered, "Momentum") {
 		t.Fatalf("expected momentum dialog title, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "Choose momentum kind") {
-		t.Fatalf("expected create momentum dialog to start with kind selection, got %q", rendered)
+	if !strings.Contains(rendered, "Based on") {
+		t.Fatalf("expected create momentum dialog to offer the kind row, got %q", rendered)
 	}
 	if strings.Contains(rendered, "Habit Streaks") {
 		t.Fatalf("expected momentum dialog to avoid the settings title, got %q", rendered)
@@ -103,10 +103,10 @@ func TestEditMomentumDialogStartsWithTargetsSelection(t *testing.T) {
 		},
 	)
 	rendered := renderHabitStreakDialog(Theme{}, state)
-	if !strings.Contains(rendered, "Select contributing habits") {
+	if !strings.Contains(rendered, "What counts") {
 		t.Fatalf("expected edit momentum dialog to start with target selection, got %q", rendered)
 	}
-	if strings.Contains(rendered, "Choose momentum kind") {
+	if strings.Contains(rendered, "Based on") {
 		t.Fatalf("expected edit momentum dialog to skip kind selection, got %q", rendered)
 	}
 }

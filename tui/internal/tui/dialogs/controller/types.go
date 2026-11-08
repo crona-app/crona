@@ -171,6 +171,7 @@ type State struct {
 	HabitStreakDefs                []sharedtypes.HabitStreakDefinition
 	HabitStreakDraft               sharedtypes.HabitStreakDefinition
 	HabitStreakEditIdx             int
+	Momentum                       MomentumWizard
 	ExportPresetKind               sharedtypes.ExportReportKind
 	ExportPresetFormat             sharedtypes.ExportFormat
 	ExportPresetOutput             sharedtypes.ExportOutputMode
@@ -225,3 +226,13 @@ const (
 	IssueCreateFollowUpFocus
 	IssueCreateFollowUpAdhoc
 )
+
+// MomentumWizard is the momentum wizard's own UI state: the habit search, which row of
+// "What counts" has focus, the pending discard question and the draft as it opened.
+type MomentumWizard struct {
+	Filter         textinput.Model
+	FilterFocused  bool
+	KindFocused    bool
+	ConfirmDiscard bool
+	Initial        string
+}

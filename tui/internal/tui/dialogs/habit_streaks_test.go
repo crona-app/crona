@@ -9,7 +9,7 @@ import (
 	controllerpkg "crona.work/tui/internal/tui/dialogs/controller"
 )
 
-func TestMomentumDetailsShowAllowedRangeForHabitSelection(t *testing.T) {
+func TestMomentumGoalShowsCapAndSentence(t *testing.T) {
 	state := controllerpkg.OpenEditMomentumDirect(
 		controllerpkg.State{},
 		nil,
@@ -40,8 +40,9 @@ func TestMomentumDetailsShowAllowedRangeForHabitSelection(t *testing.T) {
 	state.HabitStreakStep = 2
 
 	rendered := renderHabitStreakDialog(testTheme(), state)
-	if !strings.Contains(rendered, "Allowed range: 1-3 per week") {
-		t.Fatalf("expected allowed range in dialog, got %q", rendered)
+	if !strings.Contains(rendered, "completions a week (max 3)") ||
+		!strings.Contains(rendered, "Weekly train: 2 completions a week from any of Train") {
+		t.Fatalf("expected the cap and the goal sentence, got %q", rendered)
 	}
 }
 

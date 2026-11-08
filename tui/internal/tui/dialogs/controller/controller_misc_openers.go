@@ -87,29 +87,10 @@ func openMomentumEditor(state State, idx int, def sharedtypes.HabitStreakDefinit
 	}
 	state.DescriptionEnabled = true
 	state.DescriptionIndex = 1
-	if state.Kind == "create_momentum" {
-		state.ChoiceItems = []string{"Habits", "Contexts"}
-		state.ChoiceValues = []string{
-			string(sharedtypes.MomentumTargetKindHabit),
-			string(sharedtypes.MomentumTargetKindContext),
-		}
-		state.ChoiceDetails = []string{
-			"Select habits to count completions against",
-			"Select repo/stream contexts to count work hours against",
-		}
-		switch sharedtypes.NormalizeMomentumTargetKind(state.HabitStreakDraft.TargetKind) {
-		case sharedtypes.MomentumTargetKindContext:
-			state.ChoiceCursor = 1
-		default:
-			state.ChoiceCursor = 0
-		}
-	} else {
-		state.ChoiceItems = nil
-		state.ChoiceValues = nil
-		state.ChoiceDetails = nil
-		state.ChoiceCursor = 0
-	}
+	state.ChoiceItems, state.ChoiceValues, state.ChoiceDetails = nil, nil, nil
+	state.ChoiceCursor = 0
 	state = syncMomentumStepFocus(state)
+	state.Momentum.Initial = momentumFingerprint(state)
 	return state
 }
 

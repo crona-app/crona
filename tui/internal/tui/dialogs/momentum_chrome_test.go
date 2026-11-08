@@ -27,35 +27,16 @@ func TestMomentumWizardChrome(t *testing.T) {
 		want []string
 	}{
 		{
-			formCase{name: "kind", state: create, title: "New Momentum", context: "1/4 Kind"},
-			[]string{"Choose momentum kind", "▶", "enter choose"},
+			formCase{name: "create", state: create, title: "New Momentum", context: "1/2 What counts"},
+			[]string{"Based on", "Habit completions", "Time in contexts", "Search", "Match", "ctrl+s next"},
 		},
 		{
-			formCase{
-				name:    "targets",
-				state:   editMomentum(1),
-				title:   "Edit Momentum",
-				context: "1/3 Targets",
-			},
-			[]string{"Select contributing habits", "Match", "ctrl+s details"},
+			formCase{name: "targets", state: editMomentum(1), title: "Edit Momentum", context: "1/2 What counts"},
+			[]string{"Search", "Match", "ctrl+s next"},
 		},
 		{
-			formCase{
-				name:    "details",
-				state:   editMomentum(2),
-				title:   "Edit Momentum",
-				context: "2/3 Details",
-			},
-			[]string{"Name", "Period", "Required", "per week", "ctrl+s save momentum"},
-		},
-		{
-			formCase{
-				name:    "review",
-				state:   editMomentum(3),
-				title:   "Edit Momentum",
-				context: "3/3 Review",
-			},
-			[]string{"Name", "Recovery Mix", "Rule"},
+			formCase{name: "goal", state: editMomentum(2), title: "Edit Momentum", context: "2/2 Goal"},
+			[]string{"Name", "Period", "Required", "a week", "Recovery Mix: 2 completions a week", "ctrl+s save"},
 		},
 	}
 	for _, tc := range cases {
@@ -71,9 +52,9 @@ func TestMomentumWizardChrome(t *testing.T) {
 	}
 }
 
-func TestMomentumReviewRuleReadsPerWeek(t *testing.T) {
-	out := ansi.Strip(Render(testTheme(), sized(editMomentum(3), 120, 36)))
-	if !strings.Contains(out, "per week") || strings.Contains(out, "per weekly") {
-		t.Fatalf("rule should read per week:\n%s", out)
+func TestMomentumGoalReadsAWeek(t *testing.T) {
+	out := ansi.Strip(Render(testTheme(), sized(editMomentum(2), 120, 36)))
+	if !strings.Contains(out, "a week") || strings.Contains(out, "a weekly") {
+		t.Fatalf("goal should read a week:\n%s", out)
 	}
 }

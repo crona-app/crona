@@ -43,82 +43,6 @@ func isMomentumDialogKind(kind string) bool {
 	}
 }
 
-func updateHabitStreaks(state State, msg tea.KeyMsg) (State, *Action, string) {
-	state = syncMomentumStepFocus(state)
-	if state.Kind == "create_momentum" {
-		switch state.HabitStreakStep {
-		case 1:
-			return updateHabitStreakKindSelection(state, msg)
-		case 2:
-			return updateHabitStreakTargets(state, msg)
-		case 3:
-			return updateHabitStreakDetails(state, msg)
-		case 4:
-			return updateHabitStreakReview(state, msg)
-		default:
-			return state, nil, ""
-		}
-	}
-	switch state.HabitStreakStep {
-	case 1:
-		return updateHabitStreakTargets(state, msg)
-	case 2:
-		return updateHabitStreakDetails(state, msg)
-	case 3:
-		return updateHabitStreakReview(state, msg)
-	default:
-		return state, nil, ""
-	}
-}
-
-func openHabitStreakEditor(state State, idx int, def sharedtypes.HabitStreakDefinition) State {
-	def = sharedtypes.NormalizeHabitStreakDefinition(def)
-	name := textinput.New()
-	name.Placeholder = "Health streak"
-	name.SetValue(def.Name)
-	name.CharLimit = 80
-	name.Width = 36
-	name.Focus()
-	count := textinput.New()
-	count.CharLimit = 24
-	count.Width = 24
-	state.Inputs = []textinput.Model{name, count}
-	state = habitStreakSetDetailFocus(state, habitStreakDetailRowName)
-	state.HabitStreakEditIdx = idx
-	state.HabitStreakDraft = def
-	state = syncHabitStreakThresholdInput(state)
-	state.HabitStreakStep = 1
-	state.HabitStreakCursor = 0
-	state.ErrorMessage = ""
-	return state
-}
-
-func updateHabitStreakKindSelection(state State, msg tea.KeyMsg) (State, *Action, string) {
-	switch action := dialogActionForKey(state, msg.String()); action {
-	case dialogActionCancel:
-		return Close(state), nil, ""
-	case dialogActionMoveDown:
-		state.ChoiceCursor = ShiftSelection(state.ChoiceCursor, len(state.ChoiceItems), 1)
-	case dialogActionMoveUp:
-		state.ChoiceCursor = ShiftSelection(state.ChoiceCursor, len(state.ChoiceItems), -1)
-	case dialogActionFocusNext, dialogActionActivate, dialogActionToggle, dialogActionPrimary:
-		if state.ChoiceCursor < 0 || state.ChoiceCursor >= len(state.ChoiceValues) {
-			return state, nil, ""
-		}
-		targetKind := sharedtypes.MomentumTargetKind(state.ChoiceValues[state.ChoiceCursor])
-		state.HabitStreakDraft.TargetKind = targetKind
-		state.HabitStreakDraft.HabitIDs = nil
-		state.HabitStreakDraft.Contexts = nil
-		state.HabitStreakDraft.RequiredCount = habitStreakDefaultRequiredCount(targetKind)
-		state = syncHabitStreakThresholdInput(state)
-		state.HabitStreakStep = 2
-		state.HabitStreakCursor = 0
-		state.ErrorMessage = ""
-		return state, nil, ""
-	}
-	return clearDialogError(state), nil, ""
-}
-
 func updateHabitStreakDetails(state State, msg tea.KeyMsg) (State, *Action, string) {
 	momentumMode := isMomentumDialogKind(state.Kind)
 	row := habitStreakDetailRowForFocus(momentumMode, state.FocusIdx)
@@ -138,9 +62,9 @@ func updateHabitStreakDetails(state State, msg tea.KeyMsg) (State, *Action, stri
 		return state, nil, ""
 	case dialogActionFocusPrev:
 		if row == habitStreakDetailRowName {
-			state.HabitStreakStep = detailsStepForState(state) - 1
+			state.HabitStreakStep = 1
 			state.FocusIdx = momentumTargetMatchModeFocusIndex(state)
-			return syncMomentumStepFocus(state), nil, ""
+			return syncMomentumStepFocus(clearDialogError(state)), nil, ""
 		}
 		state = habitStreakSetDetailFocus(state, habitStreakDetailRowNext(momentumMode, row, -1))
 		return state, nil, ""
@@ -200,7 +124,7 @@ func commitHabitStreakDetails(state State) (State, *Action, string) {
 	momentumMode := isMomentumDialogKind(state.Kind)
 	name := strings.TrimSpace(state.Inputs[0].Value())
 	if name == "" {
-		state.ErrorMessage = "Streak name is required"
+		state.ErrorMessage = "Name is required"
 		return state, nil, ""
 	}
 	requiredKind := sharedtypes.NormalizeMomentumTargetKind(state.HabitStreakDraft.TargetKind)
@@ -235,111 +159,19 @@ func commitHabitStreakDetails(state State) (State, *Action, string) {
 			return state, nil, ""
 		}
 	}
-	state.HabitStreakStep = reviewStepForState(state)
-	state.HabitStreakCursor = 0
-	state.ErrorMessage = ""
-	return state, nil, ""
-}
-
-func updateHabitStreakTargets(state State, msg tea.KeyMsg) (State, *Action, string) {
-	contextMode := sharedtypes.NormalizeMomentumTargetKind(state.HabitStreakDraft.TargetKind) ==
-		sharedtypes.MomentumTargetKindContext
-	if contextMode {
-		return updateMomentumContextTargets(state, msg)
+	if err := momentumTargetsError(state.HabitStreakDraft); err != "" {
+		state.ErrorMessage = err
+		return state, nil, ""
 	}
-	return updateMomentumHabitTargets(state, msg)
-}
-
-func updateMomentumHabitTargets(state State, msg tea.KeyMsg) (State, *Action, string) {
-	total := len(state.HabitItems)
-	switch action := dialogActionForKey(state, msg.String()); action {
-	case dialogActionCancel:
-		if state.Kind == "create_momentum" {
-			state.HabitStreakStep = 1
-			state.ChoiceCursor = kindChoiceCursorForTargetKind(state.HabitStreakDraft.TargetKind)
-			state.HabitStreakCursor = 0
-			return state, nil, ""
-		}
-		return Close(state), nil, ""
-	case dialogActionMoveDown:
-		if state.FocusIdx == int(habitTargetFocusMatchMode) {
-			state.HabitStreakDraft.MatchMode = nextMomentumMatchMode(
-				state.HabitStreakDraft.MatchMode,
-				1,
-			)
-			return clearDialogError(state), nil, ""
-		}
-		state.HabitStreakCursor = ShiftSelection(state.HabitStreakCursor, total, 1)
-	case dialogActionMoveUp:
-		if state.FocusIdx == int(habitTargetFocusMatchMode) {
-			state.HabitStreakDraft.MatchMode = nextMomentumMatchMode(
-				state.HabitStreakDraft.MatchMode,
-				-1,
-			)
-			return clearDialogError(state), nil, ""
-		}
-		state.HabitStreakCursor = ShiftSelection(state.HabitStreakCursor, total, -1)
-	case dialogActionMoveLeft:
-		if state.FocusIdx == int(habitTargetFocusMatchMode) {
-			state.HabitStreakDraft.MatchMode = nextMomentumMatchMode(
-				state.HabitStreakDraft.MatchMode,
-				-1,
-			)
-		}
-	case dialogActionMoveRight:
-		if state.FocusIdx == int(habitTargetFocusMatchMode) {
-			state.HabitStreakDraft.MatchMode = nextMomentumMatchMode(
-				state.HabitStreakDraft.MatchMode,
-				1,
-			)
-		}
-	case dialogActionFocusPrev:
-		if state.FocusIdx == int(habitTargetFocusList) {
-			return clearDialogError(state), nil, ""
-		}
-		state.FocusIdx--
-		return syncMomentumStepFocus(clearDialogError(state)), nil, ""
-	case dialogActionToggle:
-		if state.FocusIdx == int(habitTargetFocusMatchMode) {
-			state.HabitStreakDraft.MatchMode = nextMomentumMatchMode(
-				state.HabitStreakDraft.MatchMode,
-				1,
-			)
-			return clearDialogError(state), nil, ""
-		}
-		if state.HabitStreakCursor >= 0 && state.HabitStreakCursor < len(state.HabitItems) {
-			habitID := state.HabitItems[state.HabitStreakCursor].ID
-			state.HabitStreakDraft.HabitIDs = toggleHabitMembership(
-				state.HabitStreakDraft.HabitIDs,
-				habitID,
-			)
-		}
-	case dialogActionFocusNext, dialogActionActivate, dialogActionPrimary:
-		if action == dialogActionPrimary || state.FocusIdx == int(habitTargetFocusMatchMode) {
-			state.HabitStreakStep = detailsStepForState(state)
-			state.HabitStreakCursor = 0
-			state.FocusIdx = 0
-			return syncMomentumStepFocus(clearDialogError(state)), nil, ""
-		}
-		state.FocusIdx = int(habitTargetFocusMatchMode)
-		return syncMomentumStepFocus(clearDialogError(state)), nil, ""
-	default:
-		switch msg.String() {
-		case "a":
-			if state.FocusIdx == int(habitTargetFocusList) {
-				ids := make([]int64, 0, len(state.HabitItems))
-				for _, item := range state.HabitItems {
-					ids = append(ids, item.ID)
-				}
-				state.HabitStreakDraft.HabitIDs = ids
-			}
-		case "c":
-			if state.FocusIdx == int(habitTargetFocusList) {
-				state.HabitStreakDraft.HabitIDs = nil
-			}
-		}
+	draft := sharedtypes.NormalizeHabitStreakDefinition(momentumDraftForSave(state.HabitStreakDraft))
+	kind := "update_momentum"
+	if state.Kind == "create_momentum" {
+		kind = "create_momentum"
 	}
-	return clearDialogError(state), nil, ""
+	return Close(state), &Action{
+		Kind:            kind,
+		HabitStreakDefs: []sharedtypes.HabitStreakDefinition{draft},
+	}, ""
 }
 
 func updateMomentumContextTargets(state State, msg tea.KeyMsg) (State, *Action, string) {
@@ -351,36 +183,15 @@ func updateMomentumContextTargets(state State, msg tea.KeyMsg) (State, *Action, 
 		}
 	}
 	switch action := dialogActionForKey(state, msg.String()); action {
-	case dialogActionCancel:
-		if state.Kind == "create_momentum" {
-			state.HabitStreakStep = 1
-			state.ChoiceCursor = kindChoiceCursorForTargetKind(state.HabitStreakDraft.TargetKind)
-			state.HabitStreakCursor = 0
-			state.FocusIdx = 0
-			return syncMomentumStepFocus(state), nil, ""
-		}
-		return Close(state), nil, ""
 	case dialogActionFocusPrev:
 		if state.FocusIdx == int(contextTargetFocusRepo) {
-			if state.Kind == "create_momentum" {
-				state.HabitStreakStep = 1
-				state.ChoiceCursor = kindChoiceCursorForTargetKind(
-					state.HabitStreakDraft.TargetKind,
-				)
-				state.HabitStreakCursor = 0
-				state.FocusIdx = 0
-				return syncMomentumStepFocus(clearDialogError(state)), nil, ""
-			}
-			return clearDialogError(state), nil, ""
+			return focusMomentumKindRow(clearDialogError(state)), nil, ""
 		}
 		state.FocusIdx--
 		return syncMomentumStepFocus(clearDialogError(state)), nil, ""
 	case dialogActionFocusNext:
 		if state.FocusIdx == momentumTargetMatchModeFocusIndex(state) {
-			state.HabitStreakStep = detailsStepForState(state)
-			state.HabitStreakCursor = 0
-			state.FocusIdx = 0
-			return syncMomentumStepFocus(clearDialogError(state)), nil, ""
+			return momentumGoToGoal(state), nil, ""
 		}
 		state.FocusIdx++
 		return syncMomentumStepFocus(clearDialogError(state)), nil, ""
@@ -395,10 +206,7 @@ func updateMomentumContextTargets(state State, msg tea.KeyMsg) (State, *Action, 
 	case dialogActionToggle, dialogActionActivate:
 		return handleMomentumContextActivation(state), nil, ""
 	case dialogActionPrimary:
-		state.HabitStreakStep = detailsStepForState(state)
-		state.HabitStreakCursor = 0
-		state.FocusIdx = 0
-		return syncMomentumStepFocus(clearDialogError(state)), nil, ""
+		return momentumGoToGoal(state), nil, ""
 	default:
 		switch msg.String() {
 		case "c":
@@ -410,57 +218,6 @@ func updateMomentumContextTargets(state State, msg tea.KeyMsg) (State, *Action, 
 		}
 	}
 	return clearDialogError(state), nil, ""
-}
-
-func updateHabitStreakReview(state State, msg tea.KeyMsg) (State, *Action, string) {
-	switch action := dialogActionForKey(state, msg.String()); action {
-	case dialogActionCancel:
-		state.HabitStreakStep = detailsStepForState(state)
-		state.HabitStreakCursor = 0
-		return state, nil, ""
-	case dialogActionFocusPrev, dialogActionMoveLeft:
-		state.HabitStreakStep = detailsStepForState(state)
-		return state, nil, ""
-	default:
-		if action == dialogActionPrimary {
-			draft := sharedtypes.NormalizeHabitStreakDefinition(state.HabitStreakDraft)
-			if state.Kind == "create_momentum" || state.Kind == "edit_momentum" {
-				kind := "update_momentum"
-				if state.Kind == "create_momentum" {
-					kind = "create_momentum"
-				}
-				return Close(state), &Action{
-					Kind:            kind,
-					HabitStreakDefs: []sharedtypes.HabitStreakDefinition{draft},
-				}, ""
-			}
-			return Close(state), nil, ""
-		}
-	}
-	return clearDialogError(state), nil, ""
-}
-
-func detailsStepForState(state State) int {
-	if state.Kind == "create_momentum" {
-		return 3
-	}
-	return 2
-}
-
-func reviewStepForState(state State) int {
-	if state.Kind == "create_momentum" {
-		return 4
-	}
-	return 3
-}
-
-func kindChoiceCursorForTargetKind(kind sharedtypes.MomentumTargetKind) int {
-	switch sharedtypes.NormalizeMomentumTargetKind(kind) {
-	case sharedtypes.MomentumTargetKindContext:
-		return 1
-	default:
-		return 0
-	}
 }
 
 func toggleMomentumContextMembership(
@@ -658,13 +415,21 @@ func syncMomentumStepFocus(state State) State {
 func syncMomentumTargetFocus(state State) State {
 	state.MomentumRepoInput.Blur()
 	state.MomentumStreamInput.Blur()
+	state.Momentum.Filter.Blur()
 	if !isMomentumDialogKind(state.Kind) {
 		return state
 	}
-	if state.HabitStreakStep == detailsStepForState(state) {
+	if state.HabitStreakStep == 1 && state.Momentum.FilterFocused {
+		state.Momentum.Filter.Focus()
+		return state
+	}
+	if state.HabitStreakStep == 1 && state.Momentum.KindFocused {
+		return state
+	}
+	if state.HabitStreakStep == 2 {
 		return syncHabitStreakDetailFocus(state)
 	}
-	if state.HabitStreakStep != detailsStepForState(state)-1 {
+	if state.HabitStreakStep != 1 {
 		return state
 	}
 	if sharedtypes.NormalizeMomentumTargetKind(

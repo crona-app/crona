@@ -892,6 +892,7 @@ func (m Model) dialogState() dialogstate.State {
 		HabitItems:                     m.allHabits,
 		HabitStreakStep:                m.dialogHabitStreakStep,
 		HabitStreakCursor:              m.dialogHabitStreakCursor,
+		Momentum:                       m.dialogMomentum,
 		HabitStreakOriginalDefs:        m.dialogHabitStreakOriginalDefs,
 		HabitStreakDefs:                m.dialogHabitStreakDefs,
 		HabitStreakDraft:               m.dialogHabitStreakDraft,
@@ -1043,6 +1044,7 @@ func (m Model) withDialogState(state dialogstate.State) Model {
 	m.dialogProtectionDates = state.ProtectionDates
 	m.dialogHabitStreakStep = state.HabitStreakStep
 	m.dialogHabitStreakCursor = state.HabitStreakCursor
+	m.dialogMomentum = state.Momentum
 	m.dialogHabitStreakOriginalDefs = state.HabitStreakOriginalDefs
 	m.dialogHabitStreakDefs = state.HabitStreakDefs
 	m.dialogHabitStreakDraft = state.HabitStreakDraft

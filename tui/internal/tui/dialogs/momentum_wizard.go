@@ -3,52 +3,48 @@ package dialogs
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 
 	sharedtypes "crona.work/shared/types"
 	controllerpkg "crona.work/tui/internal/tui/dialogs/controller"
+	viewchrome "crona.work/tui/internal/tui/views/chrome"
 
 	"github.com/charmbracelet/lipgloss"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
-// renderHabitStreakDialog draws the momentum (and habit streak) wizard: a step strip, the
-// step's body and its keys, with the step in the top border.
+// renderHabitStreakDialog draws the momentum wizard: 1 What counts, 2 Goal. ctrl+s on the
+// Goal saves; esc leaves from either step, asking first when something changed.
 func renderHabitStreakDialog(theme Theme, state controllerpkg.State) string {
-	momentumMode := isMomentumDialogKind(state.Kind)
-	steps := habitStreakWizardSteps(state.Kind)
+	steps := habitStreakWizardSteps()
 	active := min(max(0, state.HabitStreakStep-1), len(steps)-1)
-	title := "Habit Streaks"
-	if momentumMode {
-		title = "New Momentum"
-		if state.Kind == "edit_momentum" {
-			title = "Edit Momentum"
-		}
+	title := "New Momentum"
+	submit := "ctrl+s create"
+	if state.Kind == "edit_momentum" {
+		title, submit = "Edit Momentum", "ctrl+s save"
 	}
 	body := []string{stepStrip(theme, steps, active), ""}
-	submit := "ctrl+s save streak"
-	if momentumMode {
-		submit = "ctrl+s save momentum"
-	}
 	d := listDialog{wide: true, title: title, context: stepContext(steps, active), focus: -1}
-	switch steps[active] {
-	case "Kind":
-		d.body, d.focus = momentumKindStep(theme, state, body)
-		d.primary, d.hints = "enter choose", []string{"↑/↓ move", "ctrl+s continue"}
-	case "Targets":
+	if active == 0 {
 		d.body, d.focus = momentumTargetsStep(theme, state, body)
-		d.primary = "ctrl+s details"
-		d.hints = []string{"space toggle", "a all", "c none", "←/→ mode", "tab next"}
-		if momentumContextMode(state) {
+		d.primary = "ctrl+s next"
+		switch {
+		case state.Momentum.KindFocused:
+			d.hints = []string{"←/→ switch", "↓ list"}
+		case state.Momentum.FilterFocused:
+			d.hints = []string{"type to search", "enter list", "esc clear"}
+		case momentumContextMode(state):
 			d.hints = []string{"type filter", "←/→ cycle", "enter add/remove", "tab next"}
+		default:
+			d.hints = []string{"space pick", "/ search", "a all shown", "c none shown", "tab match"}
 		}
-	case "Details":
-		d.body, d.focus = momentumDetailsStep(theme, state, body, momentumMode)
+	} else {
+		d.body, d.focus = momentumDetailsStep(theme, state, body, true)
 		d.primary, d.hints = submit, []string{"tab next", "shift+tab back"}
-	default:
-		d.body = momentumReviewStep(theme, state, body, momentumMode)
-		d.primary, d.hints = submit, []string{"shift+tab back"}
+	}
+	if state.Momentum.ConfirmDiscard {
+		d.body = append(d.body, "", theme.StyleError.Render("Discard changes?"))
+		d.primary, d.hints, d.esc = "y discard", nil, "n keep editing"
 	}
 	return renderListDialog(theme, state, d)
 }
@@ -58,52 +54,59 @@ func momentumContextMode(state controllerpkg.State) bool {
 		sharedtypes.MomentumTargetKindContext
 }
 
-func momentumKindStep(theme Theme, state controllerpkg.State, body []string) ([]string, int) {
-	body = append(body, theme.StyleDim.Render("Choose momentum kind"))
-	focus := len(body) + state.ChoiceCursor
-	body = append(body, selectList(theme, state.ChoiceItems, state.ChoiceCursor)...)
-	if state.ChoiceCursor >= 0 && state.ChoiceCursor < len(state.ChoiceDetails) {
-		body = append(body, "", theme.StyleDim.Render(state.ChoiceDetails[state.ChoiceCursor]))
+// segmented draws options side by side, the current one highlighted.
+func segmented(theme Theme, options []string, current int) string {
+	cells := make([]string, 0, len(options))
+	for i, option := range options {
+		style := theme.StyleDim
+		if i == current {
+			style = theme.StyleSelected
+		}
+		cells = append(cells, style.Render(" "+option+" "))
 	}
-	return body, focus
+	return strings.Join(cells, " ")
 }
 
 func momentumTargetsStep(theme Theme, state controllerpkg.State, body []string) ([]string, int) {
-	column := len("Stream")
+	column := len("Based on")
 	full := formInner(state.Width) - column - 3
-	matchFocus, focus := 1, -1
+	focus := -1
+	if state.Kind == "create_momentum" {
+		if state.Momentum.KindFocused {
+			focus = len(body)
+		}
+		body = append(body,
+			Field(theme, "Based on", column, momentumKindSwitch(theme, state), state.Momentum.KindFocused),
+			"",
+		)
+	}
+	listFocused := !state.Momentum.KindFocused && !state.Momentum.FilterFocused
+	matchFocus := 1
 	if momentumContextMode(state) {
 		matchFocus = 3
-		body = append(body, theme.StyleDim.Render("Select contributing contexts"))
 		repo := state.MomentumRepoInput
 		stream := state.MomentumStreamInput
 		body = append(body,
-			Picker(theme, PickerSpec{Label: "Repo", Column: column, Focused: state.FocusIdx == 0,
+			Picker(theme, PickerSpec{Label: "Repo", Column: column, Focused: listFocused && state.FocusIdx == 0,
 				Input: bareInput(repo, full, "type to filter"), Placeholder: state.RepoSelectorLabel})[0],
-			Picker(theme, PickerSpec{Label: "Stream", Column: column, Focused: state.FocusIdx == 1,
+			Picker(theme, PickerSpec{Label: "Stream", Column: column, Focused: listFocused && state.FocusIdx == 1,
 				Input: bareInput(stream, full, "any stream"), Placeholder: state.StreamSelectorLabel})[0],
-			"", theme.StyleDim.Render("Selected contexts"),
+			"", theme.StyleDim.Render("Picked contexts"),
 		)
-		if state.FocusIdx < 2 {
+		if listFocused && state.FocusIdx < 2 {
 			focus = len(body) - 4 + state.FocusIdx
 		}
 		if len(state.HabitStreakDraft.Contexts) == 0 {
-			body = append(body, theme.StyleDim.Render("No contexts selected"))
+			body = append(body, theme.StyleDim.Render("  None yet: pick a repo, then enter"))
 		}
 		labels := []string{}
 		for _, item := range state.HabitStreakDraft.Contexts {
-			labels = append(
-				labels,
-				"[x] "+momentumContextLabel(
-					item,
-					state.MomentumRepos,
-					state.MomentumAllIssues,
-					state.MomentumStreams,
-				),
-			)
+			labels = append(labels, "[x] "+momentumContextLabel(
+				item, state.MomentumRepos, state.MomentumAllIssues, state.MomentumStreams,
+			))
 		}
 		cursor := -1
-		if state.FocusIdx == 2 {
+		if listFocused && state.FocusIdx == 2 {
 			cursor = state.HabitStreakCursor
 			focus = len(body) + cursor
 		}
@@ -112,35 +115,89 @@ func momentumTargetsStep(theme Theme, state controllerpkg.State, body []string) 
 			body = append(body, lipgloss.NewStyle().Foreground(theme.ColorOrange).Render(warning))
 		}
 	} else {
-		body = append(body, theme.StyleDim.Render("Select contributing habits"))
-		if len(state.HabitItems) == 0 {
-			body = append(body, theme.StyleDim.Render("No habits available"))
-		}
-		labels := []string{}
-		for _, item := range state.HabitItems {
-			box := "[ ] "
-			if slices.Contains(state.HabitStreakDraft.HabitIDs, item.ID) {
-				box = "[x] "
-			}
-			labels = append(labels, fmt.Sprintf("%s%s  %s / %s", box, item.Name, item.RepoName, item.StreamName))
-		}
-		if state.FocusIdx == 0 {
-			focus = len(body) + state.HabitStreakCursor
-		}
-		body = append(body, selectList(theme, labels, state.HabitStreakCursor)...)
+		body, focus = momentumHabitList(theme, state, body, column, full, focus)
 	}
-	matchFocused := state.FocusIdx == matchFocus
+	matchFocused := listFocused && state.FocusIdx == matchFocus
 	if matchFocused {
 		focus = len(body) + 1
 	}
-	mode := cases.Title(language.Und).
-		String(sharedtypes.MomentumMatchModeLabel(state.HabitStreakDraft.MatchMode))
-	body = append(
-		body,
+	any := sharedtypes.NormalizeMomentumMatchMode(state.HabitStreakDraft.MatchMode) !=
+		sharedtypes.MomentumMatchModeAll
+	mode := 0
+	if !any {
+		mode = 1
+	}
+	return append(body,
 		"",
-		Picker(theme, PickerSpec{Label: "Match", Column: column, Focused: matchFocused, Options: []string{mode}})[0],
-	)
+		Field(theme, "Match", column, segmented(theme, []string{"Any", "All"}, mode)+
+			theme.StyleDim.Render("  "+momentumMatchHelp(state.HabitStreakDraft)), matchFocused),
+	), focus
+}
+
+// momentumMatchHelp says in words what the match mode does with the picks.
+func momentumMatchHelp(def sharedtypes.HabitStreakDefinition) string {
+	noun := "habit"
+	if sharedtypes.NormalizeMomentumTargetKind(def.TargetKind) == sharedtypes.MomentumTargetKindContext {
+		noun = "context"
+	}
+	if sharedtypes.NormalizeMomentumMatchMode(def.MatchMode) == sharedtypes.MomentumMatchModeAll {
+		return "each picked " + noun + " must reach the goal"
+	}
+	return "every picked " + noun + " adds to one goal"
+}
+
+func momentumHabitList(theme Theme, state controllerpkg.State, body []string, column, full, focus int) ([]string, int) {
+	visible, total, hidden := controllerpkg.MomentumHabitCounts(state)
+	count := theme.StyleDim.Render(fmt.Sprintf("  %d of %d", visible, total))
+	if state.Momentum.FilterFocused {
+		focus = len(body)
+	}
+	search := bareInput(state.Momentum.Filter, min(full-12, max(17, len(state.Momentum.Filter.Value())+1)), "press / to search")
+	body = append(body, Field(theme, "Search", column, search+count, state.Momentum.FilterFocused))
+	if total == 0 {
+		return append(body, theme.StyleDim.Render("  No habits yet")), focus
+	}
+	rows := controllerpkg.MomentumHabitRows(state)
+	if len(rows) == 0 {
+		body = append(body, theme.StyleDim.Render("  No habits match"))
+	}
+	listFocused := !state.Momentum.KindFocused && !state.Momentum.FilterFocused &&
+		state.FocusIdx == 0
+	for i, row := range rows {
+		cursor := listFocused && i == state.HabitStreakCursor
+		if cursor {
+			focus = len(body)
+		}
+		line := ""
+		if row.Heading {
+			line = lipgloss.NewStyle().Bold(true).Render(row.Label) +
+				theme.StyleDim.Render(fmt.Sprintf("  %d/%d", row.Selected, row.Total))
+		} else {
+			box := "[ ] "
+			if slices.Contains(state.HabitStreakDraft.HabitIDs, row.HabitID) {
+				box = "[x] "
+			}
+			line = "  " + box + row.Label
+		}
+		if cursor {
+			body = append(body, theme.StyleCursor.Render(viewchrome.SelectionCursor+" ")+line)
+		} else {
+			body = append(body, "  "+line)
+		}
+	}
+	if hidden > 0 {
+		body = append(body, theme.StyleDim.Render(fmt.Sprintf(
+			"  %d picked %s hidden by the search", hidden, plural(hidden, "habit", "habits"),
+		)))
+	}
 	return body, focus
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
 }
 
 func momentumDetailsStep(
@@ -194,134 +251,26 @@ func momentumDetailsStep(
 			periods = append(periods, theme.StyleDim.Render(" "+label+" "))
 		}
 	}
-	unit := strings.TrimPrefix(habitStreakRequirementLabel(state.HabitStreakDraft), "Required ")
 	rows = append(
 		rows,
-		fieldRow(
-			periodFocus,
-			Field(
-				theme,
-				"Period",
-				column,
-				strings.Join(periods, " "),
-				state.FocusIdx == periodFocus,
-			),
-		),
-		fieldRow(
-			countFocus,
-			Field(
-				theme,
-				"Required",
-				column,
-				bareInput(state.Inputs[1], 6, "1")+theme.StyleDim.Render("  "+unit),
-				state.FocusIdx == countFocus,
-			),
-		),
+		fieldRow(periodFocus, Field(theme, "Period", column, strings.Join(periods, " "),
+			state.FocusIdx == periodFocus)),
+		fieldRow(countFocus, Field(theme, "Required", column,
+			bareInput(state.Inputs[1], max(1, len(state.Inputs[1].Value())), "1")+theme.StyleDim.Render("  "+momentumRequiredUnit(state)),
+			state.FocusIdx == countFocus)),
 	)
-	if momentumMode && !momentumContextMode(state) {
+	if !momentumContextMode(state) {
 		capacity := habitMomentumViewCapacity(state.HabitStreakDraft, state.HabitItems)
-		if capacity.Valid {
-			rows = append(
-				rows,
-				staticRow(
-					theme.StyleDim.Render(
-						strings.Repeat(
-							" ",
-							column+2,
-						)+fmt.Sprintf(
-							"Allowed range: 1-%d per %s",
-							capacity.MaxCount,
-							habitStreakPeriodUnitLabel(state.HabitStreakDraft.Period),
-						),
-					),
-				),
-			)
-		} else if strings.TrimSpace(capacity.Reason) != "" {
+		if !capacity.Valid && strings.TrimSpace(capacity.Reason) != "" {
 			rows = append(rows, staticRow(theme.StyleError.Render(capacity.Reason)))
 		}
 	}
-	rows = append(rows, staticRow(
-		"",
-		Field(
-			theme,
-			"Matching",
-			column,
-			habitStreakMatchTypeSummary(state.HabitStreakDraft),
-			false,
-		),
-		Field(
-			theme,
-			habitStreakTargetLabel(state.HabitStreakDraft),
-			column,
-			momentumTargetsSummary(state),
-			false,
-		),
-	))
+	rows = append(rows, staticRow("", theme.StyleDim.Render(momentumGoalSentence(state))))
 	lines, focus := formBody(rows, state.FocusIdx)
 	if focus >= 0 {
 		focus += len(body)
 	}
 	return append(body, lines...), focus
-}
-
-func momentumReviewStep(
-	theme Theme,
-	state controllerpkg.State,
-	body []string,
-	momentumMode bool,
-) []string {
-	column := len("Description")
-	if momentumMode {
-		body = append(
-			body,
-			Field(
-				theme,
-				"Kind",
-				column,
-				momentumTargetKindLabel(state.HabitStreakDraft.TargetKind),
-				false,
-			),
-		)
-	}
-	body = append(
-		body,
-		Field(
-			theme,
-			"Name",
-			column,
-			theme.StyleHeader.Render(fallback(state.HabitStreakDraft.Name, "-")),
-			false,
-		),
-	)
-	if state.HabitStreakDraft.Description != nil &&
-		strings.TrimSpace(*state.HabitStreakDraft.Description) != "" {
-		body = append(
-			body,
-			Field(
-				theme,
-				"Description",
-				column,
-				strings.TrimSpace(*state.HabitStreakDraft.Description),
-				false,
-			),
-		)
-	}
-	rule := fmt.Sprintf(
-		"%s per %s",
-		habitStreakTargetSummary(state.HabitStreakDraft),
-		habitStreakPeriodUnitLabel(state.HabitStreakDraft.Period),
-	)
-	return append(
-		body,
-		Field(theme, "Rule", column, rule, false),
-		Field(
-			theme,
-			habitStreakTargetLabel(state.HabitStreakDraft),
-			column,
-			momentumTargetsSummary(state),
-			false,
-		),
-	)
 }
 
 func momentumTargetsSummary(state controllerpkg.State) string {
@@ -332,4 +281,79 @@ func momentumTargetsSummary(state controllerpkg.State) string {
 		state.MomentumStreams,
 		state.HabitItems,
 	)
+}
+
+// momentumRequiredUnit names what the required number counts, per period, with the cap
+// the picked habits allow.
+func momentumRequiredUnit(state controllerpkg.State) string {
+	period := habitStreakPeriodUnitLabel(state.HabitStreakDraft.Period)
+	if momentumContextMode(state) {
+		return "of work a " + period
+	}
+	n, _ := strconv.Atoi(strings.TrimSpace(state.Inputs[1].Value()))
+	unit := plural(n, "completion", "completions") + " a " + period
+	if sharedtypes.NormalizeMomentumMatchMode(state.HabitStreakDraft.MatchMode) ==
+		sharedtypes.MomentumMatchModeAll {
+		unit += " from each"
+	}
+	capacity := habitMomentumViewCapacity(state.HabitStreakDraft, state.HabitItems)
+	if capacity.Valid && capacity.MaxCount > 0 {
+		unit += fmt.Sprintf(" (max %d)", capacity.MaxCount)
+	}
+	return unit
+}
+
+// momentumGoalSentence reads the whole momentum back as one line, e.g.
+// "Deep work: 3 completions a week from any of Journal, Run".
+func momentumGoalSentence(state controllerpkg.State) string {
+	def := state.HabitStreakDraft
+	name := strings.TrimSpace(state.Inputs[0].Value())
+	if name == "" {
+		name = "This momentum"
+	}
+	raw := strings.TrimSpace(state.Inputs[1].Value())
+	amount := ""
+	if momentumContextMode(state) {
+		amount = fallback(raw, "?") + " of work"
+	} else {
+		n, err := strconv.Atoi(raw)
+		if err != nil {
+			amount = fallback(raw, "?") + " completions"
+		} else {
+			amount = fmt.Sprintf("%d %s", n, plural(n, "completion", "completions"))
+		}
+	}
+	scope := "any of"
+	if sharedtypes.NormalizeMomentumMatchMode(def.MatchMode) == sharedtypes.MomentumMatchModeAll {
+		scope = "each of"
+	}
+	return fmt.Sprintf("%s: %s a %s from %s %s", name, amount,
+		habitStreakPeriodUnitLabel(def.Period), scope, momentumTargetsSummary(state))
+}
+
+// momentumKindSwitch draws the kind as a pair of radio options, with the switch key shown
+// so it reads as something to change.
+func momentumKindSwitch(theme Theme, state controllerpkg.State) string {
+	options := []string{"Habit completions", "Time in contexts"}
+	current := 0
+	if momentumContextMode(state) {
+		current = 1
+	}
+	cells := make([]string, 0, len(options))
+	for i, option := range options {
+		if i == current {
+			style := theme.StyleNormal
+			if state.Momentum.KindFocused {
+				style = theme.StyleSelected
+			}
+			cells = append(cells, style.Render("◉ "+option))
+			continue
+		}
+		cells = append(cells, theme.StyleDim.Render("○ "+option))
+	}
+	hint := "  shift+tab to change"
+	if state.Momentum.KindFocused {
+		hint = "  ←/→ switch"
+	}
+	return strings.Join(cells, "   ") + theme.StyleDim.Render(hint)
 }
