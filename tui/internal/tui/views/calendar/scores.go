@@ -25,8 +25,8 @@ type ScoreSelection struct {
 
 // ScoreGrid is the Summary Calendar as the C dialog draws it: a box per day holding its
 // number and focus score (green 75+, yellow 45-74, red under 45), away days marked, today's
-// box yellow and the shown day's cyan. Over the grid sit the month and the shown day's score,
-// then the weekday names. week keeps only the shown day's week. It returns nil when even the
+// box yellow and the shown day's cyan. Over the grid sit the month, then the weekday names;
+// the shown day's box carries its score, so the header doesn't repeat it. week keeps only the shown day's week. It returns nil when even the
 // narrowest boxes do not fit width.
 func ScoreGrid(theme types.Theme, selection ScoreSelection, width int, week bool) []string {
 	anchor, ok := parseISODate(selection.AnchorDate)
@@ -55,7 +55,7 @@ func ScoreGrid(theme types.Theme, selection ScoreSelection, width int, week bool
 		header = append(header, lipgloss.NewStyle().Width(cellWidth+2).PaddingLeft(2).Render(name))
 	}
 	lines := []string{
-		theme.StyleHeader.Render(monthStart.Format("January 2006")) + "  " + scoreSummary(theme, selection, anchor),
+		theme.StyleHeader.Render(monthStart.Format("January 2006")),
 		strings.Repeat(" ", weekColumn) + theme.StyleDim.Render(strings.Join(header, " ")),
 	}
 	first, last := 0, 5
@@ -129,23 +129,6 @@ func scoreColor(theme types.Theme, score int) lipgloss.Color {
 		return theme.ColorRed
 	default:
 		return theme.ColorYellow
-	}
-}
-
-// scoreSummary names the shown day and its score, so the colours have a number to go by.
-func scoreSummary(theme types.Theme, selection ScoreSelection, anchor time.Time) string {
-	label := theme.StyleNormal.Render(anchor.Format("Mon 2"))
-	iso := anchor.Format("2006-01-02")
-	switch score, ok := selection.Scores[iso]; {
-	case slices.Contains(selection.AwayDates, iso):
-		return label + theme.StyleDim.Render(" · away")
-	case ok && score.HasData:
-		level := strings.ReplaceAll(string(score.Level), "_", " ")
-		return label + theme.StyleDim.Render(" · focus ") +
-			lipgloss.NewStyle().Foreground(scoreColor(theme, score.Score)).Bold(true).Render(fmt.Sprint(score.Score)) +
-			theme.StyleDim.Render(" "+level)
-	default:
-		return label + theme.StyleDim.Render(" · no score yet")
 	}
 }
 

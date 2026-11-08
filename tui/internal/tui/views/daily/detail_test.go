@@ -277,7 +277,7 @@ func TestDetailShowsDaySummaryUntilFocused(t *testing.T) {
 		strings.Fields(ansi.Strip(renderDetail(testTheme(), state, 70, 30))),
 		" ",
 	)
-	for _, want := range []string{"─ Day", "72", "Accountability", "Wellbeing"} {
+	for _, want := range []string{"─ Wed 27 May", "72", "Accountability", "Wellbeing"} {
 		if !strings.Contains(rendered, want) {
 			t.Fatalf("expected the Day summary to contain %q, got %q", want, rendered)
 		}
@@ -388,5 +388,21 @@ func TestHabitDetailShowsHitRateTrailAndRecent(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected %q, got %q", want, got)
 		}
+	}
+}
+
+func TestDayTitleMarksToday(t *testing.T) {
+	state := detailState()
+	state.SummaryDate = "2026-05-27"
+	if got := dayTitle(state); got != "Wed 27 May" {
+		t.Fatalf("expected the plain date without health, got %q", got)
+	}
+	state.Health = &api.Health{CurrentDate: "2026-05-27"}
+	if got := dayTitle(state); got != "Wed 27 May (Today)" {
+		t.Fatalf("expected today marked, got %q", got)
+	}
+	state.SummaryDate = "2026-05-26"
+	if got := dayTitle(state); got != "Tue 26 May" {
+		t.Fatalf("expected another day unmarked, got %q", got)
 	}
 }

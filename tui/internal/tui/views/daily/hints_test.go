@@ -96,14 +96,15 @@ func TestHabitsPaneOffersNewHabitAndActionLine(t *testing.T) {
 	}
 }
 
-func TestDetailTitleOffersEnterAndEsc(t *testing.T) {
+func TestDetailTitleOffersOnlyEsc(t *testing.T) {
 	state := detailState()
 	state.DailyDetailFocus = false
-	if rendered := ansi.Strip(renderDetail(testTheme(), state, 70, 30)); !strings.Contains(
+	// The lists' action lines offer enter, so the unfocused title carries no key.
+	if rendered := ansi.Strip(renderDetail(testTheme(), state, 70, 30)); strings.Contains(
 		strings.Split(rendered, "\n")[0],
-		"[enter] details",
+		"[enter]",
 	) {
-		t.Fatalf("expected [enter] details on the Day summary, got %q", rendered)
+		t.Fatalf("expected no [enter] hint on the Day summary, got %q", rendered)
 	}
 	state.DailyDetailFocus = true
 	if rendered := ansi.Strip(renderDetail(testTheme(), state, 70, 30)); !strings.Contains(
@@ -229,7 +230,7 @@ func TestDaySummaryShowsArrowsWhenItOverflows(t *testing.T) {
 	}
 	state.DailyDetailFocus, state.DailyDetailSummary, state.DailyDetailScroll = true, true, 2
 	header = strings.Split(ansi.Strip(renderDetail(testTheme(), state, 70, 4)), "\n")[0]
-	if !strings.Contains(header, "─ Day") || !strings.Contains(header, "↑") {
+	if !strings.Contains(header, "─ Wed 27 May") || !strings.Contains(header, "↑") {
 		t.Fatalf("expected the focused summary scrolled with ↑, got %q", header)
 	}
 }

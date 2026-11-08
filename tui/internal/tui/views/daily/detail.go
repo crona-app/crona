@@ -2,6 +2,7 @@ package daily
 
 import (
 	"strings"
+	"time"
 
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
@@ -22,7 +23,8 @@ import (
 func renderDetail(theme types.Theme, state types.ContentState, width, height int) string {
 	bodyWidth := max(1, width-2)
 	title, lines := detailBody(theme, state, bodyWidth)
-	meta := viewchrome.KeyHint(theme, "enter", "details")
+	// Unfocused, the lists' action lines already offer enter, so the title carries no key.
+	meta := ""
 	scroll := 0
 	if state.DailyDetailFocus {
 		meta = viewchrome.KeyHint(theme, "esc", "back")
@@ -36,7 +38,12 @@ func renderDetail(theme types.Theme, state types.ContentState, width, height int
 		lines = lines[scroll:]
 	}
 	if more := len(lines) > visible; more || scroll > 0 {
-		meta = theme.StyleDim.Render(scrollArrows(scroll > 0, more)) + "  " + meta
+		arrows := theme.StyleDim.Render(scrollArrows(scroll > 0, more))
+		if meta == "" {
+			meta = arrows
+		} else {
+			meta = arrows + "  " + meta
+		}
 	}
 	// A long title gives way so the key always fits: lead, padded title, a fill cell, meta.
 	title = ansi.Truncate(title, max(1, width-5-ansi.StringWidth(meta)), "…")
@@ -54,11 +61,11 @@ func renderDetail(theme types.Theme, state types.ContentState, width, height int
 	})
 }
 
-// detailBody is the Day summary, or with the pane focused (enter on a task or habit) the
+// detailBody is the Day summary, titled with its date, or with the pane focused (enter on a task or habit) the
 // selection's details.
 func detailBody(theme types.Theme, state types.ContentState, width int) (string, []string) {
 	if !state.DailyDetailFocus || state.DailyDetailSummary {
-		return "Day", padded(viewsummary.DayLines(theme, state, max(1, width-2*panePad)))
+		return dayTitle(state), padded(viewsummary.DayLines(theme, state, max(1, width-2*panePad)))
 	}
 	if state.Pane == "habits" {
 		if habit, ok := selectedDailyHabit(state); ok {
@@ -68,6 +75,23 @@ func detailBody(theme types.Theme, state types.ContentState, width int) (string,
 		return issue.Title, padded(IssueDetailLines(theme, state, issue, max(1, width-2*panePad)))
 	}
 	return "Selected", []string{theme.StyleDim.Render("Nothing selected")}
+}
+
+// dayTitle names the summarised day, "Sun 8 Nov (Today)", so the pane says which day it shows. Before
+// the summary loads it names the dashboard's day.
+func dayTitle(state types.ContentState) string {
+	iso := state.SummaryDate
+	if iso == "" {
+		iso = dailyDate(state)
+	}
+	if date, err := time.Parse("2006-01-02", iso); err == nil {
+		title := date.Format("Mon 2 Jan")
+		if state.Health != nil && state.Health.CurrentDate == iso {
+			title += " (Today)"
+		}
+		return title
+	}
+	return "Day"
 }
 
 // DetailScrollLimit is the furthest the focused detail pane scrolls: its last line at the top.

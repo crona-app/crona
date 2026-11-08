@@ -20,7 +20,10 @@ func TestScoreGridBoxesEachDayWithItsScore(t *testing.T) {
 	}
 	lines := ScoreGrid(testTheme(), selection, 80, false)
 	text := ansi.Strip(strings.Join(lines, "\n"))
-	for _, want := range []string{"May 2026  Wed 20 · focus 82 strong", "Mo", "╭", " 82", "Away", "│ 20", "W21 │ 18"} {
+	if header := ansi.Strip(lines[0]); strings.TrimSpace(header) != "May 2026" {
+		t.Fatalf("expected the header to name only the month, got %q", header)
+	}
+	for _, want := range []string{"May 2026", "Mo", "╭", " 82", "Away", "│ 20", "W21 │ 18"} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("expected %q in the score grid, got\n%s", want, text)
 		}
