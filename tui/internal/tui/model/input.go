@@ -103,6 +103,9 @@ func (m Model) inputState() inputpkg.State {
 		DailyDetailSummary:        m.dailyDetailSummary,
 		DailyDetailShown:          m.view == ViewDaily && viewhelpers.ClassFor(m.mainContentWidth()) == viewhelpers.WidthWide,
 		DailyDetailScroll:         m.dailyDetailScroll,
+		DailyPlanSelect:           m.dailyPlanSelect,
+		DailyPlanCursor:           m.planCursor(m.planItems()),
+		DailyPlanCount:            len(m.planItems()),
 		Date:                      m.date,
 		ReviewWindowDays:          m.reviewWindowDays,
 		ReviewWindowEnd:           m.reviewWindowEnd,
@@ -144,6 +147,7 @@ func (m Model) applyInputState(state inputpkg.State) Model {
 	if m.dailyDetailFocus {
 		m.dailyDetailScroll = max(0, state.DailyDetailScroll)
 	}
+	m = m.applyPlanSelect(state)
 	previousView := m.view
 	scopeMoved := state.ActivePane == PaneScope && state.Cursor[PaneScope] != m.cursor[PaneScope]
 	m.view = state.ActiveView
@@ -372,7 +376,9 @@ func (m Model) inputDeps() inputpkg.Deps {
 			next := m.applyInputState(state)
 			return (&next).currentOpsLimit()
 		},
-		LoadOps: func(limit int) tea.Cmd { return commands.LoadOps(m.client, limit) },
+		LoadOps:               func(limit int) tea.Cmd { return commands.LoadOps(m.client, limit) },
+		OpenPlanIssueStatus:   m.openPlanIssueStatus,
+		OpenPlanIssueTodoDate: m.openPlanIssueTodoDate,
 		OpenIssueStatusFromSelection: func(state *inputpkg.State) bool {
 			next := m.applyInputState(*state)
 			snapshot := next.selectionSnapshot()

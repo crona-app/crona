@@ -28,6 +28,11 @@ type State struct {
 	// DailyDetailShown is true while Today shows its detail pane (wide screens).
 	DailyDetailShown  bool
 	DailyDetailScroll int
+	// DailyPlanSelect makes the focused Day summary's plan list selectable; DailyPlanCursor is
+	// its row and DailyPlanCount how many rows it has.
+	DailyPlanSelect bool
+	DailyPlanCursor int
+	DailyPlanCount  int
 	// Date is the one date every dated view shows; "" means the logical today.
 	Date             string
 	ReviewWindowDays int
@@ -100,20 +105,23 @@ type Deps struct {
 	DailyCalendarMonthFits func(State) bool
 	// OpenReviewDialog opens Review's "day" or "time" as a dialog on narrow screens, where
 	// neither has a pane, and reports whether it did.
-	OpenReviewDialog                func(*State, string) bool
-	OpenHelpDialog                  func(*State) bool
-	ConfigChangeSelected            func(*State) tea.Cmd
-	OpenCheckoutContextDialog       func(*State) bool
-	Checkout                        func(*State) tea.Cmd
-	CheckUpdateNow                  func() tea.Cmd
-	ResumeSession                   func(State) tea.Cmd
-	AdvanceSession                  func() tea.Cmd
-	PauseSession                    func() tea.Cmd
-	OpenEndSessionDialog            func(*State) bool
-	ClampFiltered                   func(*State, uistate.Pane)
-	CurrentOpsLimit                 func(State) int
-	LoadOps                         func(int) tea.Cmd
-	OpenIssueStatusFromSelection    func(*State) bool
+	OpenReviewDialog             func(*State, string) bool
+	OpenHelpDialog               func(*State) bool
+	ConfigChangeSelected         func(*State) tea.Cmd
+	OpenCheckoutContextDialog    func(*State) bool
+	Checkout                     func(*State) tea.Cmd
+	CheckUpdateNow               func() tea.Cmd
+	ResumeSession                func(State) tea.Cmd
+	AdvanceSession               func() tea.Cmd
+	PauseSession                 func() tea.Cmd
+	OpenEndSessionDialog         func(*State) bool
+	ClampFiltered                func(*State, uistate.Pane)
+	CurrentOpsLimit              func(State) int
+	LoadOps                      func(int) tea.Cmd
+	OpenIssueStatusFromSelection func(*State) bool
+	// OpenPlanIssueStatus and OpenPlanIssueTodoDate act on the Day summary's selected plan issue.
+	OpenPlanIssueStatus             func(*State) bool
+	OpenPlanIssueTodoDate           func(*State) bool
 	AbandonSelectedIssue            func(*State) tea.Cmd
 	ToggleSelectedIssueToday        func(*State) tea.Cmd
 	ToggleSelectedIssuePinnedDaily  func(*State) tea.Cmd
@@ -185,6 +193,9 @@ func Handle(state State, key tea.KeyMsg, deps Deps) (State, tea.Cmd) {
 		state.SessionDetailOpen,
 		state.SessionContextOpen,
 	)
+	if next, handled := handlePlanSelect(state, key, deps); handled {
+		return next, nil
+	}
 	if next, handled := handleFocusedDailyDetail(state, key); handled {
 		return next, nil
 	}
@@ -811,14 +822,61 @@ func handleFocusedDailyDetail(s State, key tea.KeyMsg) (State, bool) {
 	case "pgdown", "ctrl+d":
 		s.DailyDetailScroll += 10
 	case "g":
+		// On the Day summary g is Daily's "today", as the header offers; a task's details
+		// keep it as scroll-to-top.
+		if s.DailyDetailSummary {
+			return s, false
+		}
 		s.DailyDetailScroll = 0
 	case "G":
 		s.DailyDetailScroll = 1 << 30
+	case "P":
+		// The summary's plan list becomes selectable; P on Tasks stays pin.
+		if !s.DailyDetailSummary {
+			return s, false
+		}
+		if s.DailyPlanCount == 0 {
+			return s, true
+		}
+		s.DailyPlanSelect, s.DailyPlanCursor = true, 0
 	case "enter":
 	default:
 		return s, false
 	}
 	s.DailyDetailScroll = max(0, s.DailyDetailScroll)
+	return s, true
+}
+
+// handlePlanSelect drives the Day summary's selected plan list: the cursor, s for status and
+// d for due date. Every other key is held back, so the list never reaches Tasks' actions;
+// esc returns to the summary and tab leaves the pane as usual.
+func handlePlanSelect(s State, key tea.KeyMsg, deps Deps) (State, bool) {
+	if !s.DailyPlanSelect || !s.DailyDetailFocus || s.ActiveView != uistate.ViewDaily ||
+		s.Dialog != "" || s.HelpOpen {
+		return s, false
+	}
+	switch key.String() {
+	case "esc":
+		s.DailyPlanSelect = false
+	case "tab", "shift+tab":
+		s.DailyPlanSelect = false
+		return handleFocusedDailyDetail(s, key)
+	case "up", "k":
+		s.DailyPlanCursor = max(0, s.DailyPlanCursor-1)
+	case "down", "j":
+		s.DailyPlanCursor = min(max(0, s.DailyPlanCount-1), s.DailyPlanCursor+1)
+	case "s":
+		if !s.ProtectedModeActive && deps.OpenPlanIssueStatus != nil {
+			deps.OpenPlanIssueStatus(&s)
+		}
+	case "d":
+		if !s.ProtectedModeActive && deps.OpenPlanIssueTodoDate != nil {
+			deps.OpenPlanIssueTodoDate(&s)
+		}
+	case "ctrl+c", "q", "?", ",", ".", "g":
+		// Quit, help and the day keys still work from here.
+		return s, false
+	}
 	return s, true
 }
 

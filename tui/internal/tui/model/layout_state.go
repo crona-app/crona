@@ -50,6 +50,8 @@ func (m Model) viewContentState(
 		DailyDetailFocus:    m.dailyDetailFocus,
 		DailyDetailSummary:  m.dailyDetailSummary,
 		DailyDetailScroll:   m.dailyDetailScroll,
+		DailyPlanSelect:     m.dailyPlanSelect,
+		DailyPlanCursor:     m.planCursor(m.planItems()),
 		SessionHistoryTitle: helperpkg.SessionHistoryTitle(sessionIssueID, sessionIssue),
 		SessionHistoryMeta:  helperpkg.SessionHistorySubtitle(sessionIssueID, sessionIssue),
 		HabitHistoryTitle:   m.habitHistoryTitle,

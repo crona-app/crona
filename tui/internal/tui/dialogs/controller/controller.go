@@ -549,6 +549,11 @@ func updateIssueStatus(
 	currentDate string,
 	msg tea.KeyMsg,
 ) (State, *Action, string) {
+	// A dialog opened for a named issue (the Day summary's plan list) acts on it, not on the
+	// Tasks selection.
+	if state.IssueID != 0 {
+		ctx.SelectedIssueID, ctx.SelectedStreamID, ctx.HasSelectedIssue = state.IssueID, state.StreamID, true
+	}
 	switch msg.String() {
 	case "esc":
 		return Close(state), nil, ""

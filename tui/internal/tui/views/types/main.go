@@ -87,6 +87,10 @@ type ContentState struct {
 	// DailyDetailSummary keeps the focused detail pane on the Day summary (tab into it).
 	DailyDetailSummary bool
 	DailyDetailScroll  int
+	// DailyPlanSelect makes the Day summary's plan list selectable (P on the focused summary);
+	// DailyPlanCursor is the selected row in summary.PlanItems' order.
+	DailyPlanSelect bool
+	DailyPlanCursor int
 	// DailyIssueIndices and DailyHabitIndices are the model's text-filtered raw indices into
 	// DailyIssues and DueHabits; the pane cursors are positions in these lists.
 	DailyIssueIndices     []int

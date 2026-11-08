@@ -329,3 +329,88 @@ func TestPlanVerdictAndResolvedChips(t *testing.T) {
 		t.Fatalf("delay = %q", got)
 	}
 }
+
+func planSelectState() types.ContentState {
+	state := summaryTestState()
+	risky := &sharedtypes.DailyPlanEntryPenalty{HighRisk: true}
+	state.SummarySnapshot.Plan = &sharedtypes.DailyPlan{
+		Date: state.SummarySnapshot.Date,
+		Entries: []sharedtypes.DailyPlanEntry{
+			// On the day's plan but adding nothing to the penalty: not listed.
+			{IssueID: 5, Status: sharedtypes.DailyPlanEntryStatusPlanned},
+			{IssueID: 1, Status: sharedtypes.DailyPlanEntryStatusPlanned, FailScore: 0.2},
+		},
+		Contributing: []sharedtypes.DailyPlanEntry{
+			{IssueID: 1, Status: sharedtypes.DailyPlanEntryStatusPlanned, FailScore: 0.2,
+				Penalty: &sharedtypes.DailyPlanEntryPenalty{}},
+			// Planned on an earlier day and still open: listed though the day holds no entry for it.
+			{IssueID: 2, Date: "2026-07-20", Status: sharedtypes.DailyPlanEntryStatusPlanned, FailScore: 0.1,
+				CurrentDelayedDays: 2, Penalty: &sharedtypes.DailyPlanEntryPenalty{}},
+			{IssueID: 3, Date: "2026-07-21", Status: sharedtypes.DailyPlanEntryStatusPlanned, FailScore: 0.9,
+				Penalty: risky},
+			{IssueID: 4, Status: sharedtypes.DailyPlanEntryStatusPlanned, FailScore: 0.5, Penalty: risky},
+			{IssueID: 6, Status: sharedtypes.DailyPlanEntryStatusPlanned, FailScore: 0.05,
+				Penalty: &sharedtypes.DailyPlanEntryPenalty{}},
+		},
+	}
+	state.AllIssues = []api.IssueWithMeta{
+		{Issue: api.Issue{ID: 1, Title: "Small task", Status: "ready"}},
+		{Issue: api.Issue{ID: 2, Title: "Older task", Status: "in_progress"}},
+		{Issue: api.Issue{ID: 3, Title: "Risky task", Status: "ready"}},
+		// Done since the plan loaded: dropped.
+		{Issue: api.Issue{ID: 4, Title: "Done task", Status: "done"}},
+		{Issue: api.Issue{ID: 5, Title: "Calm task", Status: "ready"}},
+		{Issue: api.Issue{ID: 6, Title: "Tiny task", Status: "ready"}},
+	}
+	return state
+}
+
+func TestPlanItemsAreTheIssuesBehindThePenalty(t *testing.T) {
+	state := planSelectState()
+	var titles []string
+	for _, item := range PlanItems(state.SummarySnapshot, state.AllIssues) {
+		titles = append(titles, item.Title)
+	}
+	if strings.Join(titles, ",") != "Risky task,Small task,Older task,Tiny task" {
+		t.Fatalf("expected the contributing issues riskiest first, got %v", titles)
+	}
+	// An older daemon sends no contributing list: the day's penalised entries stand in.
+	state.SummarySnapshot.Plan.Contributing = nil
+	state.SummarySnapshot.Plan.Entries[1].Penalty = &sharedtypes.DailyPlanEntryPenalty{}
+	if items := PlanItems(state.SummarySnapshot, state.AllIssues); len(items) != 1 || items[0].Title != "Small task" {
+		t.Fatalf("expected the day's penalised entry without a contributing list, got %+v", items)
+	}
+}
+
+func TestPlanListSelectsEveryContributingIssue(t *testing.T) {
+	state := planSelectState()
+	rest := squash(dayText(state, 80))
+	if !strings.Contains(rest, "Top ▲ Risky task") || !strings.Contains(rest, "Older task · late 2d") ||
+		strings.Contains(rest, "Tiny task") || strings.Contains(rest, "[P]") {
+		t.Fatalf("expected the top three behind the penalty and no key at rest, got %q", rest)
+	}
+	state.DailyDetailFocus, state.DailyDetailSummary = true, true
+	if focused := squash(dayText(state, 80)); !strings.Contains(focused, "Plan [P] select") {
+		t.Fatalf("expected [P] select on the focused summary, got %q", focused)
+	}
+	state.DailyPlanSelect, state.DailyPlanCursor = true, 1
+	selecting := squash(dayText(state, 80))
+	for _, want := range []string{"Open ▲ Risky task", "▶ Small task", "[s] status [d] due", "Older task", "Tiny task"} {
+		if !strings.Contains(selecting, want) {
+			t.Fatalf("expected %q in the selected plan list, got %q", want, selecting)
+		}
+	}
+	for _, gone := range []string{"Done task", "Calm task", "[P]"} {
+		if strings.Contains(selecting, gone) {
+			t.Fatalf("expected no %q while selecting, got %q", gone, selecting)
+		}
+	}
+}
+
+func TestIssueLegendCountsTheWholePlan(t *testing.T) {
+	state := planSelectState()
+	counts := plannedStatusCounts(state)
+	if counts["ready"] != 2 || len(counts) != 1 {
+		t.Fatalf("expected the day's plan issues counted, got %v", counts)
+	}
+}

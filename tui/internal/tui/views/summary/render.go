@@ -27,8 +27,8 @@ func DayLines(theme types.Theme, state types.ContentState, width int) []string {
 	}
 	lines := renderVitals(theme, snapshot, width)
 	lines = append(lines, "")
-	lines = append(lines, renderPlan(theme, snapshot.Plan, plannedStatusCounts(state), width)...)
-	lines = append(lines, renderTopPenalties(theme, snapshot.Plan, snapshot.Issues, width)...)
+	lines = append(lines, renderPlan(theme, state, snapshot.Plan, width)...)
+	lines = append(lines, renderPlanIssues(theme, state, width)...)
 	lines = append(lines, "")
 	lines = append(lines, renderWellbeing(theme, snapshot.CheckIn, snapshot.Rollup, state.Settings, width)...)
 	lines = append(lines, "")
@@ -186,11 +186,18 @@ func habitsGauge(theme types.Theme, metrics *api.DailyMetricsDay) gauge {
 // what is slipping, late and resolved, and the open issues by status.
 func renderPlan(
 	theme types.Theme,
+	state types.ContentState,
 	plan *sharedtypes.DailyPlan,
-	statusCounts map[string]int,
 	width int,
 ) []string {
-	lines := []string{theme.StylePaneTitle.Render("Plan")}
+	statusCounts := plannedStatusCounts(state)
+	title := theme.StylePaneTitle.Render("Plan")
+	// The focused summary offers the plan's list for selection; at rest the pane carries no keys.
+	if state.DailyDetailFocus && state.DailyDetailSummary && !state.DailyPlanSelect &&
+		len(PlanItems(state.SummarySnapshot, state.AllIssues)) > 0 {
+		title += "   " + theme.StyleDim.Render("[P] select")
+	}
+	lines := []string{title}
 	if plan == nil || strings.TrimSpace(plan.Date) == "" {
 		lines = append(lines, theme.StyleDim.Render("No committed plan."))
 	} else {
@@ -350,63 +357,123 @@ func outcome(theme types.Theme, glyph string, count int, label string, color lip
 		theme.StyleNormal.Render(" "+label)
 }
 
-// renderTopPenalties lists the up to three live plan entries adding most to the accountability
-// score, so the issues worth doing first stand out.
-func renderTopPenalties(
-	theme types.Theme,
-	plan *sharedtypes.DailyPlan,
-	issues *sharedtypes.DailyIssueSummary,
-	width int,
-) []string {
-	if plan == nil {
+// PlanItem is one open entry of the day's committed plan, with its issue's title.
+type PlanItem struct {
+	Entry sharedtypes.DailyPlanEntry
+	Title string
+}
+
+// PlanItems are the issues adding to the summarised day's accountability penalty, from any
+// day's plan, riskiest first: the ones Slipping and Delayed count. The Plan section lists them
+// and its selection mode walks them, so both read this one order. A daemon that predates the
+// contributing list leaves only the day's own penalised entries.
+func PlanItems(snapshot *api.SummarySnapshot, all []api.IssueWithMeta) []PlanItem {
+	if snapshot == nil || snapshot.Plan == nil {
 		return nil
 	}
-	titles := map[int64]string{}
-	if issues != nil {
-		for _, issue := range issues.Issues {
+	titles, closed := map[int64]string{}, map[int64]bool{}
+	for _, issue := range all {
+		titles[issue.ID] = issue.Title
+		closed[issue.ID] = issue.Status == "done" || issue.Status == "abandoned"
+	}
+	if snapshot.Issues != nil {
+		for _, issue := range snapshot.Issues.Issues {
 			titles[issue.ID] = issue.Title
 		}
 	}
-	entries := []sharedtypes.DailyPlanEntry{}
-	for _, entry := range plan.Entries {
-		if entry.Penalty != nil && !entry.Penalty.Historical && entry.FailScore > 0 {
-			entries = append(entries, entry)
+	entries := snapshot.Plan.Contributing
+	if entries == nil {
+		for _, entry := range snapshot.Plan.Entries {
+			if p := entry.Penalty; p != nil && !p.Historical && entry.FailScore > 0 {
+				entries = append(entries, entry)
+			}
 		}
 	}
-	if len(entries) == 0 {
-		return nil
-	}
-	sort.SliceStable(
-		entries,
-		func(i, j int) bool { return entries[i].FailScore > entries[j].FailScore },
-	)
-	lines := []string{}
-	for i, entry := range entries[:min(3, len(entries))] {
-		label := ""
-		if i == 0 {
-			label = "Top"
+	items := []PlanItem{}
+	seen := map[int64]bool{}
+	for _, entry := range entries {
+		if planEntryResolved(entry.Status) || closed[entry.IssueID] || seen[entry.IssueID] {
+			continue
 		}
+		seen[entry.IssueID] = true
 		title := titles[entry.IssueID]
 		if title == "" {
 			title = fmt.Sprintf("#%d", entry.IssueID)
 		}
-		mark := "  "
-		color := theme.ColorYellow
-		if entry.Penalty.HighRisk {
-			mark = lipgloss.NewStyle().Foreground(theme.ColorRed).Render("▲ ")
-			color = theme.ColorOrange
+		items = append(items, PlanItem{Entry: entry, Title: title})
+	}
+	sort.SliceStable(items, func(i, j int) bool { return items[i].Entry.FailScore > items[j].Entry.FailScore })
+	return items
+}
+
+// planEntryResolved reports whether a plan entry has left the open plan.
+func planEntryResolved(status sharedtypes.DailyPlanEntryStatus) bool {
+	switch status {
+	case sharedtypes.DailyPlanEntryStatusCompleted, sharedtypes.DailyPlanEntryStatusFailed,
+		sharedtypes.DailyPlanEntryStatusAbandoned, sharedtypes.DailyPlanEntryStatusCanceled,
+		sharedtypes.DailyPlanEntryStatusCarried:
+		return true
+	}
+	return false
+}
+
+// renderPlanIssues lists the issues behind the penalty under the Plan section. At rest it
+// shows the top three; with the list selected (P on the focused summary) it shows them all, the
+// cursor's row followed by the keys it takes.
+func renderPlanIssues(theme types.Theme, state types.ContentState, width int) []string {
+	items := PlanItems(state.SummarySnapshot, state.AllIssues)
+	selecting := state.DailyPlanSelect
+	if !selecting {
+		items = items[:min(3, len(items))]
+	}
+	if len(items) == 0 {
+		return nil
+	}
+	cursor := min(max(0, state.DailyPlanCursor), len(items)-1)
+	label := "Top"
+	if selecting {
+		label = "Open"
+	}
+	lines := []string{}
+	for i, item := range items {
+		row := planRow(theme, item)
+		if selecting {
+			pointer := "  "
+			if i == cursor {
+				pointer = theme.StyleCursor.Render("▶ ")
+			}
+			row = pointer + row
 		}
-		why := "due today"
-		if entry.CurrentDelayedDays > 0 {
-			why = fmt.Sprintf("late %dd", entry.CurrentDelayedDays)
+		rowLabel := ""
+		if i == 0 {
+			rowLabel = label
 		}
-		if entry.Penalty.Contribution != nil {
-			why += fmt.Sprintf(" · %.0f%%", entry.Penalty.Contribution.AccountabilityPct*100)
+		lines = append(lines, Row(theme, rowLabel, row, width))
+		if selecting && i == cursor {
+			keys := theme.StyleDim.Render("[s] status  [d] due")
+			lines = append(lines, Row(theme, "", "    "+keys, width))
 		}
-		why = lipgloss.NewStyle().Foreground(color).Render(why)
-		lines = append(lines, Row(theme, label, mark+title+theme.StyleDim.Render(" · ")+why, width))
 	}
 	return lines
+}
+
+// planRow is one plan issue: a red mark when high risk, its title, and why it matters (how
+// late, its share of the accountability penalty).
+func planRow(theme types.Theme, item PlanItem) string {
+	entry := item.Entry
+	mark, color := "  ", theme.ColorYellow
+	if entry.Penalty != nil && entry.Penalty.HighRisk {
+		mark = lipgloss.NewStyle().Foreground(theme.ColorRed).Render("▲ ")
+		color = theme.ColorOrange
+	}
+	why := "due today"
+	if entry.CurrentDelayedDays > 0 {
+		why = fmt.Sprintf("late %dd", entry.CurrentDelayedDays)
+	}
+	if entry.Penalty != nil && entry.Penalty.Contribution != nil {
+		why += fmt.Sprintf(" · %.0f%%", entry.Penalty.Contribution.AccountabilityPct*100)
+	}
+	return mark + item.Title + theme.StyleDim.Render(" · ") + lipgloss.NewStyle().Foreground(color).Render(why)
 }
 
 func renderWellbeing(
@@ -541,8 +608,27 @@ func DayLine(theme types.Theme, state types.ContentState, width int) string {
 }
 
 // plannedStatusCounts counts the shown day's planned tasks by status, for the status bar.
+// plannedStatusCounts counts the summarised day's issues by status: every issue in its
+// committed plan (carried-in ones included, as Slipping and Delayed count them), or without a
+// plan the issues due that day.
 func plannedStatusCounts(state types.ContentState) map[string]int {
 	counts := map[string]int{}
+	if snapshot := state.SummarySnapshot; snapshot != nil && snapshot.Plan != nil && len(snapshot.Plan.Entries) > 0 {
+		statuses := make(map[int64]string, len(state.AllIssues))
+		for _, issue := range state.AllIssues {
+			statuses[issue.ID] = string(issue.Status)
+		}
+		seen := map[int64]bool{}
+		for _, entry := range snapshot.Plan.Entries {
+			status, ok := statuses[entry.IssueID]
+			if !ok || seen[entry.IssueID] {
+				continue
+			}
+			seen[entry.IssueID] = true
+			counts[status]++
+		}
+		return counts
+	}
 	for _, issue := range state.DailyPlannedIssues {
 		counts[string(issue.Status)]++
 	}

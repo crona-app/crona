@@ -126,6 +126,11 @@ type Model struct {
 	dailyDetailFocus bool
 	// dailyDetailSummary keeps the focused pane on the Day summary (tab into it).
 	dailyDetailSummary bool
+	// dailyPlanSelect makes the focused Day summary's plan list selectable (P);
+	// dailyPlanIssueID is the selected issue, so the cursor follows it as the list re-sorts.
+	dailyPlanSelect  bool
+	dailyPlanCursor  int
+	dailyPlanIssueID int64
 	// detailSessions are the sessions of detailSessionsIssueID, loaded when Daily's detail
 	// pane opens on an issue.
 	detailSessions        []api.SessionHistoryEntry

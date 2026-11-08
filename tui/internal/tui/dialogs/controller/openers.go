@@ -313,6 +313,18 @@ func (s Snapshot) OpenIssueStatus(
 	)
 }
 
+// OpenIssueStatusFor opens the status picker for a named issue rather than the selection.
+func (s Snapshot) OpenIssueStatusFor(
+	issueID, streamID int64,
+	status, title, repoName, streamName string,
+	estimateMinutes *int,
+	workedSeconds int,
+) State {
+	state := s.OpenIssueStatus(status, title, repoName, streamName, estimateMinutes, workedSeconds)
+	state.IssueID, state.StreamID = issueID, streamID
+	return state
+}
+
 func (s Snapshot) OpenIssueStatusNote(status, label string, required bool) State {
 	return OpenIssueStatusNote(
 		s.Dialog,
