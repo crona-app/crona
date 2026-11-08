@@ -154,6 +154,8 @@ func Close(state State) State {
 	state.ChoiceItems = nil
 	state.ChoiceValues = nil
 	state.ChoiceDetails = nil
+	state.ChoiceGroups = nil
+	state.ChoiceCurrent = ""
 	state.ChoiceCursor = 0
 	state.Processing = false
 	state.ProcessingLabel = ""

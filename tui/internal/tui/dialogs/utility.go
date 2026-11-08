@@ -39,7 +39,9 @@ func renderUtilityDialog(theme Theme, state controllerpkg.State) string {
 		return renderReminderForm(theme, state)
 	case "view_entity", "view_momentum_detail", "support_bundle_result":
 		return renderDetailView(theme, state)
-	case "view_jump", "beta_support":
+	case "view_jump":
+		return renderViewJump(theme, state)
+	case "beta_support":
 		return renderMenuList(theme, state)
 	case "complete_habit":
 		return renderHabitLogForm(theme, state)

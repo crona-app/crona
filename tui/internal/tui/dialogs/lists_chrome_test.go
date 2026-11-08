@@ -77,7 +77,7 @@ func TestConfirmAndListDialogs(t *testing.T) {
 				controllerpkg.State{},
 				[]uistate.View{uistate.ViewDaily, uistate.ViewDefault},
 			),
-			title: "Jump To View",
+			title: "Jump to",
 		},
 		{
 			name:  "beta_support",

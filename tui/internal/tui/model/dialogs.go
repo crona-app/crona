@@ -63,6 +63,7 @@ func (m Model) dialogSnapshot() dialogstate.Snapshot {
 		CurrentWellbeingDate: m.currentDate(),
 		HasActiveTimer:       m.timer != nil && m.timer.State != "idle",
 		AvailableViews:       m.jumpAvailableViews(),
+		CurrentView:          m.view,
 	}
 	dialogSnapshot.ProtectedModeActive, _, _ = viewruntime.ProtectedRestMode(
 		m.settings,
@@ -856,6 +857,8 @@ func (m Model) dialogState() dialogstate.State {
 		ChoiceItems:                    m.dialogChoiceItems,
 		ChoiceValues:                   m.dialogChoiceValues,
 		ChoiceDetails:                  m.dialogChoiceDetails,
+		ChoiceGroups:                   m.dialogChoiceGroups,
+		ChoiceCurrent:                  m.dialogChoiceCurrent,
 		TemplateAssets:                 m.dialogTemplateAssets,
 		ChoiceCursor:                   m.dialogChoiceCursor,
 		MomentumRepoInput:              m.dialogMomentumRepoInput,
@@ -1009,6 +1012,8 @@ func (m Model) withDialogState(state dialogstate.State) Model {
 	m.dialogChoiceItems = state.ChoiceItems
 	m.dialogChoiceValues = state.ChoiceValues
 	m.dialogChoiceDetails = state.ChoiceDetails
+	m.dialogChoiceGroups = state.ChoiceGroups
+	m.dialogChoiceCurrent = state.ChoiceCurrent
 	m.dialogTemplateAssets = state.TemplateAssets
 	m.dialogChoiceCursor = state.ChoiceCursor
 	m.dialogMomentumRepoInput = state.MomentumRepoInput

@@ -107,6 +107,8 @@ type MessageState struct {
 	DialogChoiceItems       []string
 	DialogChoiceValues      []string
 	DialogChoiceDetails     []string
+	DialogChoiceGroups      []string
+	DialogChoiceCurrent     string
 	DialogChoiceCursor      int
 	DialogProcessing        bool
 	DialogProcessingLabel   string

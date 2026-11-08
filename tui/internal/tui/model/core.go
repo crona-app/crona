@@ -247,6 +247,8 @@ type Model struct {
 	dialogChoiceItems                    []string
 	dialogChoiceValues                   []string
 	dialogChoiceDetails                  []string
+	dialogChoiceGroups                   []string
+	dialogChoiceCurrent                  string
 	dialogTemplateAssets                 []sharedtypes.ExportTemplateAsset
 	dialogChoiceCursor                   int
 	dialogMomentumRepoInput              textinput.Model

@@ -430,6 +430,8 @@ func (m Model) dispatchMessageState() dispatchpkg.MessageState {
 		DialogChoiceItems:       m.dialogChoiceItems,
 		DialogChoiceValues:      m.dialogChoiceValues,
 		DialogChoiceDetails:     m.dialogChoiceDetails,
+		DialogChoiceGroups:      m.dialogChoiceGroups,
+		DialogChoiceCurrent:     m.dialogChoiceCurrent,
 		DialogChoiceCursor:      m.dialogChoiceCursor,
 		DialogProcessing:        m.dialogProcessing,
 		DialogProcessingLabel:   m.dialogProcessingLabel,
@@ -530,6 +532,8 @@ func (m Model) applyDispatchMessageState(state dispatchpkg.MessageState) Model {
 	m.dialogChoiceItems = state.DialogChoiceItems
 	m.dialogChoiceValues = state.DialogChoiceValues
 	m.dialogChoiceDetails = state.DialogChoiceDetails
+	m.dialogChoiceGroups = state.DialogChoiceGroups
+	m.dialogChoiceCurrent = state.DialogChoiceCurrent
 	m.dialogChoiceCursor = state.DialogChoiceCursor
 	m.dialogProcessing = state.DialogProcessing
 	m.dialogProcessingLabel = state.DialogProcessingLabel

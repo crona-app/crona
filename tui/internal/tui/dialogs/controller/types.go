@@ -85,24 +85,28 @@ type State struct {
 	ChoiceItems               []string
 	ChoiceValues              []string
 	ChoiceDetails             []string
-	TemplateAssets            []sharedtypes.ExportTemplateAsset
-	ChoiceCursor              int
-	MomentumRepoInput         textinput.Model
-	MomentumStreamInput       textinput.Model
-	Processing                bool
-	ProcessingLabel           string
-	StatusLabel               string
-	StatusRequired            bool
-	IssueStatus               string
-	CheckInDate               string
-	RepoName                  string
-	RepoItems                 []string
-	RepoItemIDs               []int64
-	StreamName                string
-	RepoIndex                 int
-	StreamIndex               int
-	Parent                    string
-	DateMonthValue            string
+	// ChoiceGroups heads each choice's group in the jump dialog (its tab, "" to continue the
+	// group above); ChoiceCurrent is the value of the view the dialog was opened from.
+	ChoiceGroups        []string
+	ChoiceCurrent       string
+	TemplateAssets      []sharedtypes.ExportTemplateAsset
+	ChoiceCursor        int
+	MomentumRepoInput   textinput.Model
+	MomentumStreamInput textinput.Model
+	Processing          bool
+	ProcessingLabel     string
+	StatusLabel         string
+	StatusRequired      bool
+	IssueStatus         string
+	CheckInDate         string
+	RepoName            string
+	RepoItems           []string
+	RepoItemIDs         []int64
+	StreamName          string
+	RepoIndex           int
+	StreamIndex         int
+	Parent              string
+	DateMonthValue      string
 	// PenaltyHint shows what rescheduling the issue would do to its delay penalty.
 	PenaltyHint         string
 	DateCursorValue     string

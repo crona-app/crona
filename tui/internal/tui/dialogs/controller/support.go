@@ -21,105 +21,66 @@ type menuChoice struct {
 	Detail string
 }
 
+// viewJumpChoices are each view's jump key and one-line description.
+var viewJumpChoices = map[uistate.View]menuChoice{
+	uistate.ViewDaily:          {Key: "d", Detail: "planned issues and habits"},
+	uistate.ViewSessionActive:  {Key: "n", Detail: "the running session"},
+	uistate.ViewAway:           {Key: "a", Detail: "away and rest mode"},
+	uistate.ViewDefault:        {Key: "i", Detail: "every issue in scope"},
+	uistate.ViewHabitList:      {Key: "m", Detail: "habit definitions"},
+	uistate.ViewTags:           {Key: "+", Detail: "rename, merge and color tags"},
+	uistate.ViewReview:         {Key: "r", Detail: "work and wellbeing over a window"},
+	uistate.ViewMomentum:       {Key: "u", Detail: "momentum cards and progress"},
+	uistate.ViewSessionHistory: {Key: "y", Detail: "past focus sessions"},
+	uistate.ViewHabitHistory:   {Key: "b", Detail: "past habit check-offs"},
+	uistate.ViewOps:            {Key: "o", Detail: "recent operations"},
+	uistate.ViewSettings:       {Key: "s", Detail: "core settings"},
+	uistate.ViewAlerts:         {Key: "l", Detail: "notifications and sounds"},
+	uistate.ViewReports:        {Key: "p", Detail: "generated reports"},
+	uistate.ViewConfig:         {Key: "c", Detail: "export assets and templates"},
+	uistate.ViewUpdates:        {Key: "t", Detail: "releases and install status"},
+	uistate.ViewSupport:        {Key: "h", Detail: "bug reports and links"},
+}
+
+// OpenViewJump opens the jump dialog over availableViews.
 func OpenViewJump(state State, availableViews []uistate.View) State {
+	return OpenViewJumpFrom(state, availableViews, "")
+}
+
+// OpenViewJumpFrom lists availableViews grouped by tab, in the tab bar's order and names, with
+// the cursor on current.
+func OpenViewJumpFrom(state State, availableViews []uistate.View, current uistate.View) State {
 	state = Close(state)
 	state.Kind = "view_jump"
-	state.ViewTitle = "Jump To View"
-	state.ViewName = "Press a mnemonic key or use j/k then enter"
-	allChoices := []menuChoice{
-		{
-			Key:    "a",
-			Label:  "Away",
-			Value:  "away",
-			Detail: "Protected-mode shell when away or rest mode is active.",
-		},
-		{
-			Key:    "d",
-			Label:  "Daily",
-			Value:  "daily",
-			Detail: "Daily dashboard with planned issues and habits.",
-		},
-		{
-			Key:    "r",
-			Label:  "Review",
-			Value:  "review",
-			Detail: "Day-by-day work and wellbeing over a window, with trends and time.",
-		},
-		{
-			Key:    "u",
-			Label:  "Momentum",
-			Value:  "momentum",
-			Detail: "Custom momentum cards with bucket progress graphs.",
-		},
-		{
-			Key:    "p",
-			Label:  "Reports",
-			Value:  "reports",
-			Detail: "Generated report and export browser.",
-		},
-		{
-			Key:    "c",
-			Label:  "Config",
-			Value:  "config",
-			Detail: "Export assets, templates, and renderer tools.",
-		},
-		{Key: "i", Label: "Issues", Value: "default", Detail: "Primary workspace issue list."},
-		{
-			Key:    "m",
-			Label:  "Habits",
-			Value:  "habit_list",
-			Detail: "Habit definitions in the browse scope.",
-		},
-		{Key: "+", Label: "Tags", Value: "tags", Detail: "Tag vocabulary: rename, merge, color and delete."},
-		{Key: "o", Label: "Ops", Value: "ops", Detail: "Recent operation log."},
-		{
-			Key:    "s",
-			Label:  "Settings",
-			Value:  "settings",
-			Detail: "Core settings and danger actions.",
-		},
-		{
-			Key:    "l",
-			Label:  "Alerts",
-			Value:  "alerts",
-			Detail: "Notification, sound, and alert backend settings.",
-		},
-		{
-			Key:    "t",
-			Label:  "Updates",
-			Value:  "updates",
-			Detail: "Release notes, update checks, and install status.",
-		},
-		{
-			Key:    "h",
-			Label:  "Support",
-			Value:  "support",
-			Detail: "Bug reporting, bundles, and GitHub links.",
-		},
-		{
-			Key:    "y",
-			Label:  "History",
-			Value:  "session_history",
-			Detail: "Session history and past focus work.",
-		},
-		{
-			Key:    "n",
-			Label:  "Session",
-			Value:  "session_active",
-			Detail: "Active session view while a timer is running.",
-		},
-	}
-	allowed := make(map[string]struct{}, len(availableViews))
+	state.ViewTitle = "Jump to"
+	state.ViewName = ""
+	state.ChoiceCurrent = string(current)
+	allowed := make(map[uistate.View]bool, len(availableViews))
 	for _, view := range availableViews {
-		allowed[string(view)] = struct{}{}
+		allowed[view] = true
 	}
-	choices := make([]menuChoice, 0, len(allChoices))
-	for _, choice := range allChoices {
-		if _, ok := allowed[choice.Value]; ok {
+	var choices []menuChoice
+	var groups []string
+	for i, tab := range uistate.TabOrder() {
+		group := fmt.Sprintf("%s\t%d", uistate.TabLabel(tab), i+1)
+		for _, view := range uistate.TabViews(tab) {
+			choice, ok := viewJumpChoices[view]
+			if !allowed[view] || !ok {
+				continue
+			}
+			choice.Label, choice.Value = uistate.ViewLabel(view), string(view)
 			choices = append(choices, choice)
+			groups = append(groups, group)
+			group = ""
 		}
 	}
 	state.ChoiceItems, state.ChoiceValues, state.ChoiceDetails = menuChoiceLists(choices)
+	state.ChoiceGroups = groups
+	for i, value := range state.ChoiceValues {
+		if value == state.ChoiceCurrent {
+			state.ChoiceCursor = i
+		}
+	}
 	return state
 }
 
@@ -416,6 +377,13 @@ func updateSupportBundleResult(state State, msg tea.KeyMsg) (State, *Action, str
 }
 
 func updateViewJump(state State, msg tea.KeyMsg) (State, *Action, string) {
+	// No view's key is j or k, so they move like the arrows.
+	switch msg.String() {
+	case "j":
+		msg = tea.KeyMsg{Type: tea.KeyDown}
+	case "k":
+		msg = tea.KeyMsg{Type: tea.KeyUp}
+	}
 	return updateChoiceMenu(state, msg, true)
 }
 

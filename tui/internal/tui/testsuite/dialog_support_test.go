@@ -50,7 +50,12 @@ func TestViewJumpDialogUsesUniqueMnemonicKeys(t *testing.T) {
 		uistate.ViewSupport,
 		uistate.ViewSessionHistory,
 		uistate.ViewSessionActive,
+		uistate.ViewTags,
+		uistate.ViewHabitHistory,
 	})
+	if len(state.ChoiceItems) != 17 {
+		t.Fatalf("expected every view listed, got %v", state.ChoiceItems)
+	}
 	seen := map[string]string{}
 	for _, item := range state.ChoiceItems {
 		if len(item) < 3 || item[0] != '[' || item[2] != ']' {
@@ -99,7 +104,7 @@ func TestViewJumpDialogRestrictsChoicesDuringActiveSession(t *testing.T) {
 	})
 	for _, item := range state.ChoiceItems {
 		switch item {
-		case "[n] Session", "[y] History":
+		case "[n] Session", "[y] Sessions":
 		default:
 			t.Fatalf("unexpected item %q in active-session jump menu", item)
 		}

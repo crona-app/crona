@@ -33,6 +33,7 @@ type Snapshot struct {
 	ProtectedModeActive  bool
 	HasActiveTimer       bool
 	AvailableViews       []uistate.View
+	CurrentView          uistate.View
 	HasSelectedIssue     bool
 	SelectedIssueID      int64
 	SelectedStreamID     int64
@@ -476,7 +477,7 @@ func (s Snapshot) OpenMomentumDetail(detail api.MomentumDetail) State {
 }
 
 func (s Snapshot) OpenViewJump() State {
-	return OpenViewJump(s.Dialog, s.AvailableViews)
+	return OpenViewJumpFrom(s.Dialog, s.AvailableViews, s.CurrentView)
 }
 
 func (s Snapshot) OpenBetaSupport() State {
