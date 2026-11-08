@@ -1,3 +1,4 @@
+// Package types defines domain data shared by the daemon and its clients.
 package types
 
 import (

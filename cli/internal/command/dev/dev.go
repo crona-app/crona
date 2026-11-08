@@ -1,3 +1,4 @@
+// Package dev implements the dev CLI commands.
 package dev
 
 import (

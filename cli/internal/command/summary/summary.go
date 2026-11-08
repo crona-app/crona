@@ -1,3 +1,4 @@
+// Package summary implements the summary CLI commands.
 package summary
 
 import (

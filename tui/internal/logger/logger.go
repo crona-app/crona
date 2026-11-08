@@ -1,3 +1,4 @@
+// Package logger writes terminal-interface diagnostic logs.
 package logger
 
 import (

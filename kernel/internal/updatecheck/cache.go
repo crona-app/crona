@@ -1,3 +1,4 @@
+// Package updatecheck checks release availability and tracks update status.
 package updatecheck
 
 import (

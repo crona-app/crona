@@ -1,3 +1,4 @@
+// Package sessionmeta formats session timing, history, and progress metadata.
 package sessionmeta
 
 import (

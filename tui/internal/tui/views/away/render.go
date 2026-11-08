@@ -1,3 +1,4 @@
+// Package away renders away-mode screens.
 package away
 
 import (

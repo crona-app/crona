@@ -1,3 +1,4 @@
+// Package assets embeds bundled templates and alert assets and installs missing copies.
 package assets
 
 import (

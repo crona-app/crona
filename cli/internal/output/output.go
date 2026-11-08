@@ -1,3 +1,4 @@
+// Package output formats command-line results as text or JSON.
 package output
 
 import (

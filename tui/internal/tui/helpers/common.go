@@ -1,3 +1,4 @@
+// Package helpers provides UI formatting, filtering, and context helpers.
 package helpers
 
 import (

@@ -1,3 +1,4 @@
+// Package runtime connects CLI commands to the daemon and manages its lifecycle.
 package runtime
 
 import (

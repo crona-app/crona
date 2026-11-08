@@ -1,3 +1,4 @@
+// Package tags renders tags screens.
 package tags
 
 import (

@@ -1,3 +1,4 @@
+// Package testsuite verifies CLI behavior through integration tests.
 package testsuite
 
 import (

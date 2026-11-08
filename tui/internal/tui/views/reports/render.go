@@ -1,3 +1,4 @@
+// Package reports renders export reports screens.
 package reports
 
 import (

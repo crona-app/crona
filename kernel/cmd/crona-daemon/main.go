@@ -1,3 +1,4 @@
+// Package main runs the Crona local daemon.
 package main
 
 import (

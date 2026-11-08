@@ -298,6 +298,11 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	)
 	if handled {
 		next := m.applyDispatchMessageState(state)
+		if _, ok := msg.(commands.MomentumRangeLoadedMsg); ok {
+			next.momentumBucketGeneration++
+			next.momentumBucketWant, next.momentumBucketKey = "", ""
+			next.momentumBucketDetail = nil
+		}
 		if _, ok := msg.(commands.AllStreamsLoadedMsg); ok {
 			next.reconcileBrowseScope()
 		}

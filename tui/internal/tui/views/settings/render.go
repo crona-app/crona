@@ -1,3 +1,4 @@
+// Package settings renders settings screens.
 package settings
 
 import types "crona.work/tui/internal/tui/views/types"

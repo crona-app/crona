@@ -1,3 +1,4 @@
+// Package layout composes the application frame and shared screen chrome.
 package layout
 
 import (

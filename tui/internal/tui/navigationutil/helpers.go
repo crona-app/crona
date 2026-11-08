@@ -1,3 +1,4 @@
+// Package navigationutil provides navigation helpers for the terminal interface.
 package navigationutil
 
 import (

@@ -1,3 +1,4 @@
+// Package kernel implements the kernel CLI commands.
 package kernel
 
 import (

@@ -37,7 +37,7 @@ func (m Model) momentumBucketDate(card api.MomentumCard) string {
 }
 
 func (m Model) momentumBucketKeyFor(card api.MomentumCard) string {
-	return fmt.Sprintf("%s|%s|%d", card.Definition.ID, m.momentumBucketDate(card), m.currentMomentumWindowDays())
+	return fmt.Sprintf("%s|%s|%d|%d", card.Definition.ID, m.momentumBucketDate(card), m.currentMomentumWindowDays(), m.momentumBucketGeneration)
 }
 
 // ensureMomentumBucket loads the chosen bucket's contributors on Momentum when they are not

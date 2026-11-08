@@ -1,3 +1,4 @@
+// Package context implements the context CLI commands.
 package context
 
 import (

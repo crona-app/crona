@@ -1,3 +1,4 @@
+// Package api provides the TUI client for daemon requests and events.
 package api
 
 import (

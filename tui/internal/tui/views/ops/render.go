@@ -1,3 +1,4 @@
+// Package ops renders operation history screens.
 package ops
 
 import (

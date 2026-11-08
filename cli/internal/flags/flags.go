@@ -1,3 +1,4 @@
+// Package flags provides shared command-line flag parsing.
 package flags
 
 import (

@@ -1,3 +1,4 @@
+// Package testsuite verifies daemon behavior through integration tests.
 package testsuite
 
 import (

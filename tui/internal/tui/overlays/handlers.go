@@ -1,3 +1,4 @@
+// Package overlays handles session detail and context overlays.
 package overlays
 
 import (

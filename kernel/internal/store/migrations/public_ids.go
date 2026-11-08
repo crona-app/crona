@@ -1,3 +1,4 @@
+// Package migrations initializes and migrates the database schema.
 package migrations
 
 import (

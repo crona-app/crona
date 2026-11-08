@@ -1,3 +1,4 @@
+// Package support renders support diagnostics screens.
 package support
 
 import types "crona.work/tui/internal/tui/views/types"

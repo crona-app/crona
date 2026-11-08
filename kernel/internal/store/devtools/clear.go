@@ -1,3 +1,4 @@
+// Package devtools provides database maintenance operations for development.
 package devtools
 
 import (

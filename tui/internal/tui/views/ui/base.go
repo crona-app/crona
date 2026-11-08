@@ -1,3 +1,4 @@
+// Package ui provides reusable view, pane, table, and layout building blocks.
 package ui
 
 import (

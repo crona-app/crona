@@ -1,3 +1,4 @@
+// Package events distributes daemon events to registered listeners.
 package events
 
 import (

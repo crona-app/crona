@@ -1,3 +1,4 @@
+// Package notify delivers alerts and schedules reminders.
 package notify
 
 import (

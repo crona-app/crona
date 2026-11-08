@@ -1,3 +1,4 @@
+// Package configitems defines configuration items displayed by the terminal interface.
 package configitems
 
 import (

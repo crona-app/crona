@@ -1,3 +1,4 @@
+// Package localipc provides platform-specific local IPC connections and listeners.
 package localipc
 
 import (

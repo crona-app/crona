@@ -54,8 +54,6 @@ func (m Model) viewContentState(
 		DailyPlanCursor:      m.planCursor(m.planItems()),
 		WorkBreakdown:        m.workBreakdownShown(),
 		WorkColumns:          m.workColumnsShown(),
-		ReviewScores:         m.reviewScores,
-		ReviewPrev:           m.reviewPrev,
 		DailyWorkSelect:      m.workSelect,
 		DailyWorkCursor:      m.workCursor,
 		MomentumBucket:       m.momentumBucket,
@@ -167,6 +165,9 @@ func (m Model) viewContentState(
 	}
 	selectedDate := m.currentDate()
 	state.RollupStartDate, state.RollupEndDate = m.reviewRange()
+	if m.reviewCompareRange == state.RollupStartDate+".."+state.RollupEndDate {
+		state.ReviewScores, state.ReviewPrev = m.reviewScores, m.reviewPrev
+	}
 	state.ReviewWindowDays, state.ReviewWindowEnd = m.reviewWindowDays, state.RollupEndDate
 	if m.view == ViewDaily {
 		state.DailyIssueIndices = selectionpkg.FilteredIndices(snapshot, PaneIssues)

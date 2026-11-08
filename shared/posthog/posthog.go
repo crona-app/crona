@@ -1,3 +1,4 @@
+// Package posthog provides configurable usage telemetry and error reporting.
 package posthog
 
 import (

@@ -1,3 +1,4 @@
+// Package support provides shared themes and rendering helpers for UI tests.
 package support
 
 import (

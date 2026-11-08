@@ -7,6 +7,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/x/ansi"
 
+	"crona.work/tui/internal/api"
+	"crona.work/tui/internal/tui/commands"
 	viewtypes "crona.work/tui/internal/tui/views/types"
 )
 
@@ -110,5 +112,54 @@ func TestHelpListsReviewKeys(t *testing.T) {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected the help sheet to list %q", want)
 		}
+	}
+}
+
+func TestReviewComparisonFollowsRenderedRange(t *testing.T) {
+	m := reviewModel()
+	start, end := m.reviewRange()
+	next, _ := m.Update(commands.ReviewCompareLoadedMsg{Start: start, End: end, Scores: []api.FocusScoreRangeDay{{Date: start}}})
+	m = next.(Model)
+	if state := reviewContent(m); state.ReviewPrev == nil || len(state.ReviewScores) != 1 {
+		t.Fatal("matching comparison was hidden")
+	}
+	m.reviewWindowDays = 90
+	if state := reviewContent(m); state.ReviewPrev != nil || state.ReviewScores != nil {
+		t.Fatal("stale comparison exposed after window change")
+	}
+	next, _ = m.Update(commands.ReviewCompareLoadedMsg{Start: start, End: end})
+	m = next.(Model)
+	if reviewContent(m).ReviewPrev != nil {
+		t.Fatal("obsolete response exposed")
+	}
+	start, end = m.reviewRange()
+	next, _ = m.Update(commands.ReviewCompareLoadedMsg{Start: start, End: end})
+	if reviewContent(next.(Model)).ReviewPrev == nil {
+		t.Fatal("new comparison was hidden")
+	}
+}
+
+func TestMomentumRefreshRejectsOldBucket(t *testing.T) {
+	m := reviewModel()
+	m.momentumBucketWant, m.momentumBucketKey = "old", "old"
+	m.momentumBucketDetail = &api.MomentumDetail{}
+	oldKey := m.momentumBucketKeyFor(api.MomentumCard{})
+	next, _ := m.Update(commands.MomentumRangeLoadedMsg{})
+	m = next.(Model)
+	if m.momentumBucketDetail != nil || m.momentumBucketWant != "" || m.momentumBucketKey != "" {
+		t.Fatal("refresh retained contributor cache outside Momentum")
+	}
+	if m.momentumBucketKeyFor(api.MomentumCard{}) == oldKey {
+		t.Fatal("refresh did not change bucket identity")
+	}
+	next, _ = m.Update(commands.MomentumBucketLoadedMsg{Key: "old", Detail: &api.MomentumDetail{}})
+	if next.(Model).momentumBucketDetail != nil {
+		t.Fatal("old bucket response accepted")
+	}
+	m.momentumBucketWant = "new"
+	detail := &api.MomentumDetail{}
+	next, _ = m.Update(commands.MomentumBucketLoadedMsg{Key: "new", Detail: detail})
+	if next.(Model).momentumBucketDetail != detail {
+		t.Fatal("current bucket response rejected")
 	}
 }

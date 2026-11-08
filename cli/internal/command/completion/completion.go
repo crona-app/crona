@@ -1,3 +1,4 @@
+// Package completion implements the completion CLI commands.
 package completion
 
 import (

@@ -1,3 +1,4 @@
+// Package dayboundary schedules logical-day boundary events and alerts.
 package dayboundary
 
 import (

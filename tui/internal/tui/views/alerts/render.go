@@ -1,3 +1,4 @@
+// Package alerts renders alert settings screens.
 package alerts
 
 import (

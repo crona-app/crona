@@ -1,3 +1,4 @@
+// Package main runs the Crona terminal interface.
 package main
 
 import (

@@ -1,3 +1,4 @@
+// Package core provides the shared dependencies used by daemon commands.
 package core
 
 import (

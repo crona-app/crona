@@ -1,3 +1,4 @@
+// Package session implements the session CLI commands.
 package session
 
 import (

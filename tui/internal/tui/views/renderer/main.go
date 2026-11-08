@@ -1,3 +1,4 @@
+// Package viewrenderer routes screen state to feature renderers and shared date navigation.
 package viewrenderer
 
 import (

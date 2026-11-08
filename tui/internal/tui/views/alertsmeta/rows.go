@@ -1,3 +1,4 @@
+// Package alertsmeta builds alert configuration rows and labels.
 package alertsmeta
 
 import (

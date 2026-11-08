@@ -1,3 +1,4 @@
+// Package sessionnotes parses and formats structured session notes.
 package sessionnotes
 
 import (

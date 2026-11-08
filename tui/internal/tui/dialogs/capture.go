@@ -1,3 +1,4 @@
+// Package dialogs renders terminal dialogs and forms.
 package dialogs
 
 import (

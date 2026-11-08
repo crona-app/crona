@@ -1,3 +1,4 @@
+// Package protocol defines the shared IPC protocol names and envelopes.
 package protocol
 
 import (

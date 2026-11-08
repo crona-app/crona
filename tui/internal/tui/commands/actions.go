@@ -1,3 +1,4 @@
+// Package commands performs asynchronous UI actions and returns Bubble Tea messages.
 package commands
 
 import (

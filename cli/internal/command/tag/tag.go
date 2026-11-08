@@ -1,3 +1,4 @@
+// Package tag implements the tag CLI commands.
 package tag
 
 import (

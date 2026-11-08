@@ -1,3 +1,4 @@
+// Package viewruntime derives runtime presentation values for views.
 package viewruntime
 
 import (

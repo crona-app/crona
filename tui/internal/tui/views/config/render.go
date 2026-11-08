@@ -1,3 +1,4 @@
+// Package config renders configuration screens.
 package config
 
 import (

@@ -1,3 +1,4 @@
+// Package viewtypes defines themes, content state, and sizing types shared by renderers.
 package viewtypes
 
 import (

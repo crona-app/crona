@@ -1,3 +1,4 @@
+// Package controller manages dialog state and input transitions.
 package controller
 
 import (

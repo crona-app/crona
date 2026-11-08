@@ -1,3 +1,4 @@
+// Package viewchrome renders shared headers, sections, cursors, and action hints.
 package viewchrome
 
 import (

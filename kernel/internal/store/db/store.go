@@ -1,3 +1,4 @@
+// Package db opens and configures the SQLite store.
 package db
 
 import (

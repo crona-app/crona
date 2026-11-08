@@ -1,3 +1,4 @@
+// Package contextmeta formats active-context scope labels.
 package contextmeta
 
 import (

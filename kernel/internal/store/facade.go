@@ -1,3 +1,4 @@
+// Package store exposes database setup and the repository registry.
 package store
 
 import (

@@ -1,3 +1,4 @@
+// Package version provides release metadata and version information.
 package version
 
 import (

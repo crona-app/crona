@@ -1,3 +1,4 @@
+// Package issuecore provides shared task rendering and presentation helpers.
 package issuecore
 
 import (

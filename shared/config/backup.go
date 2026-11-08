@@ -1,3 +1,4 @@
+// Package config resolves application configuration and platform-specific paths.
 package config
 
 import (

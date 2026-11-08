@@ -1,3 +1,4 @@
+// Package calendar renders date navigation and score calendars.
 package calendar
 
 import (

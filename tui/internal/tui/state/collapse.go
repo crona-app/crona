@@ -1,3 +1,4 @@
+// Package state defines shared UI state and navigation calculations.
 package state
 
 import (

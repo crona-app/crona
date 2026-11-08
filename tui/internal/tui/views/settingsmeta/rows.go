@@ -1,3 +1,4 @@
+// Package settingsmeta builds settings rows and display labels.
 package settingsmeta
 
 import (

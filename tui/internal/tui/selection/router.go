@@ -1,3 +1,4 @@
+// Package selection resolves filtered and scoped UI selections.
 package selection
 
 type Router[K comparable, M any, R any] struct {

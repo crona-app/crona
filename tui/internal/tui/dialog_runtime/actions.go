@@ -1,3 +1,4 @@
+// Package dialogruntime connects dialog actions to application commands.
 package dialogruntime
 
 import (

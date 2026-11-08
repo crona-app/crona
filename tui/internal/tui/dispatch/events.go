@@ -1,3 +1,4 @@
+// Package dispatch applies daemon events and command results to UI state.
 package dispatch
 
 import (

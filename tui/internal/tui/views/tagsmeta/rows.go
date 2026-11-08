@@ -1,3 +1,4 @@
+// Package tagsmeta formats tag usage and resolves tag list ordering.
 package tagsmeta
 
 import (

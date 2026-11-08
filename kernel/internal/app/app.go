@@ -1,3 +1,4 @@
+// Package app assembles the daemon and routes IPC requests to application commands.
 package app
 
 import (

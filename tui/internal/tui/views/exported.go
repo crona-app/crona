@@ -1,3 +1,4 @@
+// Package views exposes shared view types.
 package views
 
 import viewtypes "crona.work/tui/internal/tui/views/types"

@@ -1,3 +1,4 @@
+// Package tui provides the entry point for constructing the terminal interface.
 package tui
 
 import (

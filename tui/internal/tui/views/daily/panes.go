@@ -1,9 +1,11 @@
+// Package daily renders the Daily pane's Tasks and Habits lists, with their headers, action lines and meta rows.
 package daily
 
 import (
-	uistate "crona.work/tui/internal/tui/state"
 	"fmt"
 	"strings"
+
+	uistate "crona.work/tui/internal/tui/state"
 
 	"crona.work/tui/internal/api"
 	helperpkg "crona.work/tui/internal/tui/helpers"

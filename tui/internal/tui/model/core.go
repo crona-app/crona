@@ -1,3 +1,4 @@
+// Package model owns the Bubble Tea application state, updates, and rendering orchestration.
 package model
 
 import (
@@ -155,32 +156,33 @@ type Model struct {
 	momentumWindowDays    int
 	// momentumBucket is the chart's chosen bucket, counted back from the latest; the
 	// contributors pane shows momentumBucketDetail, loaded for momentumBucketKey.
-	momentumBucket        int
-	momentumBucketDetail  *api.MomentumDetail
-	momentumBucketKey     string
-	momentumBucketWant    string
-	dailyCheckIn          *api.DailyCheckIn
-	metricsRange          []api.DailyMetricsDay
-	metricsRollup         *api.MetricsRollup
-	rollupMetricsRange    []api.DailyMetricsDay
-	rollupMetricsRollup   *api.MetricsRollup
-	momentumMetricsRange  []api.DailyMetricsDay
-	momentumMetricsRollup *api.MetricsRollup
-	streaks               *api.StreakSummary
-	dailyStreaks          *api.StreakSummary
-	dashboardWindow       *api.DashboardWindowSummary
-	dailyFocusScore       *api.FocusScoreSummary
-	weeklyFocusScore      *api.FocusScoreSummary
-	goalProgress          *api.GoalProgressSummary
-	exportAssets          *api.ExportAssetStatus
-	exportReports         []api.ExportReportFile
-	issueSessions         []api.Session
-	sessionHistory        []api.SessionHistoryEntry
-	habitHistory          []api.HabitCompletion
-	habitHistoryHabitID   int64
-	habitHistoryTitle     string
-	habitHistoryMeta      string
-	sessionDetail         *api.SessionDetail
+	momentumBucketGeneration uint64
+	momentumBucket           int
+	momentumBucketDetail     *api.MomentumDetail
+	momentumBucketKey        string
+	momentumBucketWant       string
+	dailyCheckIn             *api.DailyCheckIn
+	metricsRange             []api.DailyMetricsDay
+	metricsRollup            *api.MetricsRollup
+	rollupMetricsRange       []api.DailyMetricsDay
+	rollupMetricsRollup      *api.MetricsRollup
+	momentumMetricsRange     []api.DailyMetricsDay
+	momentumMetricsRollup    *api.MetricsRollup
+	streaks                  *api.StreakSummary
+	dailyStreaks             *api.StreakSummary
+	dashboardWindow          *api.DashboardWindowSummary
+	dailyFocusScore          *api.FocusScoreSummary
+	weeklyFocusScore         *api.FocusScoreSummary
+	goalProgress             *api.GoalProgressSummary
+	exportAssets             *api.ExportAssetStatus
+	exportReports            []api.ExportReportFile
+	issueSessions            []api.Session
+	sessionHistory           []api.SessionHistoryEntry
+	habitHistory             []api.HabitCompletion
+	habitHistoryHabitID      int64
+	habitHistoryTitle        string
+	habitHistoryMeta         string
+	sessionDetail            *api.SessionDetail
 	// sessionPreview feeds Log's Sessions detail pane; sessionPreviewFailed holds the ID whose
 	// fetch failed.
 	sessionPreview            *api.SessionDetail

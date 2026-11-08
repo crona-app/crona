@@ -1,3 +1,4 @@
+// Package terminaltitle writes and sanitizes terminal window titles.
 package terminaltitle
 
 import (

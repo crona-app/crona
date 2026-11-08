@@ -1,3 +1,4 @@
+// Package repositories implements database access for Crona entities.
 package repositories
 
 import (

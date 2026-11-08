@@ -1,3 +1,4 @@
+// Package momentum renders reusable momentum indicators and matches their contributing entities.
 package momentum
 
 import (

@@ -1,3 +1,4 @@
+// Package models defines database persistence models.
 package models
 
 import "github.com/uptrace/bun"

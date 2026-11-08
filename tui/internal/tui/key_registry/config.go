@@ -1,3 +1,4 @@
+// Package keyregistry defines terminal-interface key bindings and help metadata.
 package keyregistry
 
 import tea "github.com/charmbracelet/bubbletea"

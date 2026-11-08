@@ -1,3 +1,4 @@
+// Package migration implements the migration CLI commands.
 package migration
 
 import (

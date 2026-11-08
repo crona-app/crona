@@ -1,3 +1,4 @@
+// Package health checks daemon health and database availability.
 package health
 
 import "context"

@@ -1,3 +1,4 @@
+// Package datefmt formats dates using user settings.
 package datefmt
 
 import (

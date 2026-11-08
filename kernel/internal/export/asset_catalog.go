@@ -1,3 +1,4 @@
+// Package export generates reports and manages export assets.
 package export
 
 import sharedtypes "crona.work/shared/types"

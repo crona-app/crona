@@ -1,3 +1,4 @@
+// Package kernel locates and starts the daemon for the terminal interface.
 package kernel
 
 import (

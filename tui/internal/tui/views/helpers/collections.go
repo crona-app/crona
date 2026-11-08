@@ -1,3 +1,4 @@
+// Package viewhelpers provides shared rendering, sizing, and filtering helpers.
 package viewhelpers
 
 import "strings"

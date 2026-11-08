@@ -1,3 +1,4 @@
+// Package sessions renders active sessions and session history screens.
 package sessions
 
 import (

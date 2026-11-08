@@ -1,3 +1,4 @@
+// Package constants defines shared settings defaults and limits.
 package constants
 
 var DefaultCoreSettings = map[string]any{

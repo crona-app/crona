@@ -1,3 +1,4 @@
+// Package export implements the export CLI commands.
 package export
 
 import (

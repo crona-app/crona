@@ -1,3 +1,4 @@
+// Package input handles keyboard input and UI state transitions.
 package input
 
 import (

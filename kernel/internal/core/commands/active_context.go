@@ -1,3 +1,4 @@
+// Package commands implements daemon operations for tasks, habits, sessions, and settings.
 package commands
 
 import (

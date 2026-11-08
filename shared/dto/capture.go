@@ -1,3 +1,4 @@
+// Package dto defines request and response data transferred between clients and the daemon.
 package dto
 
 import "crona.work/shared/types"

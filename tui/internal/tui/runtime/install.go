@@ -1,3 +1,4 @@
+// Package runtime provides installation and runtime path helpers for the terminal interface.
 package runtime
 
 import (

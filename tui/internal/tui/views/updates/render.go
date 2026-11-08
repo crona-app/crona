@@ -1,3 +1,4 @@
+// Package updates renders update status screens.
 package updates
 
 import (

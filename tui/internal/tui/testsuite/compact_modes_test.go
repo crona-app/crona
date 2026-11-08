@@ -1,3 +1,4 @@
+// Package testsuite verifies terminal-interface behavior through integration tests.
 package testsuite
 
 import (

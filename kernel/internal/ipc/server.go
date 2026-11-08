@@ -1,3 +1,4 @@
+// Package ipc serves local requests and event streams.
 package ipc
 
 import (

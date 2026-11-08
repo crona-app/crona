@@ -374,7 +374,7 @@ func (r *SessionRepository) AmendSessionNotes(
 		return nil, err
 	}
 	if rows, _ := res.RowsAffected(); rows == 0 {
-		return nil, errors.New("session not found for ammending notes")
+		return nil, errors.New("session not found for amending notes")
 	}
 	return r.GetByID(ctx, sessionID, userID)
 }

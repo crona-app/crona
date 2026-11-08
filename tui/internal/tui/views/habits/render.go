@@ -1,3 +1,4 @@
+// Package habits renders habit history screens.
 package habits
 
 import (
