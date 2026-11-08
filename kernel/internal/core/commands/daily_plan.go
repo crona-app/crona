@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"sort"
 	"time"
 
 	"crona.work/kernel/internal/core"
@@ -262,10 +263,30 @@ func scoreDailyPlan(
 			settings,
 		)
 	}
+	plan.Contributing = contributingEntries(active, plan.Summary, settings)
 	if err := annotateDailyPlanCarry(ctx, c, plan); err != nil {
 		return nil, err
 	}
 	return plan, nil
+}
+
+// contributingEntries are the scored active entries that add to the penalty, riskiest first,
+// each with its share of it.
+func contributingEntries(
+	active []sharedtypes.DailyPlanEntry,
+	summary sharedtypes.DailyPlanAccountabilitySummary,
+	settings *sharedtypes.CoreSettings,
+) []sharedtypes.DailyPlanEntry {
+	out := make([]sharedtypes.DailyPlanEntry, 0, len(active))
+	for _, entry := range active {
+		if entry.FailScore <= 0 {
+			continue
+		}
+		entry.Penalty = buildDailyPlanEntryPenalty(entry, true, summary, settings)
+		out = append(out, entry)
+	}
+	sort.SliceStable(out, func(i, j int) bool { return out[i].FailScore > out[j].FailScore })
+	return out
 }
 
 // annotateDailyPlanCarry adds each entry's time worked on the plan's day and the dates its carry

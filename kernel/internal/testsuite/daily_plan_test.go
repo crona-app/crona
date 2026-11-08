@@ -712,3 +712,71 @@ func TestDailyPlanEntryPenaltyExplainsScoreAndProjections(t *testing.T) {
 		t.Fatalf("expected historical penalty without live projections, got %+v", penalty)
 	}
 }
+
+func TestDailyPlanListsContributingIssuesFromAnyDay(t *testing.T) {
+	ctx := context.Background()
+	currentNow := "2026-03-25T09:00:00Z"
+	coreCtx, _ := newTestCoreContext(t, func() string { return currentNow })
+
+	repo, _ := corecommands.CreateRepo(ctx, coreCtx, struct {
+		Name        string
+		Description *string
+		Color       *string
+	}{Name: "Work"})
+	stream, _ := corecommands.CreateStream(ctx, coreCtx, struct {
+		RepoID      int64
+		Name        string
+		Description *string
+		Visibility  *sharedtypes.StreamVisibility
+	}{RepoID: repo.ID, Name: "app"})
+	today := "2026-03-25"
+	issue, err := corecommands.CreateIssue(ctx, coreCtx, struct {
+		StreamID        int64
+		Title           string
+		Description     *string
+		EstimateMinutes *int
+		Notes           *string
+		TodoForDate     *string
+	}{StreamID: stream.ID, Title: "Slipping item", TodoForDate: &today})
+	if err != nil {
+		t.Fatalf("create issue: %v", err)
+	}
+	currentNow = "2026-03-25T09:02:00Z"
+	if _, err := corecommands.MarkIssueTodoForDate(ctx, coreCtx, issue.ID, "2026-03-30"); err != nil {
+		t.Fatalf("delay issue: %v", err)
+	}
+
+	// A day that holds none of the issue's entries still lists it: it adds to the penalty.
+	plan, err := corecommands.GetDailyPlan(ctx, coreCtx, "2026-03-27")
+	if err != nil {
+		t.Fatalf("get plan: %v", err)
+	}
+	for _, entry := range plan.Entries {
+		if entry.IssueID == issue.ID {
+			t.Fatalf("expected the issue absent from the day's own entries, got %+v", plan.Entries)
+		}
+	}
+	if len(plan.Contributing) != 1 || plan.Contributing[0].IssueID != issue.ID {
+		t.Fatalf("expected the delayed issue contributing, got %+v", plan.Contributing)
+	}
+	contributing := plan.Contributing[0]
+	if contributing.Penalty == nil || contributing.Penalty.Historical || contributing.Penalty.Contribution == nil ||
+		!contributing.Penalty.HighRisk || plan.Summary.HighRiskIssueCount != 1 {
+		t.Fatalf("expected a live high-risk penalty matching the summary, got %+v / %+v", contributing.Penalty, plan.Summary)
+	}
+
+	currentNow = "2026-03-25T09:05:00Z"
+	if _, err := corecommands.ChangeIssueStatus(ctx, coreCtx, issue.ID, sharedtypes.IssueStatusInProgress, nil); err != nil {
+		t.Fatalf("start issue: %v", err)
+	}
+	if _, err := corecommands.ChangeIssueStatus(ctx, coreCtx, issue.ID, sharedtypes.IssueStatusDone, nil); err != nil {
+		t.Fatalf("complete issue: %v", err)
+	}
+	plan, err = corecommands.GetDailyPlan(ctx, coreCtx, "2026-03-27")
+	if err != nil {
+		t.Fatalf("get resolved plan: %v", err)
+	}
+	if len(plan.Contributing) != 0 {
+		t.Fatalf("expected nothing contributing once done, got %+v", plan.Contributing)
+	}
+}

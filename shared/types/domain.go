@@ -992,6 +992,10 @@ type DailyPlan struct {
 	UpdatedAt string                         `json:"updatedAt"`
 	Summary   DailyPlanAccountabilitySummary `json:"summary"`
 	Entries   []DailyPlanEntry               `json:"entries,omitempty"`
+	// Contributing are the open entries from any day adding to the accountability penalty
+	// (fail score above zero), scored with their penalty: the issues Summary counts, which a
+	// day's own Entries miss once they were planned on an earlier day.
+	Contributing []DailyPlanEntry `json:"contributing,omitempty"`
 }
 
 type BurnoutLevel string
