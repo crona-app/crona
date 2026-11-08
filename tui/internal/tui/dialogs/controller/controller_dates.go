@@ -1,6 +1,8 @@
 package controller
 
 import (
+	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -252,129 +254,148 @@ func shiftDatePicker(state State, years, months, days int) State {
 	return state
 }
 
+// Rest & Streak Protection is one screen of three rows: ProtectionStep is the row (Protect,
+// Rest on, Dates) and ProtectionCursor the item within it. Dates lists only today and later;
+// the last slot adds a date.
+const (
+	restRowStreaks = iota
+	restRowWeekdays
+	restRowDates
+)
+
 func updateRestProtection(
 	state State,
 	currentDate string,
 	msg tea.KeyMsg,
 ) (State, *Action, string) {
-	switch msg.String() {
-	case "esc":
-		return Close(state), nil, ""
-	case "tab", "right":
-		state.ProtectionStep = (state.ProtectionStep + 1) % 4
-		state.ProtectionCursor = 0
-		return state, nil, ""
-	case "shift+tab", "left":
-		state.ProtectionStep = (state.ProtectionStep + 3) % 4
-		state.ProtectionCursor = 0
-		return state, nil, ""
-	default:
-		if isDialogSubmitKey(state, msg.String()) {
-			return Close(state), &Action{
-				Kind:        "patch_rest_protection",
-				StreakKinds: streakKindStrings(state.ProtectionStreaks),
-				IntList:     normalizedWeekdays(state.ProtectionWeekdays),
-				RestDates:   normalizedDateList(state.ProtectionDates),
-			}, ""
+	key := msg.String()
+	if state.ConfirmDiscard {
+		switch key {
+		case "y", "enter":
+			return Close(state), nil, ""
+		case "n", "esc":
+			state.ConfirmDiscard = false
 		}
+		return state, nil, ""
 	}
-	switch state.ProtectionStep {
-	case 0:
-		return updateRestProtectionStreaks(state, msg)
-	case 1:
-		return updateRestProtectionWeekdays(state, msg)
-	case 2:
-		return updateRestProtectionDates(state, currentDate, msg)
-	case 3:
-		return clearDialogError(state), nil, ""
+	if isDialogSubmitKey(state, key) {
+		return Close(state), &Action{
+			Kind:        "patch_rest_protection",
+			StreakKinds: streakKindStrings(state.ProtectionStreaks),
+			IntList:     normalizedWeekdays(state.ProtectionWeekdays),
+			RestDates:   normalizedDateList(state.ProtectionDates),
+		}, ""
+	}
+	today := restToday(currentDate)
+	switch key {
+	case "esc":
+		if restProtectionFingerprint(state) != state.DiscardBaseline {
+			state.ConfirmDiscard = true
+			return state, nil, ""
+		}
+		return Close(state), nil, ""
+	case "down", "tab":
+		state.ProtectionStep = (state.ProtectionStep + 1) % 3
+		state.ProtectionCursor = 0
+	case "up", "shift+tab":
+		state.ProtectionStep = (state.ProtectionStep + 2) % 3
+		state.ProtectionCursor = 0
+	case "left", "right":
+		dir := 1
+		if key == "left" {
+			dir = -1
+		}
+		state.ProtectionCursor = ShiftSelection(state.ProtectionCursor, restRowLen(state, today), dir)
+	case " ", "x", "enter":
+		return restProtectionActivate(state, currentDate, today)
+	case "a":
+		switch state.ProtectionStep {
+		case restRowStreaks:
+			state.ProtectionStreaks = append([]sharedtypes.StreakKind(nil), sharedtypes.AvailableStreakKinds()...)
+		case restRowDates:
+			return openRestDatePicker(state, currentDate), nil, ""
+		}
+	case "c":
+		switch state.ProtectionStep {
+		case restRowStreaks:
+			state.ProtectionStreaks = nil
+		case restRowWeekdays:
+			state.ProtectionWeekdays = nil
+		}
+	case "d", "D", "backspace", "delete":
+		if state.ProtectionStep == restRowDates {
+			upcoming := RestUpcomingDates(state.ProtectionDates, today)
+			if state.ProtectionCursor < len(upcoming) {
+				state.ProtectionDates = slices.DeleteFunc(slices.Clone(state.ProtectionDates),
+					func(date string) bool { return date == upcoming[state.ProtectionCursor] })
+				state.ProtectionCursor = min(state.ProtectionCursor, max(0, restRowLen(state, today)-1))
+			}
+		}
 	}
 	return clearDialogError(state), nil, ""
 }
 
-func updateRestProtectionStreaks(state State, msg tea.KeyMsg) (State, *Action, string) {
-	total := len(sharedtypes.AvailableStreakKinds())
-	switch msg.String() {
-	case "down":
-		state.ProtectionCursor = ShiftSelection(state.ProtectionCursor, total, 1)
-	case "up":
-		state.ProtectionCursor = ShiftSelection(state.ProtectionCursor, total, -1)
-	case " ", "x":
-		current := sharedtypes.AvailableStreakKinds()[state.ProtectionCursor]
-		state.ProtectionStreaks = toggleStreakKind(state.ProtectionStreaks, current)
-	case "a":
-		state.ProtectionStreaks = append(
-			[]sharedtypes.StreakKind(nil),
-			sharedtypes.AvailableStreakKinds()...)
-	case "c":
-		state.ProtectionStreaks = nil
-	case "enter":
-		state.ProtectionStep = 1
-		state.ProtectionCursor = 0
+func restProtectionActivate(state State, currentDate, today string) (State, *Action, string) {
+	switch state.ProtectionStep {
+	case restRowStreaks:
+		kinds := sharedtypes.AvailableStreakKinds()
+		if state.ProtectionCursor < len(kinds) {
+			state.ProtectionStreaks = toggleStreakKind(state.ProtectionStreaks, kinds[state.ProtectionCursor])
+		}
+	case restRowWeekdays:
+		day := RestWeekdayOrder(state.DueDateWeekStart)[min(state.ProtectionCursor, 6)]
+		state.ProtectionWeekdays = toggleWeekday(state.ProtectionWeekdays, day)
+	case restRowDates:
+		if state.ProtectionCursor >= len(RestUpcomingDates(state.ProtectionDates, today)) {
+			return openRestDatePicker(state, currentDate), nil, ""
+		}
 	}
-	return state, nil, ""
+	return clearDialogError(state), nil, ""
 }
 
-func updateRestProtectionWeekdays(state State, msg tea.KeyMsg) (State, *Action, string) {
-	switch msg.String() {
-	case "down":
-		state.ProtectionCursor = ShiftSelection(state.ProtectionCursor, 7, 1)
-	case "up":
-		state.ProtectionCursor = ShiftSelection(state.ProtectionCursor, 7, -1)
-	case " ", "x":
-		state.ProtectionWeekdays = toggleWeekday(state.ProtectionWeekdays, state.ProtectionCursor)
-	case "c":
-		state.ProtectionWeekdays = nil
-	case "enter":
-		state.ProtectionStep = 2
-		state.ProtectionCursor = 0
-	}
-	return state, nil, ""
+func openRestDatePicker(state State, currentDate string) State {
+	return OpenDatePicker(state, "edit_rest_protection", 0, 0,
+		ValueToPointer(restToday(currentDate)), currentDate)
 }
 
-func updateRestProtectionDates(
-	state State,
-	currentDate string,
-	msg tea.KeyMsg,
-) (State, *Action, string) {
-	totalDates := len(state.ProtectionDates)
-	if totalDates < 1 {
-		totalDates = 1
+func restToday(currentDate string) string {
+	if strings.TrimSpace(currentDate) == "" {
+		return time.Now().Format("2006-01-02")
 	}
-	switch msg.String() {
-	case "down":
-		state.ProtectionCursor = ShiftSelection(state.ProtectionCursor, totalDates, 1)
-	case "up":
-		state.ProtectionCursor = ShiftSelection(state.ProtectionCursor, totalDates, -1)
-	case "a":
-		initial := currentDate
-		if strings.TrimSpace(initial) == "" {
-			initial = time.Now().Format("2006-01-02")
-		}
-		return OpenDatePicker(
-			state,
-			"edit_rest_protection",
-			0,
-			0,
-			ValueToPointer(initial),
-			currentDate,
-		), nil, ""
-	case "D", "backspace", "delete":
-		if len(state.ProtectionDates) == 0 {
-			return state, nil, ""
-		}
-		idx := state.ProtectionCursor
-		if idx >= len(state.ProtectionDates) {
-			idx = len(state.ProtectionDates) - 1
-		}
-		state.ProtectionDates = append(
-			state.ProtectionDates[:idx],
-			state.ProtectionDates[idx+1:]...)
-		if state.ProtectionCursor >= len(state.ProtectionDates) && state.ProtectionCursor > 0 {
-			state.ProtectionCursor--
-		}
-	case "enter":
-		state.ProtectionStep = 3
-		state.ProtectionCursor = 0
+	return currentDate
+}
+
+func restRowLen(state State, today string) int {
+	switch state.ProtectionStep {
+	case restRowStreaks:
+		return len(sharedtypes.AvailableStreakKinds())
+	case restRowWeekdays:
+		return 7
+	default:
+		return len(RestUpcomingDates(state.ProtectionDates, today)) + 1
 	}
-	return state, nil, ""
+}
+
+// RestWeekdayOrder lists weekday numbers (0 = Sunday) starting on the week start.
+func RestWeekdayOrder(start sharedtypes.WeekStart) []int {
+	if sharedtypes.NormalizeWeekStart(start) == sharedtypes.WeekStartSunday {
+		return []int{0, 1, 2, 3, 4, 5, 6}
+	}
+	return []int{1, 2, 3, 4, 5, 6, 0}
+}
+
+// RestUpcomingDates keeps the rest dates from today on; earlier ones stay saved but unshown.
+func RestUpcomingDates(dates []string, today string) []string {
+	out := []string{}
+	for _, date := range normalizedDateList(dates) {
+		if date >= today {
+			out = append(out, date)
+		}
+	}
+	return out
+}
+
+func restProtectionFingerprint(state State) string {
+	return fmt.Sprint(streakKindStrings(state.ProtectionStreaks), normalizedWeekdays(state.ProtectionWeekdays),
+		normalizedDateList(state.ProtectionDates))
 }

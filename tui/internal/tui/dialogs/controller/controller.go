@@ -94,6 +94,7 @@ func Close(state State) State {
 	state.Kind = ""
 	state.ErrorMessage = ""
 	state.Momentum = MomentumWizard{}
+	state.ConfirmDiscard, state.DiscardBaseline = false, ""
 	state.TagTarget = ""
 	state.TagSelected = nil
 	state.TagVocab = nil

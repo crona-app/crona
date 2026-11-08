@@ -2,8 +2,10 @@ package dialogs
 
 import (
 	"fmt"
+	"github.com/charmbracelet/lipgloss"
 	"slices"
 	"strings"
+	"time"
 
 	sharedtypes "crona.work/shared/types"
 	controllerpkg "crona.work/tui/internal/tui/dialogs/controller"
@@ -59,65 +61,136 @@ func checkbox(on bool, label string) string {
 	return "[ ] " + label
 }
 
+// renderRestProtectionDialog is one screen: which streaks rest protects, the weekly rest
+// days in week-start order, and the rest dates from today on (earlier ones are counted).
 func renderRestProtectionDialog(theme Theme, state controllerpkg.State) string {
-	steps := []string{"Streaks", "Weekdays", "Dates", "Review"}
-	active := min(max(0, state.ProtectionStep), len(steps)-1)
-	body := []string{stepStrip(theme, steps, active), ""}
+	today := time.Now().Format("2006-01-02")
+	upcoming := controllerpkg.RestUpcomingDates(state.ProtectionDates, today)
+	past := len(state.ProtectionDates) - len(upcoming)
+	column := len("Protect")
+	item := func(row, i int, text string) string {
+		if state.ProtectionStep == row && state.ProtectionCursor == i {
+			return theme.StyleCursor.Render(text)
+		}
+		return text
+	}
+	streaks := []string{}
+	for i, kind := range sharedtypes.AvailableStreakKinds() {
+		streaks = append(streaks, item(0, i, checkbox(hasStreakKind(state.ProtectionStreaks, kind), streakKindLabel(kind))))
+	}
+	names := []string{"Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"}
+	days := []string{}
+	for i, day := range controllerpkg.RestWeekdayOrder(state.DueDateWeekStart) {
+		label := " " + names[day] + " "
+		if slices.Contains(state.ProtectionWeekdays, day) {
+			label = theme.StyleSelected.Render(label)
+		} else {
+			label = theme.StyleDim.Render(label)
+		}
+		if state.ProtectionStep == 1 && state.ProtectionCursor == i {
+			label = theme.StyleCursor.Render("[") + label + theme.StyleCursor.Render("]")
+		} else {
+			label = " " + label + " "
+		}
+		days = append(days, label)
+	}
+	dates := []string{}
+	for i, date := range upcoming {
+		dates = append(dates, item(2, i, restDateLabel(date)))
+	}
+	dates = append(dates, item(2, len(upcoming), "+ add date"))
+	body := []string{
+		Field(theme, "Protect", column, strings.Join(streaks, "   "), state.ProtectionStep == 0),
+		Field(theme, "Rest on", column, strings.Join(days, ""), state.ProtectionStep == 1),
+	}
+	body = append(body, wrapField(theme, "Dates", column, dates, state.ProtectionStep == 2, formInner(state.Width))...)
+	if past > 0 {
+		body = append(body, strings.Repeat(" ", column+2)+theme.StyleDim.Render(
+			fmt.Sprintf("%d %s in the past", past, map[bool]string{true: "date", false: "dates"}[past == 1])))
+	}
+	body = append(body, "", theme.StyleDim.Render("Rest days pause the protected streaks instead of breaking them."))
 	d := listDialog{
 		wide:    true,
 		title:   "Rest & Streak Protection",
-		context: stepContext(steps, active),
+		context: restProtectionContext(state, len(upcoming)),
 		focus:   -1,
+		body:    body,
+		primary: plainHint(dialogSubmitHint(state, "save")),
+		hints:   []string{"↑/↓ row", "←/→ move", "space toggle"},
 	}
-	switch active {
+	switch state.ProtectionStep {
 	case 0:
-		body = append(body, theme.StyleDim.Render("Select which streaks are protected"))
-		labels := []string{}
-		for _, kind := range sharedtypes.AvailableStreakKinds() {
-			label := "Focus Days"
-			if kind == sharedtypes.StreakKindCheckInDays {
-				label = "Check-In Days"
-			}
-			labels = append(labels, checkbox(hasStreakKind(state.ProtectionStreaks, kind), label))
-		}
-		d.focus = len(body) + state.ProtectionCursor
-		body = append(body, selectList(theme, labels, state.ProtectionCursor)...)
-		d.primary, d.hints = "tab next", []string{"↑/↓ move", "space toggle", "a all", "c none"}
+		d.hints = append(d.hints, "a all", "c none")
 	case 1:
-		body = append(body, theme.StyleDim.Render("Select default rest weekdays"))
-		labels := []string{}
-		for i, label := range []string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"} {
-			labels = append(labels, checkbox(slices.Contains(state.ProtectionWeekdays, i), label))
-		}
-		d.focus = len(body) + state.ProtectionCursor
-		body = append(body, selectList(theme, labels, state.ProtectionCursor)...)
-		d.primary, d.hints = "tab next", []string{"↑/↓ move", "space toggle", "c clear"}
-	case 2:
-		body = append(body, theme.StyleDim.Render("Manage one-off rest dates"))
-		if len(state.ProtectionDates) == 0 {
-			body = append(body, theme.StyleDim.Render("No rest dates added"))
-		}
-		d.focus = len(body) + state.ProtectionCursor
-		body = append(body, selectList(theme, state.ProtectionDates, state.ProtectionCursor)...)
-		d.primary, d.hints = "tab next", []string{"a add date", "D remove selected"}
+		d.hints = append(d.hints, "c clear")
 	default:
-		column := len("Weekdays")
-		body = append(
-			body,
-			Field(
-				theme,
-				"Streaks",
-				column,
-				fallback(streakKindsSummary(state.ProtectionStreaks), "None"),
-				false,
-			),
-			Field(theme, "Weekdays", column, weekdaysSummary(state.ProtectionWeekdays), false),
-			Field(theme, "Dates", column, restDatesSummary(state.ProtectionDates), false),
-		)
-		d.primary, d.hints = plainHint(dialogSubmitHint(state, "save")), []string{"shift+tab back"}
+		d.hints = append(d.hints, "a add", "d remove")
 	}
-	d.body = body
+	if state.ConfirmDiscard {
+		d.body = append(d.body, "", theme.StyleError.Render("Discard changes?"))
+		d.primary, d.hints, d.esc = "y discard", nil, "n keep editing"
+	}
 	return renderListDialog(theme, state, d)
+}
+
+func streakKindLabel(kind sharedtypes.StreakKind) string {
+	switch kind {
+	case sharedtypes.StreakKindCheckInDays:
+		return "Check-in days"
+	case sharedtypes.StreakKindHabitDays:
+		return "Habit days"
+	default:
+		return "Focus days"
+	}
+}
+
+func restDateLabel(date string) string {
+	parsed, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return date
+	}
+	return parsed.Format("Mon ") + date
+}
+
+// wrapField lays items out after a label, joined with " · ", wrapping to the frame width.
+func wrapField(theme Theme, label string, column int, items []string, focused bool, inner int) []string {
+	width := max(20, inner-column-2)
+	lines, line := []string{}, ""
+	for _, part := range items {
+		next := part
+		if line != "" {
+			next = line + theme.StyleDim.Render(" · ") + part
+		}
+		if line != "" && lipgloss.Width(next) > width {
+			lines = append(lines, line)
+			next = part
+		}
+		line = next
+	}
+	lines = append(lines, line)
+	out := []string{Field(theme, label, column, lines[0], focused)}
+	for _, rest := range lines[1:] {
+		out = append(out, strings.Repeat(" ", column+2)+rest)
+	}
+	return out
+}
+
+func restProtectionContext(state controllerpkg.State, upcoming int) string {
+	streaks := fmt.Sprintf("%d %s", len(state.ProtectionStreaks),
+		map[bool]string{true: "streak", false: "streaks"}[len(state.ProtectionStreaks) == 1])
+	days := "no rest days"
+	if len(state.ProtectionWeekdays) > 0 {
+		names := []string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
+		parts := []string{}
+		for _, day := range controllerpkg.RestWeekdayOrder(state.DueDateWeekStart) {
+			if slices.Contains(state.ProtectionWeekdays, day) {
+				parts = append(parts, names[day])
+			}
+		}
+		days = strings.Join(parts, " ")
+	}
+	return fmt.Sprintf("%s · %s · %d %s", streaks, days, upcoming,
+		map[bool]string{true: "date", false: "dates"}[upcoming == 1])
 }
 
 func renderDayBoundaryDialog(theme Theme, state controllerpkg.State) string {

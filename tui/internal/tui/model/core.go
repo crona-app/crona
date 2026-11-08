@@ -270,6 +270,8 @@ type Model struct {
 	dialogSupportBundlePath              string
 	dialogProtectionStep                 int
 	dialogProtectionCursor               int
+	dialogConfirmDiscard                 bool
+	dialogDiscardBaseline                string
 	dialogProtectionStreaks              []sharedtypes.StreakKind
 	dialogProtectionWeekdays             []int
 	dialogCadenceIdx                     int

@@ -1,7 +1,6 @@
 package dialogs
 
 import (
-	"fmt"
 	"slices"
 	"strings"
 
@@ -27,47 +26,8 @@ func hasStreakKind(values []sharedtypes.StreakKind, target sharedtypes.StreakKin
 	return slices.Contains(values, target)
 }
 
-func streakKindsSummary(values []sharedtypes.StreakKind) string {
-	if len(values) == 0 {
-		return "None"
-	}
-	labels := make([]string, 0, len(values))
-	for _, value := range values {
-		if value == sharedtypes.StreakKindCheckInDays {
-			labels = append(labels, "Check-ins")
-		} else {
-			labels = append(labels, "Focus")
-		}
-	}
-	return strings.Join(labels, " • ")
-}
 
-func weekdaysSummary(values []int) string {
-	if len(values) == 0 {
-		return "None"
-	}
-	labels := []string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
-	out := make([]string, 0, len(values))
-	for _, value := range values {
-		if value >= 0 && value < len(labels) {
-			out = append(out, labels[value])
-		}
-	}
-	if len(out) == 0 {
-		return "None"
-	}
-	return strings.Join(out, ", ")
-}
 
-func restDatesSummary(values []string) string {
-	if len(values) == 0 {
-		return "None"
-	}
-	if len(values) == 1 {
-		return values[0]
-	}
-	return fmt.Sprintf("%s +%d", values[0], len(values)-1)
-}
 
 func renderViewEntityBody(theme Theme, body string) string {
 	lines := strings.Split(body, "\n")

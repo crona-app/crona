@@ -22,8 +22,8 @@ func PopulateDatePresentation(theme Theme, state State, currentDate string) Stat
 	selected := DialogDate(state, currentDate)
 	monthStart := DialogMonth(state, currentDate)
 	title := "Pick Due Date"
-	if state.Parent == "create_issue_meta" || state.Parent == "create_issue_default" {
-		title = "Pick Due Date"
+	if state.Parent == "edit_rest_protection" {
+		title = "Add Rest Date"
 	}
 	state.DateTitle = title
 	state.DateHeader = selected.Format("Mon") + ", " + shareddatefmt.FormatDate(selected, nil)

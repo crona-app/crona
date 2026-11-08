@@ -15,7 +15,7 @@ func restProtection(step int) controllerpkg.State {
 		controllerpkg.State{},
 		nil,
 		[]int{0, 6},
-		[]string{"2026-12-25"},
+		[]string{"2000-01-01", "2099-12-25"},
 	)
 	state.ProtectionStep = step
 	return state
@@ -53,39 +53,12 @@ func TestSettingsDialogs(t *testing.T) {
 		},
 		{
 			formCase{
-				name:    "protection streaks",
+				name:    "protection",
 				state:   restProtection(0),
 				title:   "Rest & Streak Protection",
-				context: "1/4 Streaks",
+				context: "3 streaks · Sat Sun · 1 date",
 			},
-			[]string{"▶", "space toggle"},
-		},
-		{
-			formCase{
-				name:    "protection weekdays",
-				state:   restProtection(1),
-				title:   "Rest & Streak Protection",
-				context: "2/4 Weekdays",
-			},
-			[]string{"[x] Sun"},
-		},
-		{
-			formCase{
-				name:    "protection dates",
-				state:   restProtection(2),
-				title:   "Rest & Streak Protection",
-				context: "3/4 Dates",
-			},
-			[]string{"2026-12-25", "a add date"},
-		},
-		{
-			formCase{
-				name:    "protection review",
-				state:   restProtection(3),
-				title:   "Rest & Streak Protection",
-				context: "4/4 Review",
-			},
-			[]string{"Weekdays", "ctrl+s save"},
+			[]string{"[x] Habit days", "Su", "Fri 2099-12-25", "+ add date", "1 date in the past", "ctrl+s save"},
 		},
 		{
 			formCase{
@@ -148,12 +121,6 @@ func TestSettingsDialogs(t *testing.T) {
 func TestWizardsKeepOneWidthAcrossSteps(t *testing.T) {
 	steps := map[string][]controllerpkg.State{
 		"telemetry": {telemetry(0), telemetry(1), telemetry(2)},
-		"rest protection": {
-			restProtection(0),
-			restProtection(1),
-			restProtection(2),
-			restProtection(3),
-		},
 		"day boundary": {
 			dayBoundary(controllerpkg.DayBoundaryStepOverview),
 			dayBoundary(controllerpkg.DayBoundaryStepDays),

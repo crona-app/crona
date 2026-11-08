@@ -138,6 +138,10 @@ type State struct {
 	CalendarScores     map[string]api.FocusScoreRangeDay
 	ProtectionStep     int
 	ProtectionCursor   int
+	// ConfirmDiscard asks "Discard changes?" before esc closes a dialog whose state differs
+	// from DiscardBaseline.
+	ConfirmDiscard  bool
+	DiscardBaseline string
 	ProtectionStreaks  []sharedtypes.StreakKind
 	ProtectionWeekdays []int
 	// CadenceIdx is the cadence picker choice (see CadenceLabels); CadenceDays the custom

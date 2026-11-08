@@ -383,5 +383,6 @@ func OpenEditRestProtection(
 	}
 	state.ProtectionWeekdays = append([]int(nil), weekdays...)
 	state.ProtectionDates = normalizedDateList(dates)
+	state.DiscardBaseline = restProtectionFingerprint(state)
 	return state
 }

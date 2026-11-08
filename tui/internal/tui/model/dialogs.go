@@ -883,6 +883,8 @@ func (m Model) dialogState() dialogstate.State {
 		SupportBundlePath:              m.dialogSupportBundlePath,
 		ProtectionStep:                 m.dialogProtectionStep,
 		ProtectionCursor:               m.dialogProtectionCursor,
+		ConfirmDiscard:                 m.dialogConfirmDiscard,
+		DiscardBaseline:                m.dialogDiscardBaseline,
 		ProtectionStreaks:              m.dialogProtectionStreaks,
 		ProtectionWeekdays:             m.dialogProtectionWeekdays,
 		CadenceIdx:                     m.dialogCadenceIdx,
@@ -1036,6 +1038,8 @@ func (m Model) withDialogState(state dialogstate.State) Model {
 	m.dialogSupportBundlePath = state.SupportBundlePath
 	m.dialogProtectionStep = state.ProtectionStep
 	m.dialogProtectionCursor = state.ProtectionCursor
+	m.dialogConfirmDiscard = state.ConfirmDiscard
+	m.dialogDiscardBaseline = state.DiscardBaseline
 	m.dialogProtectionStreaks = state.ProtectionStreaks
 	m.dialogProtectionWeekdays = state.ProtectionWeekdays
 	m.dialogCadenceIdx = state.CadenceIdx
