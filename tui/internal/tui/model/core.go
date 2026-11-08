@@ -153,6 +153,12 @@ type Model struct {
 	detailHistoryHabitID  int64
 	dailyDetailScroll     int
 	momentumWindowDays    int
+	// momentumBucket is the chart's chosen bucket, counted back from the latest; the
+	// contributors pane shows momentumBucketDetail, loaded for momentumBucketKey.
+	momentumBucket        int
+	momentumBucketDetail  *api.MomentumDetail
+	momentumBucketKey     string
+	momentumBucketWant    string
 	dailyCheckIn          *api.DailyCheckIn
 	metricsRange          []api.DailyMetricsDay
 	metricsRollup         *api.MetricsRollup

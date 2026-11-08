@@ -4,7 +4,6 @@ import (
 	"regexp"
 	"strings"
 	"testing"
-	"time"
 
 	sharedtypes "crona.work/shared/types"
 	types "crona.work/tui/internal/tui/views/types"
@@ -137,13 +136,13 @@ func TestDetailLinesWrapDescription(t *testing.T) {
 	card := momentumTestCard("Deep work", "W1")
 	description := strings.Repeat("steady focused work ", 4)
 	card.Definition.Description = &description
-	for _, line := range DetailLines(types.Theme{}, card, 30, 40, false) {
+	for _, line := range DetailLines(types.Theme{}, card, 30, 40, 0, nil) {
 		if w := ansi.StringWidth(line); w > 30 {
 			t.Fatalf("expected lines within 30 cells, got %q", plain(line))
 		}
 	}
 	if !strings.Contains(
-		squash(plain(strings.Join(DetailLines(types.Theme{}, card, 30, 40, false), " "))),
+		squash(plain(strings.Join(DetailLines(types.Theme{}, card, 30, 40, 0, nil), " "))),
 		strings.TrimSpace(description),
 	) {
 		t.Fatalf("expected the whole description")
@@ -176,7 +175,7 @@ func labelledCard(name string, labels ...string) sharedtypes.MomentumCard {
 }
 
 func TestDetailHeaderPairsSettings(t *testing.T) {
-	lines := DetailLines(types.Theme{}, momentumTestCard("Deep work", "W1"), 80, 30, false)
+	lines := DetailLines(types.Theme{}, momentumTestCard("Deep work", "W1"), 80, 30, 0, nil)
 	if !strings.Contains(plain(lines[0]), "Cadence") ||
 		!strings.Contains(plain(lines[0]), "Habits") {
 		t.Fatalf("expected settings side by side, got %q", plain(lines[0]))
@@ -189,7 +188,8 @@ func TestChartFillsTheDetailHeight(t *testing.T) {
 		labelledCard("Deep work", "Oct 1", "Oct 2", "Oct 3"),
 		80,
 		30,
-		false,
+		0,
+		nil,
 	)
 	if len(lines) != 30 {
 		t.Fatalf("expected the chart to fill 30 lines, got %d", len(lines))
@@ -206,9 +206,9 @@ func TestMediumStacksBucketsUnderChart(t *testing.T) {
 			renderState(120, 36, labelledCard("Deep work", "Oct 1", "Oct 2", "Oct 3")),
 		),
 	)
-	chart, buckets := strings.Index(text, "└"), strings.Index(text, "Buckets")
-	if chart < 0 || buckets < chart {
-		t.Fatalf("expected Buckets below the chart, got\n%s", text)
+	chart, buckets := strings.Index(text, "└"), strings.Index(text, "Loading")
+	if chart < 0 || buckets < chart || !strings.Contains(text, "Oct 3  3/3") {
+		t.Fatalf("expected the bucket's contributors below the chart, got\n%s", text)
 	}
 }
 
@@ -223,87 +223,16 @@ func TestWideGivesBucketsTheirOwnColumn(t *testing.T) {
 		"\n",
 	)
 	title := lineContaining(strings.Join(lines, "\n"), "Momentums")
-	if !strings.Contains(title, "Deep work") || !strings.Contains(title, "Buckets") {
-		t.Fatalf("expected list, detail and buckets side by side, got %q", title)
+	if !strings.Contains(title, "Deep work") || !strings.Contains(title, "─ Oct 2 ") {
+		t.Fatalf("expected list, detail and the bucket's contributors side by side, got %q", title)
 	}
 }
 
 func TestPairedHeaderKeepsLongTargets(t *testing.T) {
 	card := momentumTestCard("Deep work", "W1")
 	card.Definition.TargetKind = sharedtypes.MomentumTargetKindContext
-	text := plain(strings.Join(DetailLines(types.Theme{}, card, 72, 30, false), "\n"))
+	text := plain(strings.Join(DetailLines(types.Theme{}, card, 72, 30, 0, nil), "\n"))
 	if strings.Contains(text, "…") || strings.Contains(text, "...") {
 		t.Fatalf("expected no truncated settings at 72 cells, got\n%s", text)
-	}
-}
-
-// dailyCard has one daily bucket per count, from Sun 11 Oct 2026, against a target of 4.
-func dailyCard(counts ...int) sharedtypes.MomentumCard {
-	card := labelledCard("Deep work")
-	card.Series = dailyMomentumSeries(time.Date(2026, 10, 11, 0, 0, 0, 0, time.UTC), counts, 4)
-	return card
-}
-
-func TestBucketLinesOpenWithSummary(t *testing.T) {
-	head := plain(BucketLines(types.Theme{}, dailyCard(4, 2, 6), 60)[0])
-	if head != "target 4 · met 2 of 3 · avg 4" {
-		t.Fatalf("expected the summary line, got %q", head)
-	}
-}
-
-func TestBucketRowsUseMarksWeekdaysAndBareCounts(t *testing.T) {
-	text := plain(strings.Join(BucketLines(types.Theme{}, dailyCard(4, 2, 6), 60), "\n"))
-	for _, want := range []string{"✓ Tue 13  6 ", "✗ Mon 12  2 ", "✓ Sun 11  4 "} {
-		if !strings.Contains(text, want) {
-			t.Fatalf("expected %q in\n%s", want, text)
-		}
-	}
-	if strings.Contains(text, "/4") || strings.Contains(text, "missed") {
-		t.Fatalf("expected no repeated target or status words, got\n%s", text)
-	}
-	if strings.Index(text, "Tue 13") > strings.Index(text, "Sun 11") {
-		t.Fatalf("expected the newest bucket first, got\n%s", text)
-	}
-}
-
-func TestBucketBarsFillTheColumn(t *testing.T) {
-	for _, line := range BucketLines(types.Theme{}, dailyCard(4, 2, 6), 60)[1:] {
-		if w := ansi.StringWidth(line); w != 60 && !strings.HasPrefix(plain(line), "──") {
-			t.Fatalf("expected rows to fill 60 cells, got %d: %q", w, plain(line))
-		}
-	}
-}
-
-func TestBucketLinesBreakWeeks(t *testing.T) {
-	text := plain(strings.Join(BucketLines(types.Theme{}, dailyCard(4, 2, 6), 60), "\n"))
-	w41, w42 := strings.Index(text, "W41"), strings.Index(text, "W42")
-	mon, sun := strings.Index(text, "Mon 12"), strings.Index(text, "Sun 11")
-	if w42 < 0 || w41 < 0 || w42 >= mon || mon >= w41 || w41 >= sun {
-		t.Fatalf("expected W42 over Mon 12 and W41 over Sun 11, got\n%s", text)
-	}
-}
-
-func TestBucketLinesShowExceptions(t *testing.T) {
-	card := dailyCard(4, 2, 6)
-	card.Series[0].Skipped = true
-	card.Series[0].ProtectedDayCount = 1
-	card.Series[1].Target, card.Series[1].OriginalTarget = 3, 4
-	text := plain(strings.Join(BucketLines(types.Theme{}, card, 60), "\n"))
-	for _, want := range []string{"· Sun 11  skip  protected 1d", "Mon 12  2/3"} {
-		if !strings.Contains(squash(text), squash(want)) {
-			t.Fatalf("expected %q in\n%s", want, text)
-		}
-	}
-}
-
-func TestBucketLinesWithoutWeeksForWeeklyBuckets(t *testing.T) {
-	text := plain(
-		strings.Join(
-			BucketLines(types.Theme{}, momentumTestCard("Deep work", "W1", "W2"), 60),
-			"\n",
-		),
-	)
-	if strings.Contains(text, "──") {
-		t.Fatalf("expected no week rules for weekly buckets, got\n%s", text)
 	}
 }

@@ -98,6 +98,24 @@ func LoadMomentumRange(c *api.Client, endDate string, windowDays int) tea.Cmd {
 	}
 }
 
+// MomentumBucketLoadedMsg is a bucket's contributors for the Momentum pane; Detail is nil
+// when loading failed.
+type MomentumBucketLoadedMsg struct {
+	Key    string
+	Detail *api.MomentumDetail
+}
+
+// LoadMomentumBucket loads the bucket holding date for the contributors pane.
+func LoadMomentumBucket(c *api.Client, key, id, date string, windowDays int) tea.Cmd {
+	return func() tea.Msg {
+		detail, err := c.GetMomentumDetail(id, date, windowDays)
+		if err != nil {
+			logger.Errorf("loadMomentumBucket(%s,%s,%d): %v", id, date, windowDays, err)
+		}
+		return MomentumBucketLoadedMsg{Key: key, Detail: detail}
+	}
+}
+
 func LoadMomentumDetail(c *api.Client, id, endDate string, windowDays int) tea.Cmd {
 	return func() tea.Msg {
 		detail, err := c.GetMomentumDetail(id, endDate, windowDays)

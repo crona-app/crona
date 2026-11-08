@@ -38,9 +38,11 @@ type State struct {
 	// DailyWorkPath the drill into it.
 	DailyWorkSelect bool
 	DailyWorkCursor int
-	DailyWorkRows   []uistate.WorkRow
-	DailyWorkGroup  string
-	DailyWorkPath   []uistate.WorkCrumb
+	// MomentumBucket is the selected momentum's chosen bucket, counted back from its latest (0).
+	MomentumBucket int
+	DailyWorkRows  []uistate.WorkRow
+	DailyWorkGroup string
+	DailyWorkPath  []uistate.WorkCrumb
 	// Date is the one date every dated view shows; "" means the logical today.
 	Date             string
 	ReviewWindowDays int
@@ -719,6 +721,13 @@ func newRouter(deps Deps) *router {
 			return handleResetMomentumWindow(s, deps)
 		},
 	)
+	// ←/→ choose the chart's bucket; the model keeps it within the series.
+	for key, dir := range map[string]int{"left": 1, "right": -1} {
+		r.RegisterView(uistate.ViewMomentum, key, func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
+			s.MomentumBucket = max(0, s.MomentumBucket+dir)
+			return s, nil, true
+		})
+	}
 	keyregistry.RegisterWellbeing(
 		r,
 		uistate.ViewMomentum,

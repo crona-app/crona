@@ -119,49 +119,16 @@ func TestRenderUsesBucketTimelineAndWideCard(t *testing.T) {
 	if !strings.Contains(rendered, "4w now · best 7w") {
 		t.Fatalf("expected streak header in render, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "[18] May 4-10") ||
-		!strings.Contains(rendered, "[25] Jun 22-28") {
+	if !strings.Contains(rendered, "[26] Jun 29-Jul 5") {
 		t.Fatalf("expected bucket labels in render, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "1/3") || !strings.Contains(rendered, "3/3") ||
-		!strings.Contains(rendered, "4/3") {
-		t.Fatalf("expected explicit ratios in render, got %q", rendered)
-	}
 	if !strings.Contains(rendered, "13/10") {
-		t.Fatalf("expected overflow ratio in render, got %q", rendered)
-	}
-	if !strings.Contains(rendered, "missed") || !strings.Contains(rendered, "met") {
-		t.Fatalf("expected bucket statuses in render, got %q", rendered)
-	}
-	if !strings.Contains(rendered, "┆") {
-		t.Fatalf("expected inline target marker in render, got %q", rendered)
-	}
-	if !strings.Contains(lineContaining(rendered, "[18] May 4-10"), "█") {
-		t.Fatalf("expected missed bucket row to show a partial fill, got %q", rendered)
-	}
-	// The footnote repeats the ratio above the bucket table; the table row comes last.
-	overflowLine := ""
-	for line := range strings.SplitSeq(rendered, "\n") {
-		if strings.Contains(line, "13/10") {
-			overflowLine = line
-		}
-	}
-	if overflowLine == "" {
-		t.Fatalf("expected overflow row in render, got %q", rendered)
-	}
-	if strings.LastIndex(overflowLine, "┆") < 0 || strings.LastIndex(overflowLine, "█") < 0 {
-		t.Fatalf("expected overflow row to show both fill and target marker, got %q", overflowLine)
-	}
-	if strings.LastIndex(overflowLine, "┆") >= strings.LastIndex(overflowLine, "█") {
-		t.Fatalf(
-			"expected overflow row fill to extend beyond the target marker, got %q",
-			overflowLine,
-		)
+		t.Fatalf("expected the latest bucket's ratio in render, got %q", rendered)
 	}
 	if !hasWidePaneLine(rendered, 130) {
 		t.Fatalf("expected a wide card layout in render, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "Latest bucket:") {
+	if !strings.Contains(rendered, "[←/→] bucket") {
 		t.Fatalf("expected latest bucket summary in render, got %q", rendered)
 	}
 	if !strings.ContainsFunc(rendered, func(r rune) bool { return r >= 0x2800 && r <= 0x28FF }) {
@@ -230,10 +197,10 @@ func TestRenderUsesContextLabelAndDurationValues(t *testing.T) {
 	if !strings.Contains(rendered, "All · 2 contexts, 2h each") {
 		t.Fatalf("expected context meta to use duration-based target text, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "target 2h") || !strings.Contains(rendered, " 1h ") {
+	if !strings.Contains(rendered, "target 2h") {
 		t.Fatalf("expected context ratio to render as compact duration, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "Latest bucket: 3h/2h met") {
+	if !strings.Contains(rendered, "3h/2h met") {
 		t.Fatalf("expected context footnote to render duration-based totals, got %q", rendered)
 	}
 	if strings.Contains(rendered, "3600/7200") {
@@ -244,18 +211,6 @@ func TestRenderUsesContextLabelAndDurationValues(t *testing.T) {
 	}
 	if strings.Contains(rendered, "■") || strings.Contains(rendered, "□") {
 		t.Fatalf("expected context render to avoid square cells, got %q", rendered)
-	}
-	shortRow := lineContaining(rendered, "May 11-17")
-	longRow := lineContaining(rendered, "May 18-24")
-	if shortRow == "" || longRow == "" {
-		t.Fatalf("expected context rows in render, got %q", rendered)
-	}
-	if strings.Count(shortRow, "█") >= strings.Count(longRow, "█") {
-		t.Fatalf(
-			"expected longer duration to render a larger fill, got short=%q long=%q",
-			shortRow,
-			longRow,
-		)
 	}
 }
 
@@ -316,7 +271,7 @@ func TestRenderShowsSkippedAndProratedMomentumMetadata(t *testing.T) {
 	}
 
 	rendered := Render(testTheme(), state)
-	if !strings.Contains(rendered, "Latest bucket: skipped (3 protected days)") {
+	if !strings.Contains(rendered, "skipped (3 protected days)") {
 		t.Fatalf("expected skipped-bucket footnote, got %q", rendered)
 	}
 	if !strings.Contains(rendered, "skip") {
@@ -325,10 +280,10 @@ func TestRenderShowsSkippedAndProratedMomentumMetadata(t *testing.T) {
 
 	state.Cursors["momentum_cards"] = 1
 	rendered = Render(testTheme(), state)
-	if !strings.Contains(rendered, "original 2h") {
+	if !strings.Contains(rendered, "prorated from 2h") {
 		t.Fatalf("expected prorated footnote to include original target, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "2 protected days") {
+	if !strings.Contains(rendered, "protected 2d") {
 		t.Fatalf("expected prorated footnote to include protected-day count, got %q", rendered)
 	}
 }
@@ -501,13 +456,9 @@ func TestRenderShowsDisabledMomentumAsPausedHistory(t *testing.T) {
 		strings.Contains(body, "met") {
 		t.Fatalf("expected disabled momentum to avoid live status labels, got %q", rendered)
 	}
-	// The bucket table states the shared target once, then each bucket's count.
-	if !strings.Contains(rendered, "paused · target 3") || !strings.Contains(rendered, " 1 ") ||
-		!strings.Contains(rendered, " 3 ") {
+	// The footnote keeps the paused momentum's numbers.
+	if !strings.Contains(rendered, "paused · target 3") {
 		t.Fatalf("expected disabled momentum to keep historical counts, got %q", rendered)
-	}
-	if !strings.Contains(rendered, "Momentum disabled") {
-		t.Fatalf("expected disabled footer in render, got %q", rendered)
 	}
 }
 
@@ -547,7 +498,7 @@ func TestRenderUsesCalendarOnlyForBinaryDailyHabit(t *testing.T) {
 	}
 	// A binary daily habit draws a calendar of weeks, not bars on a scale.
 	chart := ansi.Strip(
-		strings.Join(DetailLines(testTheme(), state.MomentumCards[0], 80, 30, false), "\n"),
+		strings.Join(DetailLines(testTheme(), state.MomentumCards[0], 80, 30, 0, nil), "\n"),
 	)
 	if !strings.Contains(chart, "Mon") || !strings.Contains(chart, "Sun") ||
 		!strings.Contains(chart, "hit") {
@@ -605,7 +556,7 @@ func TestRenderUsesCountDistributionForMultiHabitAnyDaily(t *testing.T) {
 	if strings.Contains(rendered, "■") || strings.Contains(rendered, "□") {
 		t.Fatalf("expected multi-habit daily momentum to avoid square cells, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "Latest bucket: 2/1 met") {
+	if !strings.Contains(rendered, "2/1 met") {
 		t.Fatalf("expected count-based footnote in multi-habit daily render, got %q", rendered)
 	}
 }

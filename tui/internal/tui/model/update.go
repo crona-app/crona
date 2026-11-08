@@ -152,7 +152,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			cmd = batchCmds(cmd, next.issuesTransitionRefresh(m.view))
 			next, workCmd := next.ensureWorkBreakdown(false)
-			return next, batchCmds(touch, cmd, workCmd)
+			next, bucketCmd := next.ensureMomentumBucket()
+			return next, batchCmds(touch, cmd, workCmd, bucketCmd)
 		}
 	}
 	switch msg := msg.(type) {
@@ -241,6 +242,11 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		return m.openMomentumDetailDialog(*msg.Detail), nil
+	case commands.MomentumBucketLoadedMsg:
+		if msg.Key == m.momentumBucketWant {
+			m.momentumBucketDetail, m.momentumBucketKey = msg.Detail, msg.Key
+		}
+		return m, nil
 	case commands.MomentumDetailFailedMsg:
 		return m, m.setStatus(msg.Err.Error(), true)
 	case commands.SummarySnapshotLoadedMsg:
@@ -295,7 +301,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if _, ok := msg.(commands.AllStreamsLoadedMsg); ok {
 			next.reconcileBrowseScope()
 		}
-		return next, cmd
+		next.momentumBucket = next.clampMomentumBucket(next.momentumBucket)
+		next, bucketCmd := next.ensureMomentumBucket()
+		return next, batchCmds(cmd, bucketCmd)
 	}
 	return m, nil
 }

@@ -292,7 +292,7 @@ func (m Model) handleInputEnter() (Model, tea.Cmd, bool) {
 			return m, commands.LoadMomentumDetail(
 				m.client,
 				card.Definition.ID,
-				m.currentDate(),
+				m.momentumBucketDate(*card),
 				m.currentMomentumWindowDays(),
 			), true
 		}

@@ -26,13 +26,13 @@ type calendarWeek struct {
 
 // calendarLines draws a binary daily momentum as weeks by weekday at exactly height lines:
 // a weekday header, square cells sized to the room, the latest weeks kept, each weekday's
-// hits right under the grid, then blank lines. Today's weekday and cell carry a dot.
+// hits right under the grid, then blank lines. The selected bucket's weekday and cell carry a dot.
 func calendarLines(
 	theme types.Theme,
 	series []sharedtypes.MomentumSeriesPoint,
 	width, height int,
 	enabled bool,
-	today string,
+	today string, // the selected bucket's key
 ) []string {
 	weeks := calendarWeeks(series)
 	if len(weeks) == 0 || height < 3 {

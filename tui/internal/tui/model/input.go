@@ -108,6 +108,7 @@ func (m Model) inputState() inputpkg.State {
 		DailyPlanCount:            len(m.planItems()),
 		DailyWorkSelect:           m.workSelect,
 		DailyWorkCursor:           m.workCursor,
+		MomentumBucket:            m.momentumBucket,
 		DailyWorkRows:             m.workRows(),
 		DailyWorkGroup:            m.workGroup,
 		DailyWorkPath:             m.workPath,
@@ -173,6 +174,7 @@ func (m Model) applyInputState(state inputpkg.State) Model {
 	m.reviewWindowEnd = state.ReviewWindowEnd
 	m = m.anchorReviewWindow()
 	m.momentumWindowDays = state.MomentumWindowDays
+	m.momentumBucket = m.clampMomentumBucket(state.MomentumBucket)
 	m = m.withDialogState(state.DialogState)
 	if state.DialogState.Kind == "" {
 		m.dialog = state.Dialog

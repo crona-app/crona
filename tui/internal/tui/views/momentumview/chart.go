@@ -60,48 +60,6 @@ func momentumHabitSummary(names []string) string {
 	return fmt.Sprintf("%s, %s, %s +%d", names[0], names[1], names[2], len(names)-3)
 }
 
-func momentumSeriesFootnote(
-	def sharedtypes.HabitStreakDefinition,
-	series []sharedtypes.MomentumSeriesPoint,
-	enabled bool,
-) string {
-	if !enabled {
-		return "Momentum disabled"
-	}
-	if len(series) == 0 {
-		return ""
-	}
-	last := series[len(series)-1]
-	if last.Skipped {
-		return fmt.Sprintf(
-			"Latest bucket: skipped (%d protected days)",
-			last.ProtectedDayCount,
-		)
-	}
-	status := "missed"
-	if last.MetTarget {
-		status = "met"
-	}
-	parts := []string{
-		fmt.Sprintf(
-			"Latest bucket: %s/%s %s",
-			momentumValueDisplay(last.Count, def),
-			momentumValueDisplay(last.Target, def),
-			status,
-		),
-	}
-	if last.OriginalTarget > 0 && last.OriginalTarget != last.Target {
-		parts = append(
-			parts,
-			fmt.Sprintf("original %s", momentumValueDisplay(last.OriginalTarget, def)),
-		)
-	}
-	if last.ProtectedDayCount > 0 {
-		parts = append(parts, fmt.Sprintf("%d protected days", last.ProtectedDayCount))
-	}
-	return strings.Join(parts, " · ")
-}
-
 type momentumContextAxisSpec struct {
 	MaxAxis    int
 	Step       int

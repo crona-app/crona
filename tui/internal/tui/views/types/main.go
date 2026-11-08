@@ -99,7 +99,11 @@ type ContentState struct {
 	DailyWorkSelect bool
 	DailyWorkCursor int
 	DailyWorkGroup  string
-	DailyWorkPath   []uistate.WorkCrumb
+	// MomentumBucket is the selected momentum's chosen bucket, counted back from its latest;
+	// MomentumBucketDetail is that bucket's contributors, nil while loading.
+	MomentumBucket       int
+	MomentumBucketDetail *api.MomentumDetail
+	DailyWorkPath        []uistate.WorkCrumb
 	// DailyIssueIndices and DailyHabitIndices are the model's text-filtered raw indices into
 	// DailyIssues and DueHabits; the pane cursors are positions in these lists.
 	DailyIssueIndices     []int

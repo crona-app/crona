@@ -63,6 +63,7 @@ func renderMomentumBars(
 	series []sharedtypes.MomentumSeriesPoint,
 	width, height int,
 	enabled bool,
+	selected int,
 ) []string {
 	if len(series) == 0 || width < 1 || height < 1 {
 		return []string{theme.StyleDim.Render("no data")}
@@ -132,6 +133,18 @@ func renderMomentumBars(
 	if height < 3 {
 		return lines[:min(len(lines), height)]
 	}
-	lines = append(lines, strings.Repeat(" ", labelWidth)+" └"+strings.Repeat("─", chartWidth))
+	axis := []rune(strings.Repeat("─", chartWidth))
+	marker := ""
+	if selected >= 0 && selected < len(seriesX) && seriesX[selected] < chartWidth {
+		axis[seriesX[selected]] = '▲'
+		marker = string(axis[:seriesX[selected]])
+	}
+	if marker != "" {
+		x := seriesX[selected]
+		lines = append(lines, strings.Repeat(" ", labelWidth)+" └"+marker+
+			theme.StyleCursor.Render("▲")+string(axis[x+1:]))
+	} else {
+		lines = append(lines, strings.Repeat(" ", labelWidth)+" └"+string(axis))
+	}
 	return append(lines, momentumChartXAxis(theme, series, labelWidth+2, chartWidth, seriesX))
 }

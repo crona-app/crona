@@ -74,16 +74,22 @@ func Render(theme types.Theme, state types.ContentState) string {
 		max(0, detailWidth-len(card.Definition.Name)-4),
 	)
 	titleStyle := theme.StyleHeader.Bold(true)
+	bucketTitle, bucketMeta := contributorsTitle(theme, card, state.MomentumBucket)
+	var stacked []string
+	if !wide {
+		stacked = append([]string{theme.StylePaneTitle.Render(bucketTitle) + "  " + bucketMeta},
+			ContributorLines(theme, state.MomentumBucketDetail, detailWidth-2)...)
+	}
 	detail := viewchrome.RenderSection(theme, viewchrome.Section{
 		Title: card.Definition.Name, Meta: meta, TitleStyle: &titleStyle, Width: detailWidth, Height: height,
-		Lines: DetailLines(theme, card, detailWidth-2, height-1, !wide),
+		Lines: DetailLines(theme, card, detailWidth-2, height-1, state.MomentumBucket, stacked),
 	})
 	if !wide {
 		return strings.Join(append(rows, viewchrome.JoinColumns(theme, height, list, detail)), "\n")
 	}
 	buckets := viewchrome.RenderSection(theme, viewchrome.Section{
-		Title: "Buckets", Meta: fmt.Sprintf("%d", len(card.Series)), Width: bucketsWidth, Height: height,
-		Lines: BucketLines(theme, card, bucketsWidth-2),
+		Title: bucketTitle, Meta: bucketMeta, Width: bucketsWidth, Height: height,
+		Lines: ContributorLines(theme, state.MomentumBucketDetail, bucketsWidth-2),
 	})
 	return strings.Join(
 		append(rows, viewchrome.JoinColumns(theme, height, list, detail, buckets)),
