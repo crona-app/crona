@@ -80,14 +80,14 @@ func TestHabitLogDateColumnSummary(t *testing.T) {
 	found := map[string]bool{}
 	for _, line := range strings.Split(text, "\n") {
 		line, _, _ = strings.Cut(line, "│")
-		for date, summary := range map[string]string{"Sat 17 Oct": "2 done · 1 failed", "Fri 16 Oct": "1 done"} {
+		for date, summary := range map[string]string{"SAT 17 OCT": "2 done · 1 failed", "FRI 16 OCT": "1 done"} {
 			if strings.Contains(line, date) && strings.HasSuffix(strings.TrimSpace(line), summary) {
 				found[date] = true
 			}
 		}
 	}
 	if len(found) != 2 {
-		t.Fatalf("expected each date on its first row with the day summary at the end, got\n%s", text)
+		t.Fatalf("expected each date as a heading with the day summary at the end, got\n%s", text)
 	}
 }
 

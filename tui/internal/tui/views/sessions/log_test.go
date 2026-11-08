@@ -84,12 +84,12 @@ func TestSessionLogDateColumn(t *testing.T) {
 	for _, line := range strings.Split(text, "\n") {
 		line, _, _ = strings.Cut(line, "│")
 		list = append(list, line)
-		if strings.Contains(line, "Sat 17 Oct") {
+		if strings.Contains(line, "SAT 17 OCT") {
 			dayRows = append(dayRows, line)
 		}
 	}
 	if len(dayRows) != 1 || !strings.Contains(dayRows[0], "2 · 1h01m") || strings.Contains(strings.Join(list, "\n"), "── Fri") {
-		t.Fatalf("expected the date once, on its first session's row with the day summary, got\n%s", text)
+		t.Fatalf("expected the date once as a heading with the day summary, got\n%s", text)
 	}
 }
 
