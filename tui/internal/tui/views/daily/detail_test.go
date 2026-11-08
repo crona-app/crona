@@ -277,7 +277,7 @@ func TestDetailShowsDaySummaryUntilFocused(t *testing.T) {
 		strings.Fields(ansi.Strip(renderDetail(testTheme(), state, 70, 30))),
 		" ",
 	)
-	for _, want := range []string{"─ Wed 27 May", "72", "Accountability", "Wellbeing"} {
+	for _, want := range []string{"─ Wed 27 May", "72", "Score", "Plan", "Wellbeing"} {
 		if !strings.Contains(rendered, want) {
 			t.Fatalf("expected the Day summary to contain %q, got %q", want, rendered)
 		}

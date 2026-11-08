@@ -37,10 +37,40 @@ func TestDayLinesIncludeStatsMetrics(t *testing.T) {
 		HabitFailedCount:    1,
 	}
 	rendered := dayText(state, 42)
-	for _, want := range []string{"Focus", "✓ Strong · work and rest balanced", "82", "Worked/1h", "To go 20m to target", "Sessions 3 · avg 13m", "Rest 10m", "1/1", "2/3", "Issues", "Habits", "Failed ✗ 1"} {
+	for _, want := range []string{"82", "Score", "strong", "Worked", "of 1h", "to go 20m", "3 sessions, avg 13m", "rest 10m", "1/1", "all done", "2/3", "Issues", "Habits", "1 failed"} {
 		if !strings.Contains(squash(rendered), want) {
 			t.Fatalf("expected summary stats to contain %q, got %q", want, rendered)
 		}
+	}
+	// Each figure once: no verdict banner, the target only under the arc, and no hint for a
+	// balanced day.
+	for _, gone := range []string{"Strong", "to target", "Worked/", "balanced", "Accountability", "▲"} {
+		if strings.Contains(squash(rendered), gone) {
+			t.Fatalf("expected summary stats without %q, got %q", gone, rendered)
+		}
+	}
+}
+
+func TestDayLinesHintLowFocusOnce(t *testing.T) {
+	state := summaryTestState()
+	state.SummarySnapshot.Focus = &api.FocusScoreSummary{
+		Score:               23,
+		Level:               sharedtypes.FocusScoreLevelLow,
+		Reason:              sharedtypes.FocusScoreReasonNeedsBreaks,
+		TargetWorkedSeconds: 19800,
+	}
+	state.SummarySnapshot.Metrics = &api.DailyMetricsDay{WorkedSeconds: 1140, SessionCount: 1}
+	rendered := squash(dayText(state, 60))
+	for _, want := range []string{"Score", "low", "of 5h30m", "to go 5h11m", "take a break"} {
+		if !strings.Contains(rendered, want) {
+			t.Fatalf("expected %q in the low-focus summary, got %q", want, rendered)
+		}
+	}
+	if n := strings.Count(rendered, "23"); n != 1 {
+		t.Fatalf("expected the score once, got %d times in %q", n, rendered)
+	}
+	if strings.Contains(rendered, "▲") || strings.Contains(rendered, "Low focus") {
+		t.Fatalf("expected no low-focus banner, got %q", rendered)
 	}
 }
 
@@ -70,9 +100,9 @@ func TestDayLinesOneStatPerRowWithinWidth(t *testing.T) {
 	}
 }
 
-func TestDayLinesCoverAccountabilityWellbeingAndStreaks(t *testing.T) {
+func TestDayLinesCoverPlanWellbeingAndStreaks(t *testing.T) {
 	rendered := squash(dayText(summaryTestState(), 42))
-	for _, want := range []string{"Accountability", "✓ All done", "none high risk", "nothing late", "no misses yet", "Wellbeing", "Wellbeing", "4/5", "3/5", "Momentum", "Focus ↑3d", "Check-ins ↑4d"} {
+	for _, want := range []string{"Plan", "none high risk", "nothing late", "no misses yet", "Wellbeing", "Wellbeing", "4/5", "3/5", "Momentum", "Focus ↑3d", "Check-ins ↑4d"} {
 		if !strings.Contains(rendered, want) {
 			t.Fatalf("expected the Day summary to contain %q, got %q", want, rendered)
 		}
@@ -212,7 +242,7 @@ func TestDayLinesCarryTheStripsBarsAndBestStreaks(t *testing.T) {
 	state.DailyPlannedIssues = []api.Issue{{Status: "done"}, {Status: "planned"}}
 	lines := strings.Split(dayText(state, 42), "\n")
 	text := strings.Join(lines, "\n")
-	for _, want := range []string{"1/2", "Issues    ● 1 planned", "Left      ○ 1 still to do"} {
+	for _, want := range []string{"1/2", "Issues    ● 1 planned", "1 left"} {
 		if !strings.Contains(text, want) || strings.Contains(text, "█") {
 			t.Fatalf("expected arcs with %q and no bars, got %q", want, lines)
 		}
@@ -289,7 +319,7 @@ func TestPlanVerdictAndResolvedChips(t *testing.T) {
 		FailedCount: 1, CarriedCount: 2,
 	}
 	got := ansi.Strip(planVerdict(theme, s))
-	if got != "▲ At risk · 2 high risk, 4 delayed" {
+	if got != "at risk" {
 		t.Fatalf("verdict = %q", got)
 	}
 	if got := ansi.Strip(resolvedChips(theme, s)); got != "✗ 1 failed  ↷ 2 carried" {

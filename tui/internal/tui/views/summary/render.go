@@ -17,22 +17,20 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// DayLines is the Day summary at width, one stat per row: the day's focus stats, plan
-// accountability,
-// check-in and streaks. It waits on the summary snapshot for the shown date.
+// DayLines is the Day summary at width: a row of the day's headline gauges (score, worked,
+// issues, habits) with the focus facts under it, the plan's detail, then wellbeing and
+// streaks. It waits on the summary snapshot for the shown date.
 func DayLines(theme types.Theme, state types.ContentState, width int) []string {
 	snapshot := state.SummarySnapshot
 	if snapshot == nil || snapshot.Date != state.SummaryDate {
 		return []string{theme.StyleDim.Render("Loading summary…")}
 	}
-	lines := strings.Split(renderStats(theme, snapshot, plannedStatusCounts(state), width), "\n")
+	lines := renderVitals(theme, snapshot, width)
 	lines = append(lines, "")
-	lines = append(lines, renderPlan(theme, snapshot.Plan, snapshot.Metrics, plannedStatusCounts(state), width)...)
+	lines = append(lines, renderPlan(theme, snapshot.Plan, plannedStatusCounts(state), width)...)
 	lines = append(lines, renderTopPenalties(theme, snapshot.Plan, snapshot.Issues, width)...)
 	lines = append(lines, "")
 	lines = append(lines, renderWellbeing(theme, snapshot.CheckIn, snapshot.Rollup, state.Settings, width)...)
-	lines = append(lines, "")
-	lines = append(lines, renderHabits(theme, snapshot.Metrics, width)...)
 	lines = append(lines, "")
 	return append(lines, renderMomentum(theme, state, snapshot.Streaks, width)...)
 }
@@ -46,101 +44,163 @@ func Row(theme types.Theme, label, value string, width int) string {
 		viewhelpers.TruncateANSI(value, max(1, width-labelWidth))
 }
 
-func renderStats(theme types.Theme, snapshot *api.SummarySnapshot, statusCounts map[string]int, width int) string {
-	if snapshot == nil {
-		return ""
+// renderVitals is the day at a glance: four gauges in one row, each naming its state under
+// it, then the focus facts the gauges can't show on one line.
+func renderVitals(theme types.Theme, snapshot *api.SummarySnapshot, width int) []string {
+	if snapshot == nil || snapshot.Focus == nil || snapshot.Metrics == nil {
+		return []string{theme.StyleDim.Render("Focus stats unavailable.")}
 	}
-	lines := []string{theme.StylePaneTitle.Render("Focus")}
-	if snapshot.Focus == nil || snapshot.Metrics == nil {
-		return strings.Join(append(lines, theme.StyleDim.Render("Focus stats unavailable.")), "\n")
-	}
-	focus := snapshot.Focus
-	metrics := snapshot.Metrics
+	focus, metrics := snapshot.Focus, snapshot.Metrics
 	duration := helperpkg.FormatCompactDurationSeconds
-	lines = headed(lines[0], focusVerdict(theme, focus), width)
 	target := max(1, focus.TargetWorkedSeconds)
 	workedFraction := float64(metrics.WorkedSeconds) / float64(target)
 	workedColor := theme.ColorCyan
 	if workedFraction >= 1 {
 		workedColor = theme.ColorGreen
 	}
-	// The arc carries worked time and its target, so the facts beside it say what it can't.
-	workedLabel := "Worked"
+	workedTarget := ""
 	if focus.TargetWorkedSeconds > 0 {
-		workedLabel += "/" + duration(focus.TargetWorkedSeconds)
+		workedTarget = theme.StyleDim.Render("of " + duration(focus.TargetWorkedSeconds))
 	}
-	arcs := renderGauges(theme, []gauge{
+	gauges := []gauge{
 		{
-			label: "Focus", value: fmt.Sprintf("%d", focus.Score),
+			label: "Score", value: fmt.Sprintf("%d", focus.Score),
+			trend:    lipgloss.NewStyle().Foreground(focusColor(theme, focus.Level)).Render(focusLevelWord(focus.Level)),
 			fraction: float64(focus.Score) / 100, color: focusColor(theme, focus.Level),
 		},
 		{
-			label: workedLabel, value: duration(metrics.WorkedSeconds),
+			label: "Worked", value: duration(metrics.WorkedSeconds), trend: workedTarget,
 			fraction: workedFraction, color: workedColor,
 		},
-	}, gaugeCols*2+gaugeGap)
-	rest := theme.StyleNormal.Render(duration(metrics.RestSeconds))
-	if metrics.RestSeconds == 0 && metrics.WorkedSeconds >= 45*60 {
-		rest = lipgloss.NewStyle().Foreground(theme.ColorOrange).Render(duration(metrics.RestSeconds)) +
-			theme.StyleDim.Render(" · aim ~1 break an hour")
+		issuesGauge(theme, snapshot.Plan, metrics),
+		habitsGauge(theme, metrics),
 	}
-	sessions := theme.StyleNormal.Render(fmt.Sprint(metrics.SessionCount))
-	if metrics.SessionCount > 0 {
-		sessions += theme.StyleDim.Render(" · avg " + duration(metrics.WorkedSeconds/metrics.SessionCount))
-	}
-	facts := []string{}
-	if target := focus.TargetWorkedSeconds; target > 0 {
-		toGo := theme.StyleNormal.Render(duration(target-metrics.WorkedSeconds)) + theme.StyleDim.Render(" to target")
-		if metrics.WorkedSeconds >= target {
-			toGo = lipgloss.NewStyle().Foreground(theme.ColorGreen).Render("target met")
-			if over := metrics.WorkedSeconds - target; over > 0 {
-				toGo = lipgloss.NewStyle().Foreground(theme.ColorOrange).Render("+" + duration(over) + " over")
-			}
-		}
-		facts = append(facts, factRow(theme, "To go", toGo))
-	}
-	facts = append(facts, factRow(theme, "Sessions", sessions), factRow(theme, "Rest", rest))
-	lines = append(lines, besideArcs(arcs, facts, gaugeCols*2+gaugeGap, width)...)
-	return strings.Join(lines, "\n")
+	lines := renderGauges(theme, gauges, width)
+	return append(lines, focusFacts(theme, focus, metrics, width)...)
 }
 
+// focusFacts is the line under the gauges: time to go, sessions, rest, and the advice behind
+// the score when there is any. A narrow pane wraps it between facts, never inside one.
+func focusFacts(theme types.Theme, focus *sharedtypes.FocusScoreSummary, metrics *api.DailyMetricsDay, width int) []string {
+	duration := helperpkg.FormatCompactDurationSeconds
+	sep := theme.StyleDim.Render(" · ")
+	var parts []string
+	if target := focus.TargetWorkedSeconds; target > 0 {
+		switch over := metrics.WorkedSeconds - target; {
+		case over > 0:
+			parts = append(parts, lipgloss.NewStyle().Foreground(theme.ColorOrange).Render("+"+duration(over)+" over"))
+		case over == 0:
+			parts = append(parts, lipgloss.NewStyle().Foreground(theme.ColorGreen).Render("target met"))
+		default:
+			parts = append(parts, theme.StyleDim.Render("to go ")+theme.StyleNormal.Render(duration(-over)))
+		}
+	}
+	sessions := theme.StyleNormal.Render(fmt.Sprint(metrics.SessionCount)) + theme.StyleDim.Render(plural(metrics.SessionCount, " session", " sessions"))
+	if metrics.SessionCount > 0 {
+		sessions += theme.StyleDim.Render(", avg ") + theme.StyleNormal.Render(duration(metrics.WorkedSeconds/metrics.SessionCount))
+	}
+	parts = append(parts, sessions)
+	rest := theme.StyleDim.Render("rest ") + theme.StyleNormal.Render(duration(metrics.RestSeconds))
+	if metrics.RestSeconds == 0 && metrics.WorkedSeconds >= 45*60 {
+		rest = theme.StyleDim.Render("rest ") + lipgloss.NewStyle().Foreground(theme.ColorOrange).Render(duration(0))
+	}
+	parts = append(parts, rest)
+	if hint := focusHint(focus.Reason); hint != "" {
+		parts = append(parts, theme.StyleDim.Render(hint))
+	} else if metrics.RestSeconds == 0 && metrics.WorkedSeconds >= 45*60 {
+		parts = append(parts, theme.StyleDim.Render("aim ~1 break an hour"))
+	}
+	return joinWrapped(parts, sep, width)
+}
+
+// joinWrapped joins parts with sep, starting a new line before a part that would not fit.
+func joinWrapped(parts []string, sep string, width int) []string {
+	var lines []string
+	line := ""
+	for _, part := range parts {
+		switch {
+		case line == "":
+			line = part
+		case ansi.StringWidth(line+sep+part) <= width:
+			line += sep + part
+		default:
+			lines = append(lines, line)
+			line = part
+		}
+	}
+	if line != "" {
+		lines = append(lines, ansi.Truncate(line, width, "…"))
+	}
+	for i := range lines {
+		lines[i] = ansi.Truncate(lines[i], width, "…")
+	}
+	return lines
+}
+
+func plural(n int, one, many string) string {
+	if n == 1 {
+		return one
+	}
+	return many
+}
+
+// issuesGauge counts the day's done issues, the committed plan's when there is one, and
+// names the plan's state under it.
+func issuesGauge(theme types.Theme, plan *sharedtypes.DailyPlan, metrics *api.DailyMetricsDay) gauge {
+	done, total := metrics.CompletedIssues, metrics.TotalIssues
+	status := ""
+	if plan != nil && strings.TrimSpace(plan.Date) != "" {
+		done, total = plan.Summary.CompletedCount, plan.Summary.PlannedCount
+		status = planVerdict(theme, plan.Summary)
+	}
+	fraction := float64(done) / float64(max(1, total))
+	return gauge{
+		label: "Issues", value: fmt.Sprintf("%d/%d", done, total), trend: status,
+		fraction: fraction, color: doneColor(theme, fraction),
+	}
+}
+
+// habitsGauge counts the due habits done, naming failures first, then what is left.
+func habitsGauge(theme types.Theme, metrics *api.DailyMetricsDay) gauge {
+	done, failed, due := metrics.HabitCompletedCount, metrics.HabitFailedCount, metrics.HabitDueCount
+	g := gauge{label: "Habits", value: fmt.Sprintf("%d/%d", done, due)}
+	if due == 0 {
+		g.value = "—"
+		g.trend = theme.StyleDim.Render("none due")
+		return g
+	}
+	g.fraction = float64(done) / float64(due)
+	g.color = doneColor(theme, g.fraction)
+	switch left := due - done - failed; {
+	case failed > 0:
+		g.trend = lipgloss.NewStyle().Foreground(theme.ColorOrange).Render(fmt.Sprintf("%d failed", failed))
+	case left > 0:
+		g.trend = theme.StyleDim.Render(fmt.Sprintf("%d left", left))
+	default:
+		g.trend = lipgloss.NewStyle().Foreground(theme.ColorGreen).Render("all done")
+	}
+	return g
+}
+
+// renderPlan is the committed plan's detail, the gauges above carrying its count and state:
+// what is slipping, late and resolved, and the open issues by status.
 func renderPlan(
 	theme types.Theme,
 	plan *sharedtypes.DailyPlan,
-	metrics *api.DailyMetricsDay,
 	statusCounts map[string]int,
 	width int,
 ) []string {
-	title := theme.StylePaneTitle.Render("Accountability")
-	hasPlan := plan != nil && strings.TrimSpace(plan.Date) != ""
-	var lines, facts []string
-	if hasPlan {
-		s := plan.Summary
-		lines = headed(title, planVerdict(theme, s), width)
-		facts = []string{
-			factRow(theme, "Slipping", riskDots(theme, s)),
-			factRow(theme, "Delayed", delayText(theme, s)),
-			factRow(theme, "Resolved", resolvedChips(theme, s)),
-		}
+	lines := []string{theme.StylePaneTitle.Render("Plan")}
+	if plan == nil || strings.TrimSpace(plan.Date) == "" {
+		lines = append(lines, theme.StyleDim.Render("No committed plan."))
 	} else {
-		lines = []string{title}
-		facts = []string{theme.StyleDim.Render("No committed plan.")}
+		s := plan.Summary
+		lines = append(lines,
+			Row(theme, "Slipping", riskDots(theme, s), width),
+			Row(theme, "Delayed", delayText(theme, s), width),
+			Row(theme, "Resolved", resolvedChips(theme, s), width),
+		)
 	}
-	if metrics == nil {
-		return append(lines, facts...)
-	}
-	// The arc carries the done count, so the indicator row lists only what is still open.
-	// With a committed plan the arc counts its entries, so it agrees with the verdict.
-	done, total := metrics.CompletedIssues, metrics.TotalIssues
-	if hasPlan {
-		done, total = plan.Summary.CompletedCount, plan.Summary.PlannedCount
-	}
-	issueFraction := float64(done) / float64(max(1, total))
-	arcs := renderGauges(theme, []gauge{{
-		label: "Issues", value: fmt.Sprintf("%d/%d", done, total),
-		fraction: issueFraction, color: doneColor(theme, issueFraction),
-	}}, gaugeCols)
-	lines = append(lines, besideArcs(arcs, facts, gaugeCols, width)...)
 	open := map[string]int{}
 	for status, n := range statusCounts {
 		if status != "done" {
@@ -151,40 +211,6 @@ func renderPlan(
 		lines = append(lines, Row(theme, "Issues", legend, width))
 	}
 	return lines
-}
-
-// renderHabits is the day's due habits apart from Accountability, which they don't feed: an
-// arc of done over due beside what failed and what is left.
-func renderHabits(theme types.Theme, metrics *api.DailyMetricsDay, width int) []string {
-	lines := []string{theme.StylePaneTitle.Render("Habits")}
-	if metrics == nil || metrics.HabitDueCount == 0 {
-		return append(lines, theme.StyleDim.Render("No habits due."))
-	}
-	done, failed, due := metrics.HabitCompletedCount, metrics.HabitFailedCount, metrics.HabitDueCount
-	fraction := float64(done) / float64(due)
-	arcs := renderGauges(theme, []gauge{{
-		label: "Done", value: fmt.Sprintf("%d/%d", done, due),
-		fraction: fraction, color: doneColor(theme, fraction),
-	}}, gaugeCols)
-	facts := []string{}
-	if failed > 0 {
-		facts = append(facts, factRow(theme, "Failed", lipgloss.NewStyle().Foreground(theme.ColorOrange).Render(fmt.Sprintf("✗ %d", failed))))
-	}
-	if left := due - done - failed; left > 0 {
-		facts = append(facts, factRow(theme, "Left", theme.StyleNormal.Render(fmt.Sprintf("○ %d", left))+theme.StyleDim.Render(" still to do")))
-	}
-	if len(facts) == 0 {
-		facts = append(facts, lipgloss.NewStyle().Foreground(theme.ColorGreen).Render("✓ every habit done"))
-	}
-	return append(lines, besideArcs(arcs, facts, gaugeCols, width)...)
-}
-
-// headed puts a verdict beside the section title, or on its own line when both don't fit.
-func headed(title, verdict string, width int) []string {
-	if line := title + "   " + verdict; ansi.StringWidth(line) <= width {
-		return []string{line}
-	}
-	return []string{title, ansi.Truncate(verdict, width, "…")}
 }
 
 // besideArcs puts fact lines to the right of arc gauges, or under them when the pane is narrow.
@@ -207,29 +233,26 @@ func besideArcs(arcs, facts []string, arcWidth, width int) []string {
 	return lines
 }
 
-// focusVerdict turns the focus level and reason into words, coloured by level.
-func focusVerdict(theme types.Theme, focus *sharedtypes.FocusScoreSummary) string {
-	reasons := map[sharedtypes.FocusScoreReason]string{
-		sharedtypes.FocusScoreReasonNoActivity:   "no focus logged yet",
-		sharedtypes.FocusScoreReasonUnderTarget:  "under today's target",
-		sharedtypes.FocusScoreReasonNeedsBreaks:  "take a break",
-		sharedtypes.FocusScoreReasonBalanced:     "work and rest balanced",
-		sharedtypes.FocusScoreReasonOverextended: "past target, ease off",
+// focusLevelWord is the score's level in a word, shown under the score arc.
+func focusLevelWord(level sharedtypes.FocusScoreLevel) string {
+	if level == "" {
+		return ""
 	}
-	head := map[sharedtypes.FocusScoreLevel]string{
-		sharedtypes.FocusScoreLevelLow:          "▲ Low focus",
-		sharedtypes.FocusScoreLevelSteady:       "◆ Steady",
-		sharedtypes.FocusScoreLevelStrong:       "✓ Strong",
-		sharedtypes.FocusScoreLevelOverextended: "▲ Overextended",
-	}[focus.Level]
-	if head == "" {
-		head = "● Focus"
+	return strings.ReplaceAll(string(level), "_", " ")
+}
+
+// focusHint is the advice behind the score, a quiet line under the facts. Reasons the facts
+// already show (time to go, a balanced day) add nothing, so they get none.
+func focusHint(reason sharedtypes.FocusScoreReason) string {
+	switch reason {
+	case sharedtypes.FocusScoreReasonNoActivity:
+		return "no focus logged yet"
+	case sharedtypes.FocusScoreReasonNeedsBreaks:
+		return "take a break"
+	case sharedtypes.FocusScoreReasonOverextended:
+		return "past target, ease off"
 	}
-	out := lipgloss.NewStyle().Foreground(focusColor(theme, focus.Level)).Bold(true).Render(head)
-	if reason := reasons[focus.Reason]; reason != "" {
-		out += theme.StyleDim.Render(" · " + reason)
-	}
-	return out
+	return ""
 }
 
 func focusColor(theme types.Theme, level sharedtypes.FocusScoreLevel) lipgloss.Color {
@@ -244,30 +267,19 @@ func focusColor(theme types.Theme, level sharedtypes.FocusScoreLevel) lipgloss.C
 	return theme.ColorRed
 }
 
-// planVerdict sums the plan up in words: at risk once anything is high risk, slipping while
-// work is delayed, otherwise on track (or done once nothing is left open).
+// planVerdict sums the plan up in a word or two, coloured: at risk once anything is high
+// risk, slipping while work is delayed, otherwise on track (or all done once nothing is open).
 func planVerdict(theme types.Theme, s sharedtypes.DailyPlanAccountabilitySummary) string {
-	var reasons []string
-	if s.HighRiskIssueCount > 0 {
-		reasons = append(reasons, fmt.Sprintf("%d high risk", s.HighRiskIssueCount))
-	}
-	if s.DelayedIssueCount > 0 {
-		reasons = append(reasons, fmt.Sprintf("%d delayed", s.DelayedIssueCount))
-	}
-	reason := theme.StyleDim.Render(" · " + strings.Join(reasons, ", "))
+	word, color := "on track", theme.ColorGreen
 	switch {
 	case s.HighRiskIssueCount > 0:
-		return lipgloss.NewStyle().Foreground(theme.ColorRed).Bold(true).Render("▲ At risk") + reason
+		word, color = "at risk", theme.ColorRed
 	case s.DelayedIssueCount > 0:
-		return lipgloss.NewStyle().Foreground(theme.ColorYellow).Bold(true).Render("◆ Slipping") + reason
+		word, color = "slipping", theme.ColorYellow
 	case s.PlannedCount > 0 && s.CompletedCount == s.PlannedCount:
-		return lipgloss.NewStyle().Foreground(theme.ColorGreen).Bold(true).Render("✓ All done")
+		word = "all done"
 	}
-	return lipgloss.NewStyle().Foreground(theme.ColorGreen).Bold(true).Render("● On track")
-}
-
-func factRow(theme types.Theme, label, value string) string {
-	return theme.StyleDim.Render(fmt.Sprintf("%-10s", label)) + value
+	return lipgloss.NewStyle().Foreground(color).Render(word)
 }
 
 // riskDots draws one dot per planned task, high-risk ones filled red first.
