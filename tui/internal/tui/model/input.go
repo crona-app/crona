@@ -106,6 +106,11 @@ func (m Model) inputState() inputpkg.State {
 		DailyPlanSelect:           m.dailyPlanSelect,
 		DailyPlanCursor:           m.planCursor(m.planItems()),
 		DailyPlanCount:            len(m.planItems()),
+		DailyWorkSelect:           m.workSelect,
+		DailyWorkCursor:           m.workCursor,
+		DailyWorkRows:             m.workRows(),
+		DailyWorkGroup:            m.workGroup,
+		DailyWorkPath:             m.workPath,
 		Date:                      m.date,
 		ReviewWindowDays:          m.reviewWindowDays,
 		ReviewWindowEnd:           m.reviewWindowEnd,
@@ -148,6 +153,7 @@ func (m Model) applyInputState(state inputpkg.State) Model {
 		m.dailyDetailScroll = max(0, state.DailyDetailScroll)
 	}
 	m = m.applyPlanSelect(state)
+	m = m.applyWorkSelect(state)
 	previousView := m.view
 	scopeMoved := state.ActivePane == PaneScope && state.Cursor[PaneScope] != m.cursor[PaneScope]
 	m.view = state.ActiveView

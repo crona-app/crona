@@ -3,7 +3,11 @@
 package summary
 
 import (
+	uistate "crona.work/tui/internal/tui/state"
+	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	"fmt"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"sort"
 	"strings"
 	"time"
@@ -30,6 +34,8 @@ func DayLines(theme types.Theme, state types.ContentState, width int) []string {
 	lines = append(lines, "")
 	lines = append(lines, renderPlan(theme, state, snapshot.Plan, width)...)
 	lines = append(lines, renderPlanIssues(theme, state, width)...)
+	lines = append(lines, "")
+	lines = append(lines, renderWork(theme, state, width)...)
 	lines = append(lines, "")
 	lines = append(lines, renderWellbeing(theme, snapshot.CheckIn, snapshot.Rollup, state.Settings, width)...)
 	lines = append(lines, lastCheckInLine(theme, snapshot.LastCheckIn, state.Settings, time.Now(), width)...)
@@ -728,4 +734,109 @@ func lastCheckInLine(theme types.Theme, date string, settings *sharedtypes.CoreS
 		ago = "ahead"
 	}
 	return []string{"", Row(theme, "Check-in", day.Format("Mon ")+helperpkg.FormatDisplayDate(date, settings)+theme.StyleDim.Render(" ("+ago+")"), width)}
+}
+
+var workGroupNames = map[string][2]string{
+	"repo": {"Repo", "repos"}, "stream": {"Stream", "streams"}, "issue": {"Issue", "issues"},
+	"tag": {"Tag", "tags"}, "segment_type": {"Segment", "segment types"},
+}
+
+// renderWork is where the day's worked time went, grouped by repo, stream, issue, tag or
+// segment (b cycles). With its rows selected (B) enter opens a repo's streams or a stream's
+// issues and esc steps back; at rest it shows the top five.
+func renderWork(theme types.Theme, state types.ContentState, width int) []string {
+	group := uistate.WorkLevelGroup(state.DailyWorkGroup, state.DailyWorkPath)
+	selecting := state.DailyWorkSelect
+	title := theme.StylePaneTitle.Render("Work")
+	if state.DailyDetailFocus && state.DailyDetailSummary && !selecting && !state.DailyPlanSelect {
+		keys := "[b] group"
+		if uistate.WorkDrillable(group) {
+			keys += "  [B] select"
+		}
+		title += "   " + theme.StyleDim.Render(keys)
+	}
+	lines := []string{title, workHeading(theme, state, group, width)}
+	summary := state.WorkBreakdown
+	if summary == nil {
+		return append(lines, theme.StyleDim.Render("Loading"))
+	}
+	// Empty rows (a segment type never used) say nothing.
+	rows := make([]sharedtypes.TimeDistributionRow, 0, len(summary.Rows))
+	for _, row := range summary.Rows {
+		if row.WorkedSeconds > 0 {
+			rows = append(rows, row)
+		}
+	}
+	if len(rows) == 0 {
+		return append(lines, theme.StyleDim.Render("No work logged."))
+	}
+	cursor := min(max(0, state.DailyWorkCursor), len(rows)-1)
+	start, end := 0, min(5, len(rows))
+	if selecting {
+		start, end = viewchrome.ListWindow(cursor, len(rows), 8)
+	}
+	labelWidth := min(24, max(8, width/3))
+	barWidth := max(4, min(14, width-labelWidth-20))
+	for i := start; i < end; i++ {
+		row := rows[i]
+		filled := int(row.Percent/100*float64(barWidth) + 0.5)
+		filled = min(barWidth, max(0, filled))
+		if row.WorkedSeconds > 0 && filled == 0 {
+			filled = 1
+		}
+		bar := lipgloss.NewStyle().Foreground(theme.ColorCyan).Render(strings.Repeat("█", filled)) +
+			theme.StyleDim.Render(strings.Repeat("░", barWidth-filled))
+		label := viewchrome.LabelCell(row.Label, labelWidth)
+		pointer := "  "
+		if selecting && i == cursor {
+			pointer = theme.StyleCursor.Render("▶ ")
+		}
+		line := pointer + label + " " + bar + " " +
+			fmt.Sprintf("%6s", helperpkg.FormatCompactDurationSeconds(row.WorkedSeconds)) +
+			theme.StyleDim.Render(fmt.Sprintf("  %3.0f%%", row.Percent))
+		lines = append(lines, viewhelpers.TruncateANSI(line, width))
+		if selecting && i == cursor {
+			keys := "[esc] back"
+			if uistate.WorkDrillable(group) {
+				keys = "[enter] open  " + keys
+			}
+			lines = append(lines, "    "+theme.StyleDim.Render(keys))
+		}
+	}
+	names := workGroupNames[group]
+	noun := names[1]
+	if len(rows) == 1 {
+		noun = strings.ToLower(names[0])
+	}
+	foot := fmt.Sprintf("%d %s · %s", len(rows), noun, helperpkg.FormatCompactDurationSeconds(summary.TotalSeconds))
+	if !selecting && len(rows) > end {
+		foot = fmt.Sprintf("+%d more · ", len(rows)-end) + foot
+	}
+	if group == "tag" {
+		foot += " · tags overlap"
+	}
+	return append(lines, "  "+theme.StyleDim.Render(foot))
+}
+
+// workHeading names what the rows are: the groupings with the current one lit, or the drill
+// path down to the level shown.
+func workHeading(theme types.Theme, state types.ContentState, group string, width int) string {
+	if len(state.DailyWorkPath) > 0 {
+		parts := []string{theme.StyleDim.Render(workGroupNames[state.DailyWorkPath[0].Group][0])}
+		for _, crumb := range state.DailyWorkPath {
+			parts = append(parts, crumb.Label)
+		}
+		parts = append(parts, theme.StyleHeader.Render(cases.Title(language.Und).String(workGroupNames[group][1])))
+		return viewhelpers.TruncateANSI("  "+strings.Join(parts, theme.StyleDim.Render(" › ")), width)
+	}
+	chips := make([]string, 0, len(uistate.WorkGroups))
+	for _, candidate := range uistate.WorkGroups {
+		name := workGroupNames[candidate][0]
+		if candidate == group {
+			chips = append(chips, theme.StyleHeader.Render(name))
+		} else {
+			chips = append(chips, theme.StyleDim.Render(name))
+		}
+	}
+	return viewhelpers.TruncateANSI("  "+strings.Join(chips, theme.StyleDim.Render(" · ")), width)
 }

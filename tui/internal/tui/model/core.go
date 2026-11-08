@@ -128,8 +128,17 @@ type Model struct {
 	dailyDetailSummary bool
 	// dailyPlanSelect makes the focused Day summary's plan list selectable (P);
 	// dailyPlanIssueID is the selected issue, so the cursor follows it as the list re-sorts.
-	dailyPlanSelect  bool
-	dailyPlanCursor  int
+	dailyPlanSelect bool
+	dailyPlanCursor int
+	// The Day summary's work breakdown: the top grouping (b), the drill into it, whether its
+	// rows are selected (B) and the loaded rows with the query they answer.
+	workGroup        string
+	workPath         []uistate.WorkCrumb
+	workSelect       bool
+	workCursor       int
+	workBreakdown    *api.TimeDistributionSummary
+	workBreakdownKey string
+	workWantKey      string
 	dailyPlanIssueID int64
 	// detailSessions are the sessions of detailSessionsIssueID, loaded when Daily's detail
 	// pane opens on an issue.

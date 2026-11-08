@@ -33,6 +33,14 @@ type State struct {
 	DailyPlanSelect bool
 	DailyPlanCursor int
 	DailyPlanCount  int
+	// DailyWorkSelect makes the summary's work breakdown selectable (B); DailyWorkCursor is
+	// its row, DailyWorkRows the rows shown, DailyWorkGroup the top grouping (b cycles it) and
+	// DailyWorkPath the drill into it.
+	DailyWorkSelect bool
+	DailyWorkCursor int
+	DailyWorkRows   []uistate.WorkRow
+	DailyWorkGroup  string
+	DailyWorkPath   []uistate.WorkCrumb
 	// Date is the one date every dated view shows; "" means the logical today.
 	Date             string
 	ReviewWindowDays int
@@ -194,6 +202,9 @@ func Handle(state State, key tea.KeyMsg, deps Deps) (State, tea.Cmd) {
 		state.SessionContextOpen,
 	)
 	if next, handled := handlePlanSelect(state, key, deps); handled {
+		return next, nil
+	}
+	if next, handled := handleWorkSelect(state, key); handled {
 		return next, nil
 	}
 	if next, handled := handleFocusedDailyDetail(state, key); handled {
@@ -839,6 +850,18 @@ func handleFocusedDailyDetail(s State, key tea.KeyMsg) (State, bool) {
 			return s, true
 		}
 		s.DailyPlanSelect, s.DailyPlanCursor = true, 0
+	case "b":
+		if !s.DailyDetailSummary {
+			return s, false
+		}
+		s.DailyWorkGroup = uistate.NextWorkGroup(s.DailyWorkGroup, 1)
+	case "B":
+		if !s.DailyDetailSummary {
+			return s, false
+		}
+		if len(s.DailyWorkRows) > 0 && uistate.WorkDrillable(uistate.WorkLevelGroup(s.DailyWorkGroup, nil)) {
+			s.DailyWorkSelect, s.DailyWorkCursor, s.DailyPlanSelect = true, 0, false
+		}
 	case "enter":
 	default:
 		return s, false
@@ -882,4 +905,49 @@ func handlePlanSelect(s State, key tea.KeyMsg, deps Deps) (State, bool) {
 
 func dailyHabitsFolded(s State) bool {
 	return s.Settings != nil && uistate.PaneCollapsed(s.Settings.CollapsedPanes, uistate.CollapseDailyHabits)
+}
+
+// handleWorkSelect drives the summary's selected work breakdown: the cursor, enter to open a
+// repo's streams or a stream's issues, and esc to step back out (leaving the list at the
+// top). b still cycles the grouping at the top level; other keys are held back.
+func handleWorkSelect(s State, key tea.KeyMsg) (State, bool) {
+	if !s.DailyWorkSelect || !s.DailyDetailFocus || s.ActiveView != uistate.ViewDaily ||
+		s.Dialog != "" || s.HelpOpen {
+		return s, false
+	}
+	switch key.String() {
+	case "esc":
+		if len(s.DailyWorkPath) > 0 {
+			s.DailyWorkPath = s.DailyWorkPath[:len(s.DailyWorkPath)-1]
+			s.DailyWorkCursor = 0
+			return s, true
+		}
+		s.DailyWorkSelect = false
+	case "tab", "shift+tab":
+		s.DailyWorkSelect, s.DailyWorkPath = false, nil
+		return handleFocusedDailyDetail(s, key)
+	case "up", "k":
+		s.DailyWorkCursor = max(0, s.DailyWorkCursor-1)
+	case "down", "j":
+		s.DailyWorkCursor = min(max(0, len(s.DailyWorkRows)-1), s.DailyWorkCursor+1)
+	case "enter":
+		group := uistate.WorkLevelGroup(s.DailyWorkGroup, s.DailyWorkPath)
+		if !uistate.WorkDrillable(group) || s.DailyWorkCursor >= len(s.DailyWorkRows) {
+			return s, true
+		}
+		if crumb, ok := uistate.WorkCrumbFor(group, s.DailyWorkRows[s.DailyWorkCursor]); ok {
+			s.DailyWorkPath = append(append([]uistate.WorkCrumb(nil), s.DailyWorkPath...), crumb)
+			s.DailyWorkCursor = 0
+		}
+	case "b":
+		// At the top b regroups; a grouping that can't be opened leaves the selection.
+		if len(s.DailyWorkPath) == 0 {
+			s.DailyWorkGroup = uistate.NextWorkGroup(s.DailyWorkGroup, 1)
+			s.DailyWorkCursor = 0
+			s.DailyWorkSelect = uistate.WorkDrillable(s.DailyWorkGroup)
+		}
+	case "ctrl+c", "q", "?", ",", ".", "g":
+		return s, false
+	}
+	return s, true
 }

@@ -7,6 +7,7 @@ import (
 
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
+	uistate "crona.work/tui/internal/tui/state"
 	types "crona.work/tui/internal/tui/views/types"
 
 	"github.com/charmbracelet/x/ansi"
@@ -427,5 +428,25 @@ func TestLastCheckInLineSaysHowLongAgo(t *testing.T) {
 	}
 	if lines := lastCheckInLine(types.Theme{}, "", nil, now, 60); lines != nil {
 		t.Errorf("no check-in should add nothing, got %q", lines)
+	}
+}
+
+func TestWorkBreakdownRowsAndDrill(t *testing.T) {
+	state := summaryTestState()
+	state.WorkBreakdown = &api.TimeDistributionSummary{TotalSeconds: 5400, Rows: []sharedtypes.TimeDistributionRow{
+		{Key: "repo:1", Label: "OSS", WorkedSeconds: 3600, Percent: 66.7},
+		{Key: "repo:2", Label: "Work", WorkedSeconds: 1800, Percent: 33.3},
+	}}
+	text := squash(dayText(state, 90))
+	for _, want := range []string{"Work", "Repo · Stream · Issue · Tag · Segment", "OSS", "1h", "67%", "2 repos · 1h30m"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("expected %q in\n%s", want, text)
+		}
+	}
+	state.DailyWorkSelect = true
+	state.DailyWorkPath = []uistate.WorkCrumb{{Group: "repo", ID: 1, Label: "OSS"}}
+	text = squash(dayText(state, 90))
+	if !strings.Contains(text, "Repo › OSS › Streams") || !strings.Contains(text, "[esc] back") {
+		t.Fatalf("drill should show its path and keys:\n%s", text)
 	}
 }

@@ -151,7 +151,8 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				))
 			}
 			cmd = batchCmds(cmd, next.issuesTransitionRefresh(m.view))
-			return next, batchCmds(touch, cmd)
+			next, workCmd := next.ensureWorkBreakdown(false)
+			return next, batchCmds(touch, cmd, workCmd)
 		}
 	}
 	switch msg := msg.(type) {
@@ -252,11 +253,19 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			msg.Snapshot.CalendarScores = m.summarySnapshot.CalendarScores
 		}
 		m.summarySnapshot = msg.Snapshot
+		// A fresh snapshot means the day's work may have changed too.
+		m, workCmd := m.ensureWorkBreakdown(true)
 		start, end := monthBounds(msg.Snapshot.Date)
 		if start == "" {
-			return m, nil
+			return m, workCmd
 		}
-		return m, commands.LoadSummaryCalendarScores(m.client, start, end)
+		return m, batchCmds(workCmd, commands.LoadSummaryCalendarScores(m.client, start, end))
+	case commands.WorkBreakdownLoadedMsg:
+		if msg.Key == m.workWantKey {
+			m.workBreakdown, m.workBreakdownKey = msg.Summary, msg.Key
+			m.workCursor = min(m.workCursor, max(0, len(m.workRows())-1))
+		}
+		return m, nil
 	case commands.SummaryCalendarScoresLoadedMsg:
 		if m.summarySnapshot == nil {
 			return m, nil

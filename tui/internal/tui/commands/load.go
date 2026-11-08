@@ -771,3 +771,19 @@ func LoadSessionPreview(c *api.Client, id string) tea.Cmd {
 		return SessionPreviewLoadedMsg{Detail: detail}
 	}
 }
+
+// WorkBreakdownLoadedMsg is the Day summary's work breakdown for the query named by Key.
+type WorkBreakdownLoadedMsg struct {
+	Key     string
+	Summary *api.TimeDistributionSummary
+}
+
+func LoadWorkBreakdown(c *api.Client, key, date, group string, repoID, streamID *int64, tag string) tea.Cmd {
+	return func() tea.Msg {
+		summary, err := c.GetWorkBreakdown(date, group, repoID, streamID, tag)
+		if err != nil {
+			return ErrMsg{Err: err, Operation: "load work breakdown"}
+		}
+		return WorkBreakdownLoadedMsg{Key: key, Summary: summary}
+	}
+}

@@ -4,6 +4,7 @@ import (
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
 	"crona.work/tui/internal/tui/scope"
+	uistate "crona.work/tui/internal/tui/state"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -91,6 +92,13 @@ type ContentState struct {
 	// DailyPlanCursor is the selected row in summary.PlanItems' order.
 	DailyPlanSelect bool
 	DailyPlanCursor int
+	// WorkBreakdown is the shown day's worked time by DailyWorkGroup (or the drill's level),
+	// nil while loading. DailyWorkSelect makes its rows selectable at DailyWorkCursor.
+	WorkBreakdown   *api.TimeDistributionSummary
+	DailyWorkSelect bool
+	DailyWorkCursor int
+	DailyWorkGroup  string
+	DailyWorkPath   []uistate.WorkCrumb
 	// DailyIssueIndices and DailyHabitIndices are the model's text-filtered raw indices into
 	// DailyIssues and DueHabits; the pane cursors are positions in these lists.
 	DailyIssueIndices     []int

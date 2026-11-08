@@ -585,6 +585,26 @@ func (c *Client) GetTimeDistributionSummary(
 	return &out, nil
 }
 
+// GetWorkBreakdown is one day's worked time by group, narrowed to a repo, stream or tag.
+func (c *Client) GetWorkBreakdown(
+	date, groupBy string,
+	repoID, streamID *int64,
+	tag string,
+) (*TimeDistributionSummary, error) {
+	query := shareddto.DashboardSummaryQuery{
+		Start: strings.TrimSpace(date), End: strings.TrimSpace(date), GroupBy: groupBy,
+		RepoID: repoID, StreamID: streamID,
+	}
+	if tag != "" {
+		query.Tags = &sharedtypes.TagFilter{Any: []string{tag}}
+	}
+	var out TimeDistributionSummary
+	if err := c.call(protocol.MethodDashboardDistribution, query, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func (c *Client) GetGoalProgressSummary(
 	start, end, groupBy string,
 	repoID, streamID, issueID *int64,
