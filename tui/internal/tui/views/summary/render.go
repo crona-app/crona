@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
@@ -31,6 +32,7 @@ func DayLines(theme types.Theme, state types.ContentState, width int) []string {
 	lines = append(lines, renderPlanIssues(theme, state, width)...)
 	lines = append(lines, "")
 	lines = append(lines, renderWellbeing(theme, snapshot.CheckIn, snapshot.Rollup, state.Settings, width)...)
+	lines = append(lines, lastCheckInLine(theme, snapshot.LastCheckIn, state.Settings, time.Now(), width)...)
 	lines = append(lines, "")
 	return append(lines, renderMomentum(theme, state, snapshot.Streaks, width)...)
 }
@@ -707,4 +709,23 @@ func limitColor(theme types.Theme, left, limit int) lipgloss.Color {
 		return theme.ColorYellow
 	}
 	return theme.ColorGreen
+}
+
+// lastCheckInLine names the latest check-in and how long ago it was; empty when there is none.
+func lastCheckInLine(theme types.Theme, date string, settings *sharedtypes.CoreSettings, now time.Time, width int) []string {
+	day, err := time.ParseInLocation("2006-01-02", date, time.Local)
+	if err != nil {
+		return nil
+	}
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	ago := "today"
+	switch days := int(today.Sub(day).Hours() / 24); {
+	case days == 1:
+		ago = "yesterday"
+	case days > 1:
+		ago = fmt.Sprintf("%d days ago", days)
+	case days < 0:
+		ago = "ahead"
+	}
+	return []string{"", Row(theme, "Check-in", day.Format("Mon ")+helperpkg.FormatDisplayDate(date, settings)+theme.StyleDim.Render(" ("+ago+")"), width)}
 }

@@ -65,11 +65,13 @@ type KernelInfo = sharedtypes.KernelInfo
 // It deliberately stays outside the kernel protocol so the summary surface can
 // evolve independently from dashboard and daily view presentation.
 type SummarySnapshot struct {
-	Date           string
-	Issues         *DailyIssueSummary
-	Habits         []HabitDailyItem
-	Plan           *DailyPlan
-	CheckIn        *DailyCheckIn
+	Date    string
+	Issues  *DailyIssueSummary
+	Habits  []HabitDailyItem
+	Plan    *DailyPlan
+	CheckIn *DailyCheckIn
+	// LastCheckIn is the latest check-in date on or before Date (within a year), or "".
+	LastCheckIn    string
 	Rollup         *MetricsRollup
 	Streaks        *StreakSummary
 	Focus          *FocusScoreSummary

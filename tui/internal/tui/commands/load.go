@@ -270,6 +270,14 @@ func LoadSummarySnapshot(c *api.Client, date string) tea.Cmd {
 		if err != nil {
 			return ErrMsg{Err: err, Operation: "load summary check-in"}
 		}
+		lastCheckIn := ""
+		if recent, err := c.ListDailyCheckIns(shiftISODate(date, -365), date); err == nil {
+			for _, item := range recent {
+				if item.Date > lastCheckIn && item.Date <= date {
+					lastCheckIn = item.Date
+				}
+			}
+		}
 		rollup, err := c.GetMetricsRollup(shiftISODate(date, -6), date)
 		if err != nil {
 			return ErrMsg{Err: err, Operation: "load summary rollup"}
@@ -308,6 +316,7 @@ func LoadSummarySnapshot(c *api.Client, date string) tea.Cmd {
 			Habits:         habits,
 			Plan:           plan,
 			CheckIn:        checkIn,
+			LastCheckIn:    lastCheckIn,
 			Rollup:         rollup,
 			Streaks:        streaks,
 			Focus:          focus,

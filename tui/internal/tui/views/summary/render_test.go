@@ -3,6 +3,7 @@ package summary
 import (
 	"strings"
 	"testing"
+	"time"
 
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
@@ -412,5 +413,19 @@ func TestIssueLegendCountsTheWholePlan(t *testing.T) {
 	counts := plannedStatusCounts(state)
 	if counts["ready"] != 2 || len(counts) != 1 {
 		t.Fatalf("expected the day's plan issues counted, got %v", counts)
+	}
+}
+
+func TestLastCheckInLineSaysHowLongAgo(t *testing.T) {
+	now := time.Date(2026, 11, 8, 15, 0, 0, 0, time.Local)
+	cases := map[string]string{"2026-11-08": "(today)", "2026-11-07": "(yesterday)", "2026-11-04": "(4 days ago)"}
+	for date, want := range cases {
+		got := ansi.Strip(strings.Join(lastCheckInLine(types.Theme{}, date, nil, now, 60), "\n"))
+		if !strings.Contains(got, want) || !strings.Contains(got, date) {
+			t.Errorf("%s: %q lacks %q", date, got, want)
+		}
+	}
+	if lines := lastCheckInLine(types.Theme{}, "", nil, now, 60); lines != nil {
+		t.Errorf("no check-in should add nothing, got %q", lines)
 	}
 }
