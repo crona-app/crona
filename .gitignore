@@ -10,3 +10,5 @@ coverage/
 .manifest/*
 .handoff/*
 result*
+.agents/
+.claude/
