@@ -1,6 +1,7 @@
 package itemdetail
 
 import (
+	"fmt"
 	"strings"
 
 	sharedtypes "crona.work/shared/types"
@@ -38,7 +39,7 @@ func IssueLines(theme types.Theme, state types.ContentState, issue api.Issue, wi
 	if issue.PinnedDaily {
 		head += theme.StyleDim.Render(" · pinned")
 	}
-	facts := []string{head, theme.StyleNormal.Render(Context(repo, stream))}
+	facts := []string{head, theme.StyleNormal.Render(Context(repo, stream)), idLine(theme, issue.ID, issue.TodoForDate)}
 	if len(issue.Tags) > 0 {
 		facts = append(facts, issuecore.TagChips(theme, issue.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3)))
 	}
@@ -57,6 +58,15 @@ func IssueLines(theme types.Theme, state types.ContentState, issue api.Issue, wi
 	lines = append(lines, carryLines(theme, state, issue.ID, width)...)
 	lines = append(lines, issuecore.NotesLines(theme, state.Settings, issue.Notes, width)...)
 	return append(lines, momentumLines(theme, state, momentumhelpers.ForContext(state.MomentumCards, repoID, issue.StreamID), width)...)
+}
+
+// idLine is the item's ID, after its due date when it has one.
+func idLine(theme types.Theme, id int64, due *string) string {
+	line := fmt.Sprintf("ID %d", id)
+	if due != nil && strings.TrimSpace(*due) != "" {
+		line = "Due " + strings.TrimSpace(*due) + " · " + line
+	}
+	return theme.StyleDim.Render(line)
 }
 
 // IssueWhere is the issue's repo and stream and its time worked, from session metadata once

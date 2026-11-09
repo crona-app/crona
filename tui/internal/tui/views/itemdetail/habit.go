@@ -94,6 +94,7 @@ func habitLines(theme types.Theme, state types.ContentState, habit api.HabitDail
 	if context := Context(habit.RepoName, habit.StreamName); context != "-" {
 		facts = append(facts, theme.StyleNormal.Render(context))
 	}
+	facts = append(facts, idLine(theme, habit.ID, nil))
 	if len(habit.Tags) > 0 {
 		facts = append(facts, issuecore.TagChips(theme, habit.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3)))
 	}
