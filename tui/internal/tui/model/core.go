@@ -138,7 +138,6 @@ type Model struct {
 	workSelect       bool
 	workCursor       int
 	workBreakdown    *api.TimeDistributionSummary
-	workColumns      []*api.TimeDistributionSummary
 	workBreakdownKey string
 	workWantKey      string
 	// reviewScores and reviewPrev fill Review's matrix for reviewCompareRange.

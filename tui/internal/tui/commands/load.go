@@ -775,26 +775,15 @@ func LoadSessionPreview(c *api.Client, id string) tea.Cmd {
 type WorkBreakdownLoadedMsg struct {
 	Key     string
 	Summary *api.TimeDistributionSummary
-	// Columns is the breakdown per Review column, in order; empty off Review.
-	Columns []*api.TimeDistributionSummary
 }
 
-// LoadWorkBreakdown loads the breakdown over start..end and, for Review's grid, over each
-// of columns (each a run of dates). A failed column is left empty.
-func LoadWorkBreakdown(
-	c *api.Client, key, start, end, group string, repoID, streamID *int64, tag string, columns [][]string,
-) tea.Cmd {
+func LoadWorkBreakdown(c *api.Client, key, start, end, group string, repoID, streamID *int64, tag string) tea.Cmd {
 	return func() tea.Msg {
 		summary, err := c.GetWorkBreakdown(start, end, group, repoID, streamID, tag)
 		if err != nil {
 			return ErrMsg{Err: err, Operation: "load work breakdown"}
 		}
-		msg := WorkBreakdownLoadedMsg{Key: key, Summary: summary}
-		for _, dates := range columns {
-			column, _ := c.GetWorkBreakdown(dates[0], dates[len(dates)-1], group, repoID, streamID, tag)
-			msg.Columns = append(msg.Columns, column)
-		}
-		return msg
+		return WorkBreakdownLoadedMsg{Key: key, Summary: summary}
 	}
 }
 

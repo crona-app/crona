@@ -66,11 +66,7 @@ func (m Model) ensureWorkBreakdown(force bool) (Model, tea.Cmd) {
 	repoID, streamID, tag := uistate.WorkFilters(m.workPath)
 	group := uistate.WorkLevelGroup(m.workGroup, m.workPath)
 	start, end := m.workRange()
-	var columns [][]string
-	if m.view == ViewReview {
-		columns = uistate.ReviewColumns(start, end, m.currentWeekStart())
-	}
-	return m, commands.LoadWorkBreakdown(m.client, key, start, end, group, repoID, streamID, tag, columns)
+	return m, commands.LoadWorkBreakdown(m.client, key, start, end, group, repoID, streamID, tag)
 }
 
 // workBreakdownShown is the breakdown when it answers the current query, else nil (loading).
@@ -79,12 +75,4 @@ func (m Model) workBreakdownShown() *api.TimeDistributionSummary {
 		return nil
 	}
 	return m.workBreakdown
-}
-
-// workColumnsShown is the breakdown per Review column, when it answers the current query.
-func (m Model) workColumnsShown() []*api.TimeDistributionSummary {
-	if m.workBreakdownKey != m.workKey() {
-		return nil
-	}
-	return m.workColumns
 }

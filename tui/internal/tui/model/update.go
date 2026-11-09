@@ -275,7 +275,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	case commands.WorkBreakdownLoadedMsg:
 		if msg.Key == m.workWantKey {
-			m.workBreakdown, m.workColumns, m.workBreakdownKey = msg.Summary, msg.Columns, msg.Key
+			m.workBreakdown, m.workBreakdownKey = msg.Summary, msg.Key
 			m.workCursor = min(m.workCursor, max(0, len(m.workRows())-1))
 		}
 		return m, nil

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	helperpkg "crona.work/tui/internal/tui/helpers"
-	uistate "crona.work/tui/internal/tui/state"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	types "crona.work/tui/internal/tui/views/types"
 
@@ -31,7 +30,7 @@ func Render(theme types.Theme, state types.ContentState) string {
 		viewchrome.KeyHint(theme, "+/-/0", fmt.Sprintf("%dd window", len(WindowDates(state))))}
 	return viewchrome.RenderSection(theme, viewchrome.Section{
 		Title: windowTitle(state), Meta: viewchrome.FitHints(hints, max(0, state.Width-24)),
-		Width: state.Width, Height: state.Height, Lines: timelineLines(theme, state, state.Width-2, state.Height-2),
+		Width: state.Width, Height: state.Height, Lines: dashboardLines(theme, state, state.Width-2, state.Height-2),
 	})
 }
 
@@ -41,11 +40,7 @@ func windowTitle(state types.ContentState) string {
 	if len(dates) == 0 {
 		return "Review"
 	}
-	unit := "days"
-	if len(dates) > uistate.ReviewMaxDayColumns {
-		unit = "days by week"
-	}
-	return fmt.Sprintf("%s – %s · %d %s", dayTitle(dates[0]), dayTitle(dates[len(dates)-1]), len(dates), unit)
+	return fmt.Sprintf("%s – %s · %d days", dayTitle(dates[0]), dayTitle(dates[len(dates)-1]), len(dates))
 }
 
 func renderAway(theme types.Theme, state types.ContentState, width, height int) string {

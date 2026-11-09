@@ -94,9 +94,7 @@ type ContentState struct {
 	DailyPlanCursor int
 	// WorkBreakdown is the shown day's worked time by DailyWorkGroup (or the drill's level),
 	// nil while loading. DailyWorkSelect makes its rows selectable at DailyWorkCursor.
-	WorkBreakdown *api.TimeDistributionSummary
-	// WorkColumns is WorkBreakdown per Review column (a day, or a week of a long window).
-	WorkColumns     []*api.TimeDistributionSummary
+	WorkBreakdown   *api.TimeDistributionSummary
 	DailyWorkSelect bool
 	DailyWorkCursor int
 	DailyWorkGroup  string

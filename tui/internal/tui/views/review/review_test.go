@@ -79,60 +79,65 @@ func reviewState(width, height int) types.ContentState {
 
 func plain(s string) string { return ansi.Strip(s) }
 
-func TestTimelineSections(t *testing.T) {
+func TestDashboardSections(t *testing.T) {
 	state := reviewState(200, 50)
 	state.WorkBreakdown = &api.TimeDistributionSummary{TotalSeconds: 7200, Rows: []api.TimeDistributionRow{
 		{Key: "repo:1", Label: "OSS", WorkedSeconds: 3600, Percent: 50},
 		{Key: "repo:2", Label: "Work", WorkedSeconds: 3600, Percent: 50},
 	}}
-	state.WorkColumns = make([]*api.TimeDistributionSummary, 7)
-	state.WorkColumns[6] = &api.TimeDistributionSummary{Rows: []api.TimeDistributionRow{{Key: "repo:1", WorkedSeconds: 3600}}}
 	out := plain(Render(types.Theme{}, state))
 	for _, want := range []string{
-		"Thu 8 Oct – Wed 14 Oct · 7 days", "▸Wed 14", "Thu 8", "Window",
-		"─ Wellbeing ", "6/7 check-ins", "Mood", "Energy", "Sleep", "Focus", "avg 3.8", "avg 72",
-		"─ Work by repo ", "[b] group", "OSS", "████", "50% ██░░", "Total", "17h",
-		"─ Plan ", "Done", "22/27", "Estimates",
-		"─ Risk ", "20 LOW", "easing ◀│▶ raising", "+30 Break debt", "Break recovery",
+		"Thu 8 Oct – Wed 14 Oct · 7 days",
+		"Worked 17h", "Focus 72", "Plan 22/27", "Mood 3.8", "Energy 3.4", "Sleep 7h06m",
+		"─ Wellbeing ", "Mood · avg 2.5", "Energy · avg 3.0", "┄", "─ Work ", "● hours worked", "● focus",
+		"Thu 8", "▸Wed 14", "▸ Wed 14 Oct · mood 2 · energy 3", "plan 4/5",
+		"─ Risk ", "20 LOW", "easing ◀│▶ raising", "+30 Break debt",
+		"[b] group", "OSS", "─ Plan ", "22/27 done",
 		"[←/→] day", "[enter] open in Today",
 	} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("expected %q:\n%s", want, out)
 		}
 	}
-	if strings.Contains(out, "vs prev") {
-		t.Fatalf("no comparison without a previous window:\n%s", out)
+	state.ReviewPrev = &types.ReviewPrev{Rollup: &api.MetricsRollup{Days: 7}, Focus: &api.FocusScoreSummary{}}
+	if out := plain(Render(types.Theme{}, state)); strings.Contains(out, "Worked 17h ▼") || strings.Contains(out, "Focus 72 ▲") {
+		t.Fatalf("change shown without previous data:\n%s", out)
+	}
+	// The charts draw in braille.
+	if !strings.ContainsFunc(out, func(r rune) bool { return r > 0x2800 && r <= 0x28FF }) {
+		t.Fatalf("expected braille lines:\n%s", out)
 	}
 }
 
-func TestTimelineComparesWithPreviousWindow(t *testing.T) {
+func TestDashboardComparesWithPreviousWindow(t *testing.T) {
 	state := reviewState(200, 50)
 	mood := 3.0
 	state.ReviewPrev = &types.ReviewPrev{
-		Rollup: &api.MetricsRollup{Days: 7, CheckInDays: 6, WorkedSeconds: 20 * 3600, AverageMood: &mood},
-		Focus:  &api.FocusScoreSummary{Score: 60},
+		Rollup: &api.MetricsRollup{Days: 7, CheckInDays: 6, WorkedSeconds: 20 * 3600, SessionCount: 9, AverageMood: &mood},
+		Focus:  &api.FocusScoreSummary{Score: 60, SessionCount: 9},
 	}
 	out := plain(Render(types.Theme{}, state))
-	for _, want := range []string{"vs prev", "▲ 12", "▼ 3h", "▲ 0.8"} {
+	for _, want := range []string{"Focus 72 ▲ 12", "Worked 17h ▼ 3h", "Mood 3.8 ▲ 0.8"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("expected %q:\n%s", want, out)
 		}
 	}
 }
 
-func TestShortScreenDropsRiskChartFirst(t *testing.T) {
-	out := plain(Render(types.Theme{}, reviewState(200, 20)))
-	if !strings.Contains(out, "─ Risk ") || strings.Contains(out, "easing ◀") || !strings.Contains(out, "Total") {
-		t.Fatalf("expected the risk heading without its chart, and Work kept:\n%s", out)
+func TestDashboardStacksSideWhenNarrow(t *testing.T) {
+	out := plain(Render(types.Theme{}, reviewState(90, 60)))
+	wellbeing, risk := strings.Index(out, "─ Wellbeing "), strings.Index(out, "─ Risk ")
+	if wellbeing < 0 || risk < wellbeing {
+		t.Fatalf("expected the risk under the charts:\n%s", out)
 	}
 }
 
-func TestLongWindowGoesByWeek(t *testing.T) {
+func TestLongWindowKeepsDailyPoints(t *testing.T) {
 	state := reviewState(200, 50)
 	state.ReviewWindowDays = 30
 	out := plain(Render(types.Theme{}, state))
-	if !strings.Contains(out, "by week") || !strings.Contains(out, "▸W42") || strings.Contains(out, "Thu 8") {
-		t.Fatalf("expected week columns:\n%s", out)
+	if !strings.Contains(out, "30 days") || !strings.Contains(out, "▸Oct 14") {
+		t.Fatalf("expected a daily axis with month labels:\n%s", out)
 	}
 }
 

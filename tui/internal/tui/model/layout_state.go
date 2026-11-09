@@ -53,7 +53,6 @@ func (m Model) viewContentState(
 		DailyPlanSelect:      m.dailyPlanSelect,
 		DailyPlanCursor:      m.planCursor(m.planItems()),
 		WorkBreakdown:        m.workBreakdownShown(),
-		WorkColumns:          m.workColumnsShown(),
 		DailyWorkSelect:      m.workSelect,
 		DailyWorkCursor:      m.workCursor,
 		MomentumBucket:       m.momentumBucket,
