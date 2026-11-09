@@ -12,8 +12,6 @@ import (
 
 // The calendar shrinks to its week, then folds, before these panes drop below their rows.
 const (
-	dailyMinTaskRows   = 8
-	dailyMinHabitRows  = 5
 	dailyMinDetailRows = 8
 )
 
@@ -43,6 +41,15 @@ func collapsedPane(theme types.Theme, title, pane string, width int) string {
 // scoreCalendarLines is the Summary Calendar for the shown date, boxed as the C dialog draws
 // it; week keeps only the shown week.
 func scoreCalendarLines(theme types.Theme, state types.ContentState, width int, week bool) []string {
+	lines := viewcalendar.ScoreGrid(theme, scoreSelection(state), max(1, width-2*panePad), week)
+	if len(lines) == 0 {
+		return nil
+	}
+	// Blank rows part the month caption from the grid, and the grid from the pane below.
+	return append(padded(append([]string{lines[0], ""}, lines[1:]...)), "")
+}
+
+func scoreSelection(state types.ContentState) viewcalendar.ScoreSelection {
 	selection := viewcalendar.ScoreSelection{AnchorDate: viewruntime.ShownDate(state)}
 	if state.Health != nil {
 		selection.Today = state.Health.CurrentDate
@@ -54,12 +61,7 @@ func scoreCalendarLines(theme types.Theme, state types.ContentState, width int, 
 	if state.SummarySnapshot != nil {
 		selection.Scores = state.SummarySnapshot.CalendarScores
 	}
-	lines := viewcalendar.ScoreGrid(theme, selection, max(1, width-2*panePad), week)
-	if len(lines) == 0 {
-		return nil
-	}
-	// Blank rows part the month caption from the grid, and the grid from the pane below.
-	return append(padded(append([]string{lines[0], ""}, lines[1:]...)), "")
+	return selection
 }
 
 // panePad is the inset the calendar and Day summary keep from their pane's sides.
@@ -125,13 +127,30 @@ func calendarMode(state types.ContentState) uistate.CalendarMode {
 	return uistate.DailyCalendarMode(state.Settings.CollapsedPanes)
 }
 
-// CalendarMonthFits reports whether Today has room for the calendar's full month where it
-// sits now, so the fold key can skip a month that would only show as its week.
+// CalendarMonthFits reports whether Today has room for the calendar's full month, so the
+// fold key can skip a month that would only show as its week. Only the wide layout has a
+// month; narrower ones show the week on a line.
 func CalendarMonthFits(theme types.Theme, state types.ContentState) bool {
-	if state.HistoricalAwayDate != "" {
+	l := layoutFor(state)
+	if state.HistoricalAwayDate != "" || !l.wide {
 		return false
 	}
-	width, fits := calendarSlot(state)
-	lines := scoreCalendarLines(theme, state, width-2, false)
-	return len(lines) > 0 && fits(len(lines)+1)
+	_, rest := dailyChrome(theme, state, l)
+	lines := scoreCalendarLines(theme, state, l.detailW-2, false)
+	return len(lines) > 0 && detailCalendarFits(rest)(len(lines)+1)
+}
+
+// weekPane is the shown week on a line under the lists, each day with its focus score; C
+// opens the month. Folded, it keeps its title row.
+func weekPane(theme types.Theme, state types.ContentState, width int) (string, int) {
+	if calendarMode(state) == uistate.CalendarHidden {
+		return collapsedPane(theme, "Week", uistate.CollapseDailyCalendar, width), 1
+	}
+	return viewchrome.RenderSection(theme, viewchrome.Section{
+		Title:  "Week",
+		Meta:   viewchrome.KeyHint(theme, "C", "month") + "  " + foldHint(theme, uistate.CollapseDailyCalendar, "hide"),
+		Width:  width,
+		Height: 2,
+		Lines:  []string{viewcalendar.ScoreWeek(theme, scoreSelection(state))},
+	}), 2
 }

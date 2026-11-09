@@ -1,6 +1,7 @@
 package daily
 
 import (
+	uistate "crona.work/tui/internal/tui/state"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	types "crona.work/tui/internal/tui/views/types"
 )
@@ -74,10 +75,10 @@ func habitActionLine(theme types.Theme, state types.ContentState, width int) str
 	return "    " + viewchrome.FitHints(hints, width-4)
 }
 
-// enterHint names what enter does on a selected task or habit: it shows the details in the
-// detail pane on wide screens, and opens them in a dialog where that pane is hidden or folded.
+// enterHint names what enter does on a selected task or habit: Today shows its details in
+// the detail pane; elsewhere enter opens them in a dialog.
 func enterHint(theme types.Theme, state types.ContentState) string {
-	if layoutFor(state).wide {
+	if state.View == string(uistate.ViewDaily) {
 		return viewchrome.KeyHint(theme, "enter", "details")
 	}
 	return viewchrome.KeyHint(theme, "enter", "open")

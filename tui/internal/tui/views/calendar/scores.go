@@ -160,3 +160,37 @@ func AwayLabel(inner int) string {
 	}
 	return "A"
 }
+
+// ScoreWeek is the shown day's week on one line, each day its weekday, number and focus score
+// in the score grid's colours: "Mo 9 23  Tu 10 —". The shown day is in the cursor style.
+func ScoreWeek(theme types.Theme, selection ScoreSelection) string {
+	anchor, ok := parseISODate(selection.AnchorDate)
+	if !ok {
+		return ""
+	}
+	today, ok := parseISODate(selection.Today)
+	if !ok {
+		today, _ = parseISODate(time.Now().Format("2006-01-02"))
+	}
+	weekStart := sharedtypes.NormalizeWeekStart(selection.WeekStart)
+	start := shareddatefmt.StartOfWeek(anchor, weekStart)
+	names := strings.Fields(compactWeekHeader(weekStart))
+	days := make([]string, 0, 7)
+	for i := range 7 {
+		date := start.AddDate(0, 0, i)
+		iso := date.Format("2006-01-02")
+		dayStyle := theme.StyleDim
+		if sameDay(date, anchor) {
+			dayStyle = theme.StyleCursor
+		}
+		value := theme.StyleDim.Render("—")
+		switch score, ok := selection.Scores[iso]; {
+		case slices.Contains(selection.AwayDates, iso):
+			value = lipgloss.NewStyle().Foreground(theme.ColorGreen).Render("away")
+		case ok && score.HasData && !date.After(today):
+			value = lipgloss.NewStyle().Foreground(scoreColor(theme, score.Score)).Bold(true).Render(fmt.Sprint(score.Score))
+		}
+		days = append(days, dayStyle.Render(fmt.Sprintf("%s %d", names[i], date.Day()))+" "+value)
+	}
+	return strings.Join(days, "  ")
+}

@@ -586,9 +586,9 @@ func renderWellbeing(
 	return lines
 }
 
-// DayLine is the day summary in one line for narrow screens, where the detail pane that
-// holds it is hidden: focus, worked against target, rest, sessions and accountability. Parts
-// drop from the right to fit; it is empty until the summary has loaded.
+// DayLine is the day in one line, for where the Day summary is not on screen: the score,
+// worked against the target, today's mood and energy, the issues at high risk, and what the
+// score needs next. Parts drop from the right to fit width; "" until the summary loads.
 func DayLine(theme types.Theme, state types.ContentState, width int) string {
 	snapshot := state.SummarySnapshot
 	if snapshot == nil || snapshot.Date != state.SummaryDate || snapshot.Focus == nil || snapshot.Metrics == nil {
@@ -599,24 +599,34 @@ func DayLine(theme types.Theme, state types.ContentState, width int) string {
 	part := func(label, value string) string {
 		return theme.StyleDim.Render(label+" ") + value
 	}
-	level := strings.ReplaceAll(string(focus.Level), "_", " ")
+	level := lipgloss.NewStyle().Foreground(focusColor(theme, focus.Level)).Render(focusLevelWord(focus.Level))
+	worked := duration(metrics.WorkedSeconds)
+	if focus.TargetWorkedSeconds > 0 {
+		worked += theme.StyleDim.Render("/" + duration(focus.TargetWorkedSeconds))
+	}
 	parts := []string{
-		part("Focus", theme.StyleHeader.Render(fmt.Sprint(focus.Score))+" "+theme.StyleNormal.Render(level)),
-		part("Worked", duration(metrics.WorkedSeconds)+theme.StyleDim.Render("/"+duration(focus.TargetWorkedSeconds))),
-		part("Rest", duration(metrics.RestSeconds)),
-		part("Sessions", fmt.Sprint(metrics.SessionCount)),
+		part("Score", theme.StyleHeader.Render(fmt.Sprint(focus.Score))+" "+level),
+		part("Worked", worked),
 	}
-	if plan := snapshot.Plan; plan != nil && strings.TrimSpace(plan.Date) != "" {
-		parts = append(parts, part("Score", fmt.Sprintf("%.0f%%", plan.Summary.AccountabilityScore)))
+	if c := state.DailyCheckIn; c != nil && c.Date != "" {
+		parts = append(parts, part("Mood", fmt.Sprint(c.Mood))+" "+part("Energy", fmt.Sprint(c.Energy)))
 	}
-	sep := theme.StyleDim.Render("  ·  ")
+	if plan := snapshot.Plan; plan != nil && plan.Summary.HighRiskIssueCount > 0 {
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.ColorOrange).Render(
+			fmt.Sprintf("▲ %d at risk", plan.Summary.HighRiskIssueCount)))
+	}
+	if hint := focusHint(focus.Reason); hint != "" {
+		parts = append(parts, theme.StyleDim.Render(hint))
+	} else if metrics.RestSeconds == 0 && metrics.WorkedSeconds >= 45*60 {
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.ColorOrange).Render("take a break"))
+	}
+	sep := theme.StyleDim.Render(" · ")
 	for len(parts) > 1 && ansi.StringWidth(" "+strings.Join(parts, sep)) > width {
 		parts = parts[:len(parts)-1]
 	}
 	return viewhelpers.TruncateANSI(" "+strings.Join(parts, sep), width)
 }
 
-// plannedStatusCounts counts the shown day's planned tasks by status, for the status bar.
 // plannedStatusCounts counts the summarised day's issues by status: every issue in its
 // committed plan (carried-in ones included, as Slipping and Delayed count them), or without a
 // plan the issues due that day.

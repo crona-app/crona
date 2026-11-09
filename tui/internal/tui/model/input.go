@@ -101,7 +101,7 @@ func (m Model) inputState() inputpkg.State {
 		DailyTaskSection:          m.dailyTaskSection,
 		DailyDetailFocus:          m.dailyDetailFocus,
 		DailyDetailSummary:        m.dailyDetailSummary,
-		DailyDetailShown:          m.view == ViewDaily && viewhelpers.ClassFor(m.mainContentWidth()) == viewhelpers.WidthWide,
+		DailyDetailShown:          m.view == ViewDaily,
 		DailyDetailScroll:         m.dailyDetailScroll,
 		DailyPlanSelect:           m.dailyPlanSelect,
 		DailyPlanCursor:           m.planCursor(m.planItems()),
@@ -265,12 +265,14 @@ func (m Model) inputDeps() inputpkg.Deps {
 			return dailyviews.CalendarMonthFits(layoutpkg.ViewTheme(), m.applyInputState(state).layoutState().ContentState)
 		},
 		OpenDaySummary: func(state *inputpkg.State) bool {
+			// Wide, the detail pane's resting view is the Day summary; narrower, S swaps
+			// Habits' half for it and back.
 			next := m.applyInputState(*state)
 			if viewhelpers.ClassFor(next.width) == viewhelpers.WidthWide {
 				return false
 			}
-			next = next.openDaySummaryDialog()
-			*state = next.inputState()
+			open := !state.DailyDetailFocus || !state.DailyDetailSummary
+			state.DailyDetailFocus, state.DailyDetailSummary, state.DailyDetailScroll = open, open, 0
 			return true
 		},
 		OpenSummaryCalendar: func(state *inputpkg.State) bool {
@@ -820,11 +822,8 @@ func (m Model) openCaptureIssues() Model {
 	return m.withDialogState(dialogstate.OpenCaptureIssues(m.dialogState(), streamID, target, m.tagVocab()))
 }
 
-// dailyDetailShown is true when enter on Daily's task or habit can focus the detail pane: the
-// screen is wide and the pane is not folded. Otherwise enter opens the detail dialog.
+// dailyDetailShown is true when enter on Today's task or habit focuses the detail pane:
+// beside the lists on wide screens, in Habits' half otherwise.
 func (m Model) dailyDetailShown() bool {
-	if m.view != ViewDaily || (m.pane != PaneIssues && m.pane != PaneHabits) {
-		return false
-	}
-	return viewhelpers.ClassFor(m.mainContentWidth()) == viewhelpers.WidthWide
+	return m.view == ViewDaily && (m.pane == PaneIssues || m.pane == PaneHabits)
 }

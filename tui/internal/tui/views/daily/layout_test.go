@@ -48,17 +48,29 @@ func TestDailyHasNoBorders(t *testing.T) {
 	}
 }
 
-func TestDailyStripThenTasksThenHabits(t *testing.T) {
+func TestDailyNarrowIsWeekThenTasksThenHabits(t *testing.T) {
 	for _, width := range []int{99, 120, 159} {
 		rendered := renderView(testTheme(), dailyState(width, 40))
 		lines := strings.Split(ansi.Strip(rendered), "\n")
-		if !strings.HasPrefix(fieldsOf(lines[0]), "Tasks") ||
-			!strings.HasPrefix(fieldsOf(lines[1]), "Habits 0/2") {
-			t.Fatalf("width %d: expected the day strip on rows 0-1, got %q", width, lines[:2])
+		if !strings.HasPrefix(lines[0], "─ Week") {
+			t.Fatalf("width %d: expected the week on the first row, got %q", width, lines[0])
 		}
-		if rowOf(t, rendered, "─ Habits Due") <= rowOf(t, rendered, "─ Tasks") {
-			t.Fatalf("width %d: expected habits below tasks", width)
+		tasks, habits, week := rowOf(t, rendered, "─ Tasks"), rowOf(t, rendered, "─ Habits Due"), rowOf(t, rendered, "─ Week")
+		if !strings.Contains(lines[habits], "[S] summary") {
+			t.Fatalf("width %d: expected the summary key on the Habits heading, got %q", width, lines[habits])
 		}
+		if week != 0 || tasks != 2 || habits <= tasks {
+			t.Fatalf("width %d: expected the week, then Tasks, then Habits; got %d %d %d", width, week, tasks, habits)
+		}
+	}
+}
+
+func TestDailyNarrowDetailTakesHabitsHalf(t *testing.T) {
+	state := dailyState(120, 40)
+	state.DailyDetailFocus, state.DailyDetailSummary = true, true
+	rendered := renderView(testTheme(), state)
+	if strings.Contains(ansi.Strip(rendered), "─ Habits Due") || rowOf(t, rendered, "─ Wed 27 May") <= rowOf(t, rendered, "─ Tasks") {
+		t.Fatalf("expected the Day summary in Habits' half:\n%s", ansi.Strip(rendered))
 	}
 }
 
@@ -81,11 +93,11 @@ func TestDailySplitsTasksAndHabitsEvenly(t *testing.T) {
 			state := manyIssues(dailyState(width, 40), tasks)
 			rendered := renderView(testTheme(), state)
 			tasksH := rowOf(t, rendered, "─ Habits Due") - rowOf(t, rendered, "─ Tasks")
-			strip := len(dayStripRows(testTheme(), state, width, dayStripMaxRows))
+			week := 2
 			if layoutFor(state).wide {
-				strip = 0
+				week = 0
 			}
-			habitsH := 40 - strip - tasksH
+			habitsH := 40 - week - tasksH
 			if tasksH-habitsH < 0 || tasksH-habitsH > 1 {
 				t.Fatalf(
 					"width %d, %d tasks: expected an even split, got tasks %d habits %d",
@@ -341,20 +353,15 @@ func TestDailyScoreCalendarSitsOverDetailsOnWideScreens(t *testing.T) {
 	}
 }
 
-func TestDailyScoreCalendarGoesUnderHabitsOnNarrowScreens(t *testing.T) {
+func TestDailyWeekGoesOverTasksOnNarrowScreens(t *testing.T) {
 	state := dailyState(130, 40)
 	state.DashboardDate = "2026-05-27"
 	rendered := ansi.Strip(renderView(testTheme(), state))
-	if rowOf(t, rendered, "─ Calendar") <= rowOf(t, rendered, "─ Habits Due") || !strings.Contains(rendered, "May 2026") {
-		t.Fatalf("expected the calendar under Habits, got\n%s", rendered)
+	if rowOf(t, rendered, "─ Week") >= rowOf(t, rendered, "─ Tasks") || strings.Contains(rendered, "May 2026") {
+		t.Fatalf("expected the week line over Tasks and no month, got\n%s", rendered)
 	}
-	if !strings.Contains(rendered, "│ 27") || strings.Contains(rendered, "│ 4 ") {
-		t.Fatalf("expected the shown week under Habits, got\n%s", rendered)
-	}
-	tiny := dailyState(130, 18)
-	tiny.DashboardDate = "2026-05-27"
-	if out := ansi.Strip(renderView(testTheme(), tiny)); !strings.Contains(out, "Calendar ▸") {
-		t.Fatalf("expected the calendar folded when even a week does not fit, got\n%s", out)
+	if !strings.Contains(rendered, "We 27") || !strings.Contains(rendered, "[C] month") {
+		t.Fatalf("expected the shown week with the month key, got\n%s", rendered)
 	}
 }
 
@@ -389,14 +396,5 @@ func TestDailyScoreCalendarIsNotFaded(t *testing.T) {
 		if strings.Contains(ansi.Strip(line), "May 2026") && strings.Contains(line, "\x1b[2m") {
 			t.Fatalf("expected the calendar body unfaded, got %q", line)
 		}
-	}
-}
-
-func TestDailyDropsTheStripWhileTheSummaryPaneShows(t *testing.T) {
-	if lines := strings.Split(ansi.Strip(renderView(testTheme(), dailyState(160, 40))), "\n"); !strings.HasPrefix(lines[0], "─ Tasks") {
-		t.Fatalf("expected Tasks on the first row beside the summary pane, got %q", lines[0])
-	}
-	if lines := strings.Split(ansi.Strip(renderView(testTheme(), dailyState(159, 40))), "\n"); !strings.HasPrefix(fieldsOf(lines[0]), "Tasks") {
-		t.Fatalf("expected the strip without the summary pane, got %q", lines[0])
 	}
 }

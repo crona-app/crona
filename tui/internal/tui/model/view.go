@@ -10,7 +10,6 @@ import (
 	selectionpkg "crona.work/tui/internal/tui/selection"
 	uistate "crona.work/tui/internal/tui/state"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
-	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 )
 
@@ -107,13 +106,6 @@ func (m Model) layoutState() layoutpkg.State {
 		snapshot,
 		activeIssue,
 	)
-	// Without a detail pane, Daily's day summary key joins the bottom row.
-	if view == ViewDaily && state.ContentState.HistoricalAwayDate == "" &&
-		viewhelpers.ClassFor(state.ContentState.Width) != viewhelpers.WidthWide {
-		state.GlobalActions = append(
-			[]string{viewchrome.KeyHint(layoutpkg.ViewTheme(), "S", "day summary")},
-			state.GlobalActions...)
-	}
 	if view == ViewAway && m.view != ViewAway {
 		state.ContentState.View = "away"
 		state.ContentState.Pane = ""

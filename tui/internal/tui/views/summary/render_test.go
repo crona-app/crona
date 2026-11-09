@@ -219,14 +219,15 @@ func TestDayLineFitsTheDayInOneLine(t *testing.T) {
 		Score: 82, Level: sharedtypes.FocusScoreLevelStrong, TargetWorkedSeconds: 3600,
 	}
 	state.SummarySnapshot.Metrics = &api.DailyMetricsDay{WorkedSeconds: 2400, RestSeconds: 600, SessionCount: 3}
+	state.DailyCheckIn = &api.DailyCheckIn{Date: "2026-05-27", Mood: 4, Energy: 3}
 	wide := ansi.Strip(DayLine(types.Theme{}, state, 120))
-	for _, want := range []string{"Focus 82 strong", "Worked 40m/1h", "Rest 10m", "Sessions 3"} {
+	for _, want := range []string{"Score 82 strong", "Worked 40m/1h", "Mood 4 Energy 3"} {
 		if !strings.Contains(wide, want) {
 			t.Fatalf("expected the day line to contain %q, got %q", want, wide)
 		}
 	}
 	narrow := ansi.Strip(DayLine(types.Theme{}, state, 40))
-	if ansi.StringWidth(narrow) > 40 || !strings.Contains(narrow, "Focus") || strings.Contains(narrow, "Sessions") {
+	if ansi.StringWidth(narrow) > 40 || !strings.Contains(narrow, "Score") || strings.Contains(narrow, "Mood") {
 		t.Fatalf("expected parts to drop from the right at 40, got %q", narrow)
 	}
 	state.SummarySnapshot.Focus = nil

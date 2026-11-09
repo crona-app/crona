@@ -13,9 +13,8 @@ import (
 
 func assertTinySummary(t *testing.T, rendered string) {
 	t.Helper()
-	// Collapse the strip's column padding; the date now lives on the sub-tab line.
 	flat := strings.Join(strings.Fields(ansi.Strip(rendered)), " ")
-	for _, want := range []string{"Tasks 0/1", "Habits 0/1", "─ Tasks", "─ Habits Due"} {
+	for _, want := range []string{"─ Tasks", "─ Habits Due", "0/1", "─ Week"} {
 		if !strings.Contains(flat, want) {
 			t.Fatalf("expected compact daily to contain %q, got %q", want, rendered)
 		}

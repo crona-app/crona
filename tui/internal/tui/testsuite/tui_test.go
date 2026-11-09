@@ -1011,70 +1011,7 @@ func TestExportReportsViewShowsReportKindsAndScopeLabels(t *testing.T) {
 	}
 }
 
-func TestDailySummaryShowsBarsAtHeight55AndAbove(t *testing.T) {
-	estimate := 60
-	target := 15
-	state := views.ContentState{
-		View:   "daily",
-		Pane:   "issues",
-		Width:  70,
-		Height: 55,
-		Cursors: map[string]int{
-			"issues": 0,
-			"habits": 0,
-		},
-		Filters: map[string]string{
-			"issues": "",
-			"habits": "",
-		},
-		DailySummary: &api.DailyIssueSummary{
-			Date: "2026-03-19",
-			Issues: []api.Issue{
-				{
-					ID:              1,
-					Title:           "Add keyboard-first command palette",
-					Status:          "planned",
-					EstimateMinutes: &estimate,
-				},
-			},
-		},
-		DailyIssues: []api.Issue{
-			{
-				ID:              1,
-				Title:           "Add keyboard-first command palette",
-				Status:          "planned",
-				EstimateMinutes: &estimate,
-			},
-		},
-		DailyPlannedIssues: []api.Issue{
-			{
-				ID:              1,
-				Title:           "Add keyboard-first command palette",
-				Status:          "planned",
-				EstimateMinutes: &estimate,
-			},
-		},
-		DueHabits: []api.HabitDailyItem{
-			{
-				HabitWithMeta: api.HabitWithMeta{
-					Habit: api.Habit{Name: "Inbox Zero Sweep", TargetMinutes: &target},
-				},
-				Status: "pending",
-			},
-		},
-		Context: &api.ActiveContext{
-			RepoName:   new("Work"),
-			StreamName: new("app"),
-		},
-	}
-
-	rendered := support.RenderDaily(state)
-	if !strings.Contains(rendered, "████") {
-		t.Fatalf("expected bars to remain visible at height 55 and above")
-	}
-}
-
-func TestDailyStripShowsTotalsOnLargeScreens(t *testing.T) {
+func TestDailyHeadersShowTotalsOnLargeScreens(t *testing.T) {
 	estimate := 60
 	target := 15
 	state := views.ContentState{
@@ -1133,9 +1070,9 @@ func TestDailyStripShowsTotalsOnLargeScreens(t *testing.T) {
 
 	rendered := strings.Join(strings.Fields(ansi.Strip(support.RenderDaily(state))), " ") +
 		ansi.Strip(viewrenderer.DateNav(support.Theme(), state, 80))
-	for _, want := range []string{"Tasks 0/1", "Habits 0/1", "W12"} {
+	for _, want := range []string{"─ Tasks", "Habits Due", "0/1", "W12"} {
 		if !strings.Contains(rendered, want) {
-			t.Fatalf("expected the day strip to include %q, got %q", want, rendered)
+			t.Fatalf("expected Today to include %q, got %q", want, rendered)
 		}
 	}
 }
@@ -1497,7 +1434,7 @@ func TestDailyIssueActionLineCompactsOnNarrowWidths(t *testing.T) {
 	}
 }
 
-func TestDailyStripShowsWeekAtMediumHeights(t *testing.T) {
+func TestDailyShowsWeekAtMediumHeights(t *testing.T) {
 	target := 15
 	state := views.ContentState{
 		View:   "daily",
@@ -1530,7 +1467,7 @@ func TestDailyStripShowsWeekAtMediumHeights(t *testing.T) {
 	}
 
 	rendered := support.RenderDaily(state)
-	for _, want := range []string{"Mo Tu We Th Fr Sa Su", "27 28 29 30  1  2  3"} {
+	for _, want := range []string{"─ Week", "Mo 27", "Su 3"} {
 		if !strings.Contains(ansi.Strip(rendered), want) {
 			t.Fatalf("expected the medium-height daily strip to include %q, got %q", want, rendered)
 		}
@@ -1540,7 +1477,7 @@ func TestDailyStripShowsWeekAtMediumHeights(t *testing.T) {
 	}
 }
 
-func TestDailyStripShowsWeekBelowWideEvenAtShortHeights(t *testing.T) {
+func TestDailyShowsWeekBelowWideEvenAtShortHeights(t *testing.T) {
 	target := 15
 	state := views.ContentState{
 		View:   "daily",
@@ -1573,7 +1510,7 @@ func TestDailyStripShowsWeekBelowWideEvenAtShortHeights(t *testing.T) {
 	}
 
 	rendered := support.RenderDaily(state)
-	for _, want := range []string{"Mo Tu We Th Fr Sa Su", "27 28 29 30  1  2  3"} {
+	for _, want := range []string{"─ Week", "Mo 27", "Su 3"} {
 		if !strings.Contains(ansi.Strip(rendered), want) {
 			t.Fatalf("expected the short wide daily strip to include %q, got %q", want, rendered)
 		}

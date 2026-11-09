@@ -31,7 +31,7 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 	total := len(indices)
 	base := viewui.PaneBase{Focused: active, Width: width, Height: height, Cursor: cur}
 	meta := fmt.Sprintf("%d  [←/→]", total)
-	lines := dailyTaskHeader(theme, state, width, height)
+	lines := dailyTaskHeader(theme, state, width)
 	if len(issues) == 0 || total == 0 {
 		lines = append(lines, theme.StyleDim.Render(dailyTaskEmptyMessage(state.DailyTaskSection)))
 		return dailySection(theme, "Tasks", viewhelpers.FilterMeta(meta, state.Filters["issues"]), active, width, height, lines)
@@ -53,13 +53,9 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 	return dailySection(theme, "Tasks", viewhelpers.FilterMeta(meta, state.Filters["issues"]), active, width, height, lines)
 }
 
-// dailyTaskHeader is the section selector over the new-task line; in a short pane the
-// new-task keys join the selector's row so a card and its actions still fit.
-func dailyTaskHeader(theme types.Theme, state types.ContentState, width, height int) []string {
+// dailyTaskHeader is the section selector with the new-task keys beside it, on one row.
+func dailyTaskHeader(theme types.Theme, state types.ContentState, width int) []string {
 	selector := dailyTaskTitle(theme, state.DailyTaskSection)
-	if sectionBodyRows(height, []string{selector, ""}) >= 5 {
-		return []string{selector, newTaskLine(theme, state, width-2)}
-	}
 	room := width - 2 - ansi.StringWidth(selector) - 3
 	if keys := newTaskLine(theme, state, room); keys != "" {
 		selector += "   " + keys
@@ -356,7 +352,7 @@ func renderHabits(theme types.Theme, state types.ContentState, width, height int
 	lines := []string{newItemLine(theme, "new habit")}
 	if total == 0 {
 		lines = append(lines, theme.StyleDim.Render("No due habits for this date"))
-		return dailySection(theme, "Habits Due", viewhelpers.FilterMeta(meta, state.Filters["habits"])+"  "+foldHint(theme, uistate.CollapseDailyHabits, "fold"), active, width, height, lines)
+		return dailySection(theme, "Habits Due", habitsMeta(theme, state, meta), active, width, height, lines)
 	}
 	// Like tasks, each habit is a title row and a meta row, with a blank row between habits;
 	// the selected habit's action line takes its meta row.
@@ -393,7 +389,17 @@ func renderHabits(theme types.Theme, state types.ContentState, width, height int
 	if remaining := total - end; remaining > 0 {
 		lines = append(lines, theme.StyleDim.Render(fmt.Sprintf("↓ %d more", remaining)))
 	}
-	return dailySection(theme, "Habits Due", viewhelpers.FilterMeta(meta, state.Filters["habits"])+"  "+foldHint(theme, uistate.CollapseDailyHabits, "fold"), active, width, height, lines)
+	return dailySection(theme, "Habits Due", habitsMeta(theme, state, meta), active, width, height, lines)
+}
+
+// habitsMeta is the Habits heading's count and keys: on narrow screens S, which swaps the
+// pane for the Day summary, then the fold key.
+func habitsMeta(theme types.Theme, state types.ContentState, count string) string {
+	meta := viewhelpers.FilterMeta(count, state.Filters["habits"])
+	if !layoutFor(state).wide {
+		meta += "  " + viewchrome.KeyHint(theme, "S", "summary")
+	}
+	return meta + "  " + foldHint(theme, uistate.CollapseDailyHabits, "fold")
 }
 
 const habitRowBarWidth = 10

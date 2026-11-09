@@ -1,26 +1,15 @@
 package daily
 
 import (
-	sharedtypes "crona.work/shared/types"
-	"crona.work/tui/internal/api"
 	"fmt"
 	"strings"
 	"testing"
 
 	helperpkg "crona.work/tui/internal/tui/helpers"
 	viewcalendar "crona.work/tui/internal/tui/views/calendar"
-	types "crona.work/tui/internal/tui/views/types"
 
 	"github.com/charmbracelet/x/ansi"
 )
-
-func stripRows(width int) []string {
-	lines := dayStripRows(testTheme(), dailySummaryTestState(), width, dayStripMaxRows)
-	for i, line := range lines {
-		lines[i] = ansi.Strip(line)
-	}
-	return lines
-}
 
 // fieldsOf collapses runs of spaces so assertions ignore column padding.
 func fieldsOf(row string) string {
@@ -28,96 +17,6 @@ func fieldsOf(row string) string {
 }
 
 // cellIndex is the display column of needle in row, or -1.
-func cellIndex(row, needle string) int {
-	idx := strings.Index(row, needle)
-	if idx < 0 {
-		return -1
-	}
-	return ansi.StringWidth(row[:idx])
-}
-
-func TestDayStripStacksTasksOverHabits(t *testing.T) {
-	rows := stripRows(160)
-	if got := fieldsOf(rows[0]); !strings.HasPrefix(got, "Tasks 1/1") ||
-		!strings.Contains(got, "2h/55m") {
-		t.Fatalf("expected the Tasks meter on row 0, got %q", rows[0])
-	}
-	if got := fieldsOf(rows[1]); !strings.HasPrefix(got, "Habits 1/1") {
-		t.Fatalf("expected the Habits meter on row 1, got %q", rows[1])
-	}
-	if cellIndex(rows[0], "1/1") != cellIndex(rows[1], "1/1") {
-		t.Fatalf("expected meter values in one column, got %q / %q", rows[0], rows[1])
-	}
-}
-
-func TestDayStripAlignsSignalsAndStreaksInColumns(t *testing.T) {
-	rows := stripRows(160)
-	if len(rows) != 2 {
-		t.Fatalf("expected 2 strip rows, got %d: %q", len(rows), rows)
-	}
-	for _, pair := range [][2]string{{"Mood", "Focus"}, {"Energy", "Check-ins"}} {
-		if at := cellIndex(rows[0], pair[0]); at < 0 || cellIndex(rows[1], pair[1]) != at {
-			t.Fatalf("expected %q over %q in one column, got %q", pair[0], pair[1], rows)
-		}
-	}
-	for i, want := range []string{"Mood 4/5 Energy 3/5 Sleep 7h30m", "Focus 1d best 3d Check-ins 2d best 5d"} {
-		if !strings.Contains(fieldsOf(rows[i]), want) {
-			t.Fatalf("expected row %d to contain %q, got %q", i, want, rows[i])
-		}
-	}
-}
-
-func TestDayStripSignalsAverageWithoutCheckIn(t *testing.T) {
-	state := dailySummaryTestState()
-	state.DailyCheckIn = nil
-	rows := dayStripRows(testTheme(), state, 160, dayStripMaxRows)
-	if want := "Mood avg 3.1/5 Energy avg 3.8/5 Sleep avg 6h15m"; !strings.Contains(
-		fieldsOf(ansi.Strip(rows[0])),
-		want,
-	) {
-		t.Fatalf("expected row 0 to contain %q, got %q", want, ansi.Strip(rows[0]))
-	}
-}
-
-func TestDayStripIsTwoRowsWithoutSignals(t *testing.T) {
-	state := dailySummaryTestState()
-	state.DailyCheckIn = nil
-	state.MetricsRollup = nil
-	state.DailyStreaks = nil
-	if lines := dayStripRows(testTheme(), state, 160, dayStripMaxRows); len(lines) != 2 {
-		t.Fatalf("expected only the two meter rows, got %d", len(lines))
-	}
-}
-
-func TestDayStripLeavesDateToSubTabLine(t *testing.T) {
-	for _, row := range stripRows(285) {
-		if strings.Contains(row, helperpkg.FormatDisplayDate("2026-05-27", nil)) {
-			t.Fatalf("expected no date in the strip, got %q", row)
-		}
-	}
-}
-
-func TestDayStripDropsRightmostColumnsWhenNarrow(t *testing.T) {
-	medium := strings.Join(stripRows(72), "\n")
-	if !strings.Contains(medium, "Mood") || !strings.Contains(medium, "Focus") ||
-		strings.Contains(medium, "Energy") {
-		t.Fatalf("expected only the first signal column at 72, got %q", medium)
-	}
-	if narrow := stripRows(48); len(narrow) != 2 ||
-		strings.Contains(strings.Join(narrow, ""), "Mood") {
-		t.Fatalf("expected meters only at 48, got %q", narrow)
-	}
-}
-
-func TestDayStripFitsWidth(t *testing.T) {
-	for _, width := range []int{40, 60, 80, 120, 285} {
-		for i, line := range dayStripRows(testTheme(), dailySummaryTestState(), width, dayStripMaxRows) {
-			if got := ansi.StringWidth(line); got != width {
-				t.Fatalf("width %d: row %d is %d cells: %q", width, i, got, ansi.Strip(line))
-			}
-		}
-	}
-}
 
 func TestSubTabMetaShowsDateWeekAndKeys(t *testing.T) {
 	state := dailySummaryTestState()
@@ -133,42 +32,6 @@ func TestSubTabMetaShowsDateWeekAndKeys(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected sub-tab meta to contain %q, got %q", want, got)
 		}
-	}
-}
-
-func TestDayStripShowsCurrentWeekAtRightEnd(t *testing.T) {
-	rows := stripRows(160)
-	for i, want := range []string{"Mo Tu We Th Fr Sa Su", "25 26 27 28 29 30 31"} {
-		row := strings.TrimRight(rows[i], " ")
-		if !strings.HasSuffix(row, want) || ansi.StringWidth(row) != 159 {
-			t.Fatalf(
-				"expected row %d to end with %q one cell from the edge, got %q",
-				i,
-				want,
-				rows[i],
-			)
-		}
-	}
-}
-
-func TestDayStripKeepsWeekOverLaterColumns(t *testing.T) {
-	joined := strings.Join(stripRows(100), "\n")
-	if !strings.Contains(joined, "Mo Tu We") || !strings.Contains(joined, "Mood") ||
-		strings.Contains(joined, "Sleep") {
-		t.Fatalf(
-			"expected the week and first column kept, later columns dropped at 100, got %q",
-			joined,
-		)
-	}
-}
-
-func TestDayStripDropsWeekWhenNarrowOrOneRow(t *testing.T) {
-	if joined := strings.Join(stripRows(60), "\n"); strings.Contains(joined, "Mo Tu") {
-		t.Fatalf("expected no week at 60 columns, got %q", joined)
-	}
-	if rows := dayStripRows(testTheme(), dailySummaryTestState(), 160, 1); len(rows) != 1 ||
-		strings.Contains(ansi.Strip(rows[0]), "Mo Tu") {
-		t.Fatalf("expected a one-row strip without the week, got %q", rows)
 	}
 }
 
@@ -191,52 +54,5 @@ func TestSubTabMetaShortensToFit(t *testing.T) {
 	if got := ansi.Strip(SubTabMeta(testTheme(), state, 30)); !strings.Contains(got, "‹ ,") ||
 		!strings.Contains(got, ". ›") {
 		t.Fatalf("expected the keys kept before the words drop out, got %q", got)
-	}
-}
-
-func TestDayStripTasksFollowPlannedWhateverTheTab(t *testing.T) {
-	state := dailySummaryTestState()
-	state.DailyTaskSection = "overdue"
-	state.DailyIssues = []api.Issue{
-		{ID: 90, Title: "Old", Status: "planned"},
-		{ID: 91, Title: "Older", Status: "planned"},
-	}
-	state.DailyPlannedIssues = []api.Issue{{ID: 1, Title: "Today", Status: "done"}}
-	rows := dayStripRows(testTheme(), state, 160, dayStripMaxRows)
-	if got := fieldsOf(rows[0]); !strings.HasPrefix(got, "Tasks 1/1") {
-		t.Fatalf("expected the Tasks meter to count Planned, not the Overdue tab, got %q", rows[0])
-	}
-}
-
-func scoredState(snapshotDate string) types.ContentState {
-	state := dailySummaryTestState()
-	state.SummaryDate = "2026-05-27"
-	state.SummarySnapshot = &api.SummarySnapshot{
-		Date:  snapshotDate,
-		Focus: &api.FocusScoreSummary{Score: 72},
-		Plan: &api.DailyPlan{
-			Date:    snapshotDate,
-			Summary: sharedtypes.DailyPlanAccountabilitySummary{AccountabilityScore: 80},
-		},
-	}
-	return state
-}
-
-func TestDayStripShowsScoreOverPlan(t *testing.T) {
-	rows := dayStripRows(testTheme(), scoredState("2026-05-27"), 200, dayStripMaxRows)
-	top, bottom := ansi.Strip(rows[0]), ansi.Strip(rows[1])
-	if !strings.Contains(fieldsOf(top), "Score 72/100") ||
-		!strings.Contains(fieldsOf(bottom), "Plan penalty 80.0") {
-		t.Fatalf("expected Score over Plan, got %q / %q", top, bottom)
-	}
-	if cellIndex(top, "Score") != cellIndex(bottom, "Plan") {
-		t.Fatalf("expected Score and Plan in one column, got %q / %q", top, bottom)
-	}
-	stale := strings.Join(
-		dayStripRows(testTheme(), scoredState("2026-05-26"), 200, dayStripMaxRows),
-		"\n",
-	)
-	if strings.Contains(stale, "Score") || strings.Contains(stale, "Plan") {
-		t.Fatalf("expected no score for another day's snapshot, got %q", ansi.Strip(stale))
 	}
 }

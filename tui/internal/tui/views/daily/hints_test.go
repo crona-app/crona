@@ -11,9 +11,9 @@ import (
 
 func TestTasksPaneOffersNewTaskLine(t *testing.T) {
 	rendered := ansi.Strip(renderIssues(testTheme(), detailState(), 80, 20))
-	if rowOf(t, rendered, "[a] new task  [A] quick timer") != rowOf(t, rendered, "Planned")+1 {
+	if rowOf(t, rendered, "[a] new task  [A] quick timer") != rowOf(t, rendered, "Planned") {
 		t.Fatalf(
-			"expected [a] new task and [A] quick timer on their own line under the selector, got %q",
+			"expected [a] new task and [A] quick timer beside the selector, got %q",
 			rendered,
 		)
 	}
@@ -205,12 +205,13 @@ func TestDetailTitleTruncatesToKeepDayKey(t *testing.T) {
 	}
 }
 
-func TestEnterHintSaysDetailsWhereThePaneShowsThem(t *testing.T) {
+func TestEnterHintSaysDetailsOnToday(t *testing.T) {
 	for _, tc := range []struct {
 		width int
 		want  string
-	}{{200, "[enter] details"}, {120, "[enter] open"}} {
+	}{{200, "[enter] details"}, {120, "[enter] details"}} {
 		state := dailyState(tc.width, 40)
+		state.View = "daily"
 		if got := ansi.Strip(TaskActionLine(testTheme(), state, 100)); !strings.Contains(got, tc.want) {
 			t.Fatalf("width %d: expected %q, got %q", tc.width, tc.want, got)
 		}

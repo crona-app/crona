@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"crona.work/tui/internal/api"
 	"crona.work/tui/internal/tui/input"
 	layoutpkg "crona.work/tui/internal/tui/layout"
 	supportview "crona.work/tui/internal/tui/views/support"
@@ -79,29 +78,12 @@ func TestModelContentHeightCountsDateRow(t *testing.T) {
 	}
 }
 
-func TestNarrowDailyBottomRowOffersDayKey(t *testing.T) {
-	m := Model{
-		view:    ViewDaily,
-		pane:    PaneIssues,
-		width:   120,
-		height:  36,
-		cursor:  map[Pane]int{},
-		filters: map[Pane]string{},
-	}
-	if row := bottomRow(m); !strings.Contains(row, "[S] day summary") {
-		t.Fatalf("expected [S] day summary on the bottom row without a detail pane, got %q", row)
-	}
-	m.width = 200
-	if row := bottomRow(m); strings.Contains(row, "[S]") {
-		t.Fatalf("expected [S] left to the detail pane when it shows, got %q", row)
-	}
-	m.width, m.date = 120, "2026-05-01"
-	m.settings = &api.CoreSettings{AwayDates: []string{"2026-05-01"}}
-	if m.layoutState().ContentState.HistoricalAwayDate == "" {
-		t.Fatal("expected a historical away date in this fixture")
-	}
-	if row := bottomRow(m); strings.Contains(row, "[S]") {
-		t.Fatalf("expected no [S] on a historical away date, got %q", row)
+func TestDailyBottomRowLeavesTheDayKeyToHabits(t *testing.T) {
+	for _, width := range []int{120, 200} {
+		m := Model{view: ViewDaily, pane: PaneIssues, width: width, height: 36, cursor: map[Pane]int{}, filters: map[Pane]string{}}
+		if row := bottomRow(m); strings.Contains(row, "[S]") {
+			t.Fatalf("width %d: expected no [S] on the bottom row, got %q", width, row)
+		}
 	}
 }
 

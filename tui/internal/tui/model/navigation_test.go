@@ -208,23 +208,21 @@ func TestEnterFocusesDetailOnWideAndEscReturnsToSummary(t *testing.T) {
 	}
 }
 
-func TestEnterOpensDetailDialogWhenNarrow(t *testing.T) {
+func TestEnterFocusesDetailWhenNarrow(t *testing.T) {
 	next, _ := daySummaryModel(120).Update(tea.KeyMsg{Type: tea.KeyEnter})
-	if narrow := next.(Model); narrow.dailyDetailFocus || narrow.dialog != "view_entity" {
-		t.Fatalf("expected the detail dialog when narrow, got focus=%v dialog=%q", narrow.dailyDetailFocus, narrow.dialog)
+	if narrow := next.(Model); !narrow.dailyDetailFocus || narrow.dailyDetailSummary || narrow.dialog != "" {
+		t.Fatalf("expected enter to show the task's details in place when narrow, got focus=%v dialog=%q", narrow.dailyDetailFocus, narrow.dialog)
 	}
 }
 
-func TestDaySummaryKeyOpensDialogWhenNarrow(t *testing.T) {
-	narrow := pressKey(daySummaryModel(120), 'S')
-	if narrow.dialog != "view_entity" || narrow.dialogViewTitle != "Day" {
-		t.Fatalf("expected a Day dialog when narrow, got dialog=%q title=%q", narrow.dialog, narrow.dialogViewTitle)
+func TestDaySummaryKeyTogglesTheDayPaneWhenNarrow(t *testing.T) {
+	open := pressKey(daySummaryModel(120), 'S')
+	if !open.dailyDetailFocus || !open.dailyDetailSummary || open.dialog != "" {
+		t.Fatalf("expected S to show the Day summary in place, got focus=%v summary=%v dialog=%q",
+			open.dailyDetailFocus, open.dailyDetailSummary, open.dialog)
 	}
-	if body := ansi.Strip(narrow.dialogViewBody); !strings.Contains(
-		strings.Join(strings.Fields(body), " "),
-		"72",
-	) {
-		t.Fatalf("expected the Day summary in the dialog, got %q", body)
+	if closed := pressKey(open, 'S'); closed.dailyDetailFocus {
+		t.Fatal("expected S again to put Habits back")
 	}
 }
 
@@ -266,7 +264,7 @@ func TestTabCyclesIntoTheDaySummaryAndScrollsIt(t *testing.T) {
 	if esc := tab(summary, tea.KeyEsc); esc.dailyDetailFocus {
 		t.Fatal("expected esc to leave the summary")
 	}
-	if narrow := tab(tab(daySummaryModel(120), tea.KeyTab), tea.KeyTab); narrow.dailyDetailFocus || narrow.pane != PaneIssues {
-		t.Fatal("expected tab to keep cycling the lists without a detail pane")
+	if narrow := tab(tab(daySummaryModel(120), tea.KeyTab), tea.KeyTab); !narrow.dailyDetailSummary {
+		t.Fatal("expected tab to reach the Day summary on narrow screens too")
 	}
 }
