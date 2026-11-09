@@ -28,16 +28,22 @@ func NewLineCanvas(width, rows int) *LineCanvas {
 }
 
 // PointX is the dot column of point i of n spread across the canvas, ends included.
-func (c *LineCanvas) PointX(i, n int) int {
-	dots := c.Width * 2
+func (c *LineCanvas) PointX(i, n int) int { return pointX(i, n, c.Width) }
+
+// Cell is the cell column holding point i of n.
+func (c *LineCanvas) Cell(i, n int) int { return PointCell(i, n, c.Width) }
+
+// PointCell is the cell column holding point i of n across width cells, as a LineCanvas of
+// that width places it; labels under a chart line up with it this way.
+func PointCell(i, n, width int) int { return pointX(i, n, max(1, width)) / 2 }
+
+func pointX(i, n, width int) int {
+	dots := width * 2
 	if n <= 1 {
 		return dots / 2
 	}
 	return int(math.Round(float64(i) * float64(dots-1) / float64(n-1)))
 }
-
-// Cell is the cell column holding point i of n.
-func (c *LineCanvas) Cell(i, n int) int { return c.PointX(i, n) / 2 }
 
 func (c *LineCanvas) set(x, y, owner int) {
 	if x < 0 || y < 0 || x >= c.Width*2 || y >= c.Rows*4 {

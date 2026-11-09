@@ -89,7 +89,7 @@ func TestDashboardSections(t *testing.T) {
 	for _, want := range []string{
 		"Thu 8 Oct – Wed 14 Oct · 7 days",
 		"Worked 17h", "Focus 72", "Plan 22/27", "Mood 3.8", "Energy 3.4", "Sleep 7h06m",
-		"─ Wellbeing ", "Mood · avg 2.5", "Energy · avg 3.0", "┄", "─ Work ", "● hours worked", "● focus",
+		"─ Wellbeing ", "Mood · avg 2.5", "Energy · avg 3 · Wed 14 3", "┄ window average", "─ Work ", "● hours worked", "● focus",
 		"Thu 8", "▸Wed 14", "▸ Wed 14 Oct · mood 2 · energy 3", "plan 4/5",
 		"─ Risk ", "20 LOW", "easing ◀│▶ raising", "+30 Break debt",
 		"[b] group", "OSS", "─ Plan ", "22/27 done",
@@ -99,11 +99,6 @@ func TestDashboardSections(t *testing.T) {
 			t.Fatalf("expected %q:\n%s", want, out)
 		}
 	}
-	state.ReviewPrev = &types.ReviewPrev{Rollup: &api.MetricsRollup{Days: 7}, Focus: &api.FocusScoreSummary{}}
-	if out := plain(Render(types.Theme{}, state)); strings.Contains(out, "Worked 17h ▼") || strings.Contains(out, "Focus 72 ▲") {
-		t.Fatalf("change shown without previous data:\n%s", out)
-	}
-	// The charts draw in braille.
 	if !strings.ContainsFunc(out, func(r rune) bool { return r > 0x2800 && r <= 0x28FF }) {
 		t.Fatalf("expected braille lines:\n%s", out)
 	}
@@ -122,6 +117,10 @@ func TestDashboardComparesWithPreviousWindow(t *testing.T) {
 			t.Fatalf("expected %q:\n%s", want, out)
 		}
 	}
+	state.ReviewPrev = &types.ReviewPrev{Rollup: &api.MetricsRollup{Days: 7}, Focus: &api.FocusScoreSummary{}}
+	if out := plain(Render(types.Theme{}, state)); strings.Contains(out, "Worked 17h ▼") || strings.Contains(out, "Focus 72 ▲") {
+		t.Fatalf("change shown without previous data:\n%s", out)
+	}
 }
 
 func TestDashboardStacksSideWhenNarrow(t *testing.T) {
@@ -136,7 +135,7 @@ func TestLongWindowKeepsDailyPoints(t *testing.T) {
 	state := reviewState(200, 50)
 	state.ReviewWindowDays = 30
 	out := plain(Render(types.Theme{}, state))
-	if !strings.Contains(out, "30 days") || !strings.Contains(out, "▸Oct 14") {
+	if !strings.Contains(out, "30 days") || !strings.Contains(out, "▸Oct 14") || !strings.Contains(out, "3-day average") {
 		t.Fatalf("expected a daily axis with month labels:\n%s", out)
 	}
 }
@@ -170,5 +169,14 @@ func TestEstimateDriftInWords(t *testing.T) {
 		if !strings.Contains(got, want) || !strings.Contains(got, "3 issues") {
 			t.Fatalf("%s: %q lacks %q", bias, got, want)
 		}
+	}
+}
+
+func TestChangeLevelAtShownPrecision(t *testing.T) {
+	if got := plain(change(types.Theme{}, 0.3, whole)); got != "=" {
+		t.Fatalf("a change that rounds to 0 shows %q", got)
+	}
+	if got := plain(change(types.Theme{}, 0.06, rating)); got != "▲ 0.1" {
+		t.Fatalf("a change that shows as 0.1 shows %q", got)
 	}
 }

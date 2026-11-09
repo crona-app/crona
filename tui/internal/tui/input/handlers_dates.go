@@ -64,7 +64,7 @@ func handleReviewStepDay(s State, deps Deps, dir int) (tea.Model, tea.Cmd, bool)
 	date := deps.CurrentDate(s)
 	start, end := uistate.ReviewRange(date, s.ReviewWindowEnd, s.ReviewWindowDays)
 	s.ReviewWindowEnd = end
-	if s.ReviewWindowDays > 14 {
+	if uistate.LongReviewWindow(s.ReviewWindowDays) {
 		dir *= 7
 	}
 	next := shiftInputISODate(date, dir)

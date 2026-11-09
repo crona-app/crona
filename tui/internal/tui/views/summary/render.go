@@ -757,7 +757,14 @@ func WorkLines(theme types.Theme, state types.ContentState, width int, keys bool
 		}
 		title += "   " + theme.StyleDim.Render(hint)
 	}
-	lines := []string{title, WorkHeading(theme, state, group, width)}
+	return append([]string{title}, WorkBody(theme, state, width)...)
+}
+
+// WorkBody is the Work breakdown under its title: the grouping, then a bar per row.
+func WorkBody(theme types.Theme, state types.ContentState, width int) []string {
+	group := uistate.WorkLevelGroup(state.DailyWorkGroup, state.DailyWorkPath)
+	selecting := state.DailyWorkSelect
+	lines := []string{WorkHeading(theme, state, group, width)}
 	summary := state.WorkBreakdown
 	if summary == nil {
 		return append(lines, theme.StyleDim.Render("Loading"))
