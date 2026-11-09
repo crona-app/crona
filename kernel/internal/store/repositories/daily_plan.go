@@ -357,6 +357,7 @@ func (r *DailyPlanRepository) ListPendingFailuresBefore(
 		ColumnExpr("COALESCE(e.carry_count, 0) AS carry_count").
 		Where("p.user_id = ?", userID).
 		Where("e.pending_failure_at IS NOT NULL").
+		Where("issues.deleted_at IS NULL"). // a deleted issue leaves the plan
 		Where("e.pending_failure_at <= ?", cutoff).
 		Where("e.status = ?", string(sharedtypes.DailyPlanEntryStatusPlanned)).
 		OrderExpr("e.pending_failure_at ASC").
@@ -482,6 +483,7 @@ func (r *DailyPlanRepository) listEntriesGroupedByPlanIDs(
 		ColumnExpr("e.carried_to_entry_id").
 		ColumnExpr("COALESCE(e.carry_count, 0) AS carry_count").
 		Where("e.plan_id IN (?)", bun.In(planIDs)).
+		Where("issues.deleted_at IS NULL").
 		OrderExpr("p.date ASC, e.committed_at ASC").
 		Scan(ctx, &rows); err != nil {
 		return nil, err
@@ -608,6 +610,7 @@ func (r *DailyPlanRepository) ListActiveEntries(
 		Where("p.user_id = ?", userID).
 		Where("e.status = ?", string(sharedtypes.DailyPlanEntryStatusPlanned)).
 		Where("issues.todo_for_date = p.date").
+		Where("issues.deleted_at IS NULL").
 		Where("issues.status NOT IN (?, ?)", string(sharedtypes.IssueStatusDone), string(sharedtypes.IssueStatusAbandoned)).
 		OrderExpr("p.date ASC, issues.public_id ASC").
 		Scan(ctx, &rows); err != nil {

@@ -780,3 +780,63 @@ func TestDailyPlanListsContributingIssuesFromAnyDay(t *testing.T) {
 		t.Fatalf("expected nothing contributing once done, got %+v", plan.Contributing)
 	}
 }
+
+func TestDailyPlanDropsDeletedIssue(t *testing.T) {
+	ctx := context.Background()
+	currentNow := "2026-03-25T09:00:00Z"
+	coreCtx, _ := newTestCoreContext(t, func() string { return currentNow })
+	repo, err := corecommands.CreateRepo(ctx, coreCtx, struct {
+		Name        string
+		Description *string
+		Color       *string
+	}{Name: "Work"})
+	if err != nil {
+		t.Fatalf("create repo: %v", err)
+	}
+	stream, err := corecommands.CreateStream(ctx, coreCtx, struct {
+		RepoID      int64
+		Name        string
+		Description *string
+		Visibility  *sharedtypes.StreamVisibility
+	}{RepoID: repo.ID, Name: "app"})
+	if err != nil {
+		t.Fatalf("create stream: %v", err)
+	}
+	today := "2026-03-25"
+	create := func(title string) sharedtypes.Issue {
+		issue, err := corecommands.CreateIssue(ctx, coreCtx, struct {
+			StreamID        int64
+			Title           string
+			Description     *string
+			EstimateMinutes *int
+			Notes           *string
+			TodoForDate     *string
+		}{StreamID: stream.ID, Title: title, TodoForDate: &today})
+		if err != nil {
+			t.Fatalf("create issue: %v", err)
+		}
+		return issue
+	}
+	create("Kept")
+	dropped := create("Duplicate")
+	if err := corecommands.DeleteIssue(ctx, coreCtx, dropped.ID); err != nil {
+		t.Fatalf("delete issue: %v", err)
+	}
+	plan, err := corecommands.GetDailyPlan(ctx, coreCtx, today)
+	if err != nil {
+		t.Fatalf("get plan: %v", err)
+	}
+	if len(plan.Entries) != 1 || plan.Summary.PlannedCount != 1 {
+		t.Fatalf("expected only the kept issue planned, got %d entries, planned %d", len(plan.Entries), plan.Summary.PlannedCount)
+	}
+	currentNow = "2026-03-27T09:00:00Z"
+	later, err := corecommands.GetDailyPlan(ctx, coreCtx, today)
+	if err != nil {
+		t.Fatalf("get plan later: %v", err)
+	}
+	for _, entry := range later.Entries {
+		if entry.IssueID == dropped.ID {
+			t.Fatalf("expected the deleted issue to stay off the plan, got %+v", entry)
+		}
+	}
+}
