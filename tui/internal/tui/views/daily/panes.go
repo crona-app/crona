@@ -395,11 +395,16 @@ func renderHabits(theme types.Theme, state types.ContentState, width, height int
 // habitsMeta is the Habits heading's count and keys: on narrow screens S, which swaps the
 // pane for the Day summary, then the fold key.
 func habitsMeta(theme types.Theme, state types.ContentState, count string) string {
-	meta := viewhelpers.FilterMeta(count, state.Filters["habits"])
-	if !layoutFor(state).wide {
-		meta += "  " + viewchrome.KeyHint(theme, "S", "summary")
+	parts := append([]string{viewhelpers.FilterMeta(count, state.Filters["habits"])}, summaryHint(theme, state)...)
+	return strings.Join(append(parts, foldHint(theme, uistate.CollapseDailyHabits, "fold")), "  ")
+}
+
+// summaryHint is S on narrow screens, where it swaps Habits' half for the Day summary.
+func summaryHint(theme types.Theme, state types.ContentState) []string {
+	if layoutFor(state).wide {
+		return nil
 	}
-	return meta + "  " + foldHint(theme, uistate.CollapseDailyHabits, "fold")
+	return []string{viewchrome.KeyHint(theme, "S", "summary")}
 }
 
 const habitRowBarWidth = 10

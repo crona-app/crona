@@ -59,7 +59,7 @@ func TestDailyNarrowIsWeekThenTasksThenHabits(t *testing.T) {
 		if !strings.Contains(lines[habits], "[S] summary") {
 			t.Fatalf("width %d: expected the summary key on the Habits heading, got %q", width, lines[habits])
 		}
-		if week != 0 || tasks != 2 || habits <= tasks {
+		if week != 0 || tasks <= week || habits <= tasks {
 			t.Fatalf("width %d: expected the week, then Tasks, then Habits; got %d %d %d", width, week, tasks, habits)
 		}
 	}
@@ -93,11 +93,7 @@ func TestDailySplitsTasksAndHabitsEvenly(t *testing.T) {
 			state := manyIssues(dailyState(width, 40), tasks)
 			rendered := renderView(testTheme(), state)
 			tasksH := rowOf(t, rendered, "─ Habits Due") - rowOf(t, rendered, "─ Tasks")
-			week := 2
-			if layoutFor(state).wide {
-				week = 0
-			}
-			habitsH := 40 - week - tasksH
+			habitsH := 40 - rowOf(t, rendered, "─ Habits Due")
 			if tasksH-habitsH < 0 || tasksH-habitsH > 1 {
 				t.Fatalf(
 					"width %d, %d tasks: expected an even split, got tasks %d habits %d",
@@ -356,12 +352,18 @@ func TestDailyScoreCalendarSitsOverDetailsOnWideScreens(t *testing.T) {
 func TestDailyWeekGoesOverTasksOnNarrowScreens(t *testing.T) {
 	state := dailyState(130, 40)
 	state.DashboardDate = "2026-05-27"
-	rendered := ansi.Strip(renderView(testTheme(), state))
-	if rowOf(t, rendered, "─ Week") >= rowOf(t, rendered, "─ Tasks") || strings.Contains(rendered, "May 2026") {
-		t.Fatalf("expected the week line over Tasks and no month, got\n%s", rendered)
+	tall := ansi.Strip(renderView(testTheme(), state))
+	if rowOf(t, tall, "─ Week") >= rowOf(t, tall, "─ Tasks") || !strings.Contains(tall, "│ 27") || !strings.Contains(tall, "[C] month") {
+		t.Fatalf("expected the boxed week over Tasks while there is room, got\n%s", tall)
 	}
-	if !strings.Contains(rendered, "We 27") || !strings.Contains(rendered, "[C] month") {
-		t.Fatalf("expected the shown week with the month key, got\n%s", rendered)
+	state.Height = 30
+	short := ansi.Strip(renderView(testTheme(), state))
+	if strings.Contains(short, "│ 27") || !strings.Contains(short, "We 27") {
+		t.Fatalf("expected the week on one line when short, got\n%s", short)
+	}
+	state.Settings = &api.CoreSettings{CollapsedPanes: []string{uistate.CollapseDailyHabits}}
+	if folded := ansi.Strip(renderView(testTheme(), state)); !strings.Contains(folded, "Habits ▸") || !strings.Contains(folded, "[S] summary") {
+		t.Fatalf("expected the summary key on folded Habits, got\n%s", folded)
 	}
 }
 

@@ -28,10 +28,10 @@ func foldHint(theme types.Theme, pane, action string) string {
 }
 
 // collapsedPane is a folded pane: its title row alone, with the key that opens it.
-func collapsedPane(theme types.Theme, title, pane string, width int) string {
+func collapsedPane(theme types.Theme, title, pane string, width int, keys ...string) string {
 	return viewchrome.RenderSection(theme, viewchrome.Section{
 		Title:  title + " ▸",
-		Meta:   foldHint(theme, pane, "expand"),
+		Meta:   strings.Join(append(keys, foldHint(theme, pane, "expand")), "  "),
 		Dimmed: true,
 		Width:  width,
 		Height: 1,
@@ -140,17 +140,26 @@ func CalendarMonthFits(theme types.Theme, state types.ContentState) bool {
 	return len(lines) > 0 && detailCalendarFits(rest)(len(lines)+1)
 }
 
-// weekPane is the shown week on a line under the lists, each day with its focus score; C
-// opens the month. Folded, it keeps its title row.
-func weekPane(theme types.Theme, state types.ContentState, width int) (string, int) {
+// weekPane is the shown week over the lists, each day with its focus score: boxed as on wide
+// screens while the lists keep narrowListRows each, else on one line. C opens the month.
+// Folded, it keeps its title row.
+func weekPane(theme types.Theme, state types.ContentState, width, height int) (string, int) {
 	if calendarMode(state) == uistate.CalendarHidden {
 		return collapsedPane(theme, "Week", uistate.CollapseDailyCalendar, width), 1
+	}
+	lines := scoreCalendarLines(theme, state, width-2, true)
+	if len(lines) == 0 || height-(len(lines)+1) < 2*narrowListRows {
+		lines = []string{"", " " + viewcalendar.ScoreWeek(theme, scoreSelection(state)), ""}
 	}
 	return viewchrome.RenderSection(theme, viewchrome.Section{
 		Title:  "Week",
 		Meta:   viewchrome.KeyHint(theme, "C", "month") + "  " + foldHint(theme, uistate.CollapseDailyCalendar, "hide"),
 		Width:  width,
-		Height: 2,
-		Lines:  []string{viewcalendar.ScoreWeek(theme, scoreSelection(state))},
-	}), 2
+		Height: len(lines) + 1,
+		Lines:  lines,
+	}), len(lines) + 1
 }
+
+// narrowListRows is the room Tasks and Habits each keep before the boxed week gives way to
+// its line.
+const narrowListRows = 12

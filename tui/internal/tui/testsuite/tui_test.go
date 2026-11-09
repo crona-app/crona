@@ -1467,7 +1467,7 @@ func TestDailyShowsWeekAtMediumHeights(t *testing.T) {
 	}
 
 	rendered := support.RenderDaily(state)
-	for _, want := range []string{"─ Week", "Mo 27", "Su 3"} {
+	for _, want := range []string{"─ Week", "27", "Fr", "Su"} {
 		if !strings.Contains(ansi.Strip(rendered), want) {
 			t.Fatalf("expected the medium-height daily strip to include %q, got %q", want, rendered)
 		}
@@ -1510,7 +1510,7 @@ func TestDailyShowsWeekBelowWideEvenAtShortHeights(t *testing.T) {
 	}
 
 	rendered := support.RenderDaily(state)
-	for _, want := range []string{"─ Week", "Mo 27", "Su 3"} {
+	for _, want := range []string{"─ Week", "27", "Fr", "Su"} {
 		if !strings.Contains(ansi.Strip(rendered), want) {
 			t.Fatalf("expected the short wide daily strip to include %q, got %q", want, rendered)
 		}

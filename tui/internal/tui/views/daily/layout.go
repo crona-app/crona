@@ -57,7 +57,8 @@ func dailyChrome(theme types.Theme, state types.ContentState, l layout) (dayLine
 		return nil, state.Height
 	}
 	if line := viewsummary.DayLine(theme, state, state.Width); line != "" {
-		return []string{line}, state.Height - 1
+		// A blank row parts the line from the panes under it.
+		return []string{line, ""}, state.Height - 2
 	}
 	return nil, state.Height
 }
@@ -81,7 +82,7 @@ func dailyLists(theme types.Theme, state types.ContentState, width, height int, 
 	var above []string
 	aboveH := 0
 	if withCalendar {
-		calendar, calendarH := weekPane(theme, state, width)
+		calendar, calendarH := weekPane(theme, state, width, height)
 		above, aboveH = []string{calendar}, calendarH
 	}
 	var lower string
@@ -90,7 +91,7 @@ func dailyLists(theme types.Theme, state types.ContentState, width, height int, 
 	case withCalendar && state.DailyDetailFocus:
 		lower = renderDetail(theme, state, width, lowerH)
 	case dailyCollapsed(state, uistate.CollapseDailyHabits):
-		lower, lowerH = collapsedPane(theme, "Habits", uistate.CollapseDailyHabits, width), 1
+		lower, lowerH = collapsedPane(theme, "Habits", uistate.CollapseDailyHabits, width, summaryHint(theme, state)...), 1
 	default:
 		lower = renderHabits(theme, state, width, lowerH)
 	}
