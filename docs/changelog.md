@@ -7,6 +7,48 @@ hosted: false
 
 All notable changes to **Crona** are documented here.
 
+## [1.10.0-beta.6] - 2026-11-09
+
+Crona v1.10.0-beta.6 makes the TUI work on smaller terminals, turns Review into a dashboard, and rebuilds several settings screens and the momentum wizard. The local IPC protocol stays at `1.7`.
+
+### Smaller screens
+
+- **Today:** one day line replaces the day strip. It shows the score, worked time against target, mood and energy, issues at risk, and the score's hint (or a nudge to take a break).
+  - The shown week sits above Tasks. It keeps its boxed days while there's room, folds to one line as the height shrinks, and `C` opens the month.
+  - Tasks and Habits split the rest evenly. `S` (or `enter` on a selection) swaps Habits' half for the Day summary or the selection's details; `S` or `esc` swaps back.
+- **Issues, Habits and Momentum:** when the screen is too narrow for details beside the list, they stack under it. On short screens `enter` opens a dialog showing exactly what the pane shows. The Momentum dialog now has the chart and the chosen period's contributors, opens instantly and scrolls.
+- Issue details show the due date and ID again; habit details show the ID.
+
+### Today
+
+- The Day summary leads with one row of gauges (score, worked, issues, habits), with focus facts on one line beneath. Its title names the shown date.
+- **Plan:** `P` on the focused summary walks every issue behind the penalty, with `s` status and `d` due.
+- **Work breakdown:** the day's worked time by repo, stream, issue, tag or segment (`b` cycles). `B` selects rows, `enter` drills in and `esc` steps back.
+- The summary names your last check-in and how long ago it was.
+
+### Insights
+
+- **Review** is a dashboard: tiles for Worked, Focus, Plan, Mood, Energy and Sleep, each with the window's value, its change on the previous window (hidden when there's nothing to compare) and a sparkline. Wellbeing is drawn as three lanes for mood, energy and sleep.
+- **Momentum:** the Buckets column shows the chosen bucket's contributors. `←`/`→` picks a bucket on the chart, and a footnote names it with its ratio, status and the window's target, met and average.
+- The **momentum wizard** has two steps: What counts (habits grouped by context, with `/` search) and Goal.
+
+### Settings and navigation
+
+- **Start/End of Day** schedule on one screen: a default and a row per weekday, with custom days marked and `r` to reset.
+- **Rest & Streak Protection** on one screen: rest days, dates with weekdays, and a summary in the title.
+- **Jump to view** groups views by tab in the tab bar's order, with number keys and inline descriptions.
+- History lists (Sessions, Habits, Ops, Reports) head each day with its totals and indent its rows.
+
+### Fixes
+
+- The TUI no longer shows stale cached data after changes.
+- The daemon's daily plan lists every entry behind the accountability penalty, so the summary's counts match.
+
+### For contributors
+
+- Review and Today are split into one file per section; issue and habit details live in `views/itemdetail`, shared by Today, Issues, Habits and the dialogs.
+- docs-site dependencies upgraded to clear Dependabot alerts; a security policy points to private vulnerability reporting.
+
 ## [1.10.0-beta.5] - 2026-11-06
 
 Crona v1.10.0-beta.5 redesigns the Today view around a Day summary, makes the Log and System tabs calmer and easier to scan, and moves the project to the `crona-app` GitHub organisation. It also builds the Nix packages from source and makes `go install` work. The local IPC protocol stays at `1.7`.
