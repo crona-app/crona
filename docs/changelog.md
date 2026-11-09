@@ -7,6 +7,14 @@ hosted: false
 
 All notable changes to **Crona** are documented here.
 
+## [1.10.0-beta.7] - 2026-11-09
+
+Crona v1.10.0-beta.7 fixes deleted issues still counting toward the day's plan. The local IPC protocol stays at `1.7`.
+
+### Fixes
+
+- **Deleted issues leave the daily plan.** Before, an issue deleted after being planned for a day still counted as planned, so the Day summary could show 2/3 when only two issues were on Today. The next day it was also marked failed and added to the penalty. Deleted issues now drop out of the plan, the penalty and pending failures, including ones deleted before this release. Restoring an issue brings its plan entry back.
+
 ## [1.10.0-beta.6] - 2026-11-09
 
 Crona v1.10.0-beta.6 makes the TUI work on smaller terminals, turns Review into a dashboard, and rebuilds several settings screens and the momentum wizard. The local IPC protocol stays at `1.7`.
