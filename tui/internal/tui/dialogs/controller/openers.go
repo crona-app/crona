@@ -472,10 +472,6 @@ func (s Snapshot) OpenViewEntityWithPath(title, name, meta, body, path string) S
 	return OpenViewEntityWithPath(s.Dialog, title, name, meta, body, path)
 }
 
-func (s Snapshot) OpenMomentumDetail(detail api.MomentumDetail) State {
-	return OpenMomentumDetail(s.Dialog, detail)
-}
-
 func (s Snapshot) OpenViewJump() State {
 	return OpenViewJumpFrom(s.Dialog, s.AvailableViews, s.CurrentView)
 }

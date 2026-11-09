@@ -237,18 +237,11 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				msg.Target.IssueID,
 			), nil
 		}
-	case commands.MomentumDetailLoadedMsg:
-		if msg.Detail == nil {
-			return m, nil
-		}
-		return m.openMomentumDetailDialog(*msg.Detail), nil
 	case commands.MomentumBucketLoadedMsg:
 		if msg.Key == m.momentumBucketWant {
 			m.momentumBucketDetail, m.momentumBucketKey = msg.Detail, msg.Key
 		}
 		return m, nil
-	case commands.MomentumDetailFailedMsg:
-		return m, m.setStatus(msg.Err.Error(), true)
 	case commands.SummarySnapshotLoadedMsg:
 		if msg.Snapshot == nil || msg.Snapshot.Date != m.currentDate() {
 			return m, nil

@@ -115,8 +115,8 @@ func renderSummaryRangeForm(theme Theme, state controllerpkg.State) string {
 	})
 }
 
-// renderDetailView draws view_entity, view_momentum_detail and support_bundle_result: the
-// name, its meta fields, the body, and (for momentum) a contributor list.
+// renderDetailView draws view_entity and support_bundle_result: the name, its
+// meta fields and the body.
 func renderDetailView(theme Theme, state controllerpkg.State) string {
 	return Frame(theme, detailViewSpec(theme, state))
 }
@@ -142,30 +142,11 @@ func detailViewSpec(theme Theme, state controllerpkg.State) FrameSpec {
 	}
 	d := listDialog{title: state.ViewTitle, esc: "esc close", focus: -1}
 	switch state.Kind {
-	case "view_momentum_detail":
-		body = append(body, "", theme.StyleDim.Render("Contributors"))
-		if len(state.ChoiceItems) == 0 {
-			body = append(
-				body,
-				theme.StyleDim.Render("No contributing entries in the current bucket"),
-			)
-		}
-		for i, item := range state.ChoiceItems {
-			cursor := -1
-			if i == state.ChoiceCursor {
-				d.focus, cursor = len(body), 0
-			}
-			body = append(body, selectList(theme, []string{item}, cursor)...)
-			if i < len(state.ChoiceDetails) && strings.TrimSpace(state.ChoiceDetails[i]) != "" {
-				body = append(body, theme.StyleDim.Render("    "+state.ChoiceDetails[i]))
-			}
-		}
-		d.hints = []string{"↑/↓ scroll", "e edit"}
 	case "support_bundle_result":
 		d.border = theme.ColorGreen
 		d.hints = []string{"o open folder", "c copy path", "g report issue"}
 	default:
-		if strings.TrimSpace(state.ViewPath) != "" {
+		if strings.TrimSpace(state.ViewPath) != "" || state.HabitStreakDraft.ID != "" {
 			d.hints = append(d.hints, "e edit")
 		}
 		if state.ViewEntityAdhoc {

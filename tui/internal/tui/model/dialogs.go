@@ -566,10 +566,6 @@ func (m Model) openViewEntityDialogWithPath(
 	)
 }
 
-func (m Model) openMomentumDetailDialog(detail api.MomentumDetail) Model {
-	return m.withDialogState(m.dialogSnapshot().OpenMomentumDetail(detail))
-}
-
 func (m Model) openSupportBundleDialog(path string, sizeBytes int64, windowLabel string) Model {
 	meta := strings.Join([]string{
 		"Size " + helperpkg.HumanizeSupportBytes(sizeBytes),

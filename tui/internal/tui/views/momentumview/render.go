@@ -40,11 +40,13 @@ func Render(theme types.Theme, state types.ContentState) string {
 	cards := visibleCards(state)
 	cursor := min(max(0, state.Cursors["momentum_cards"]), max(0, len(cards)-1))
 	if viewhelpers.ClassFor(state.Width) == viewhelpers.WidthNarrow {
-		meta := viewchrome.KeyHint(theme, "enter", "details")
-		return strings.Join(
-			append(rows, renderList(theme, cards, cursor, state.Width, height, meta)),
-			"\n",
-		)
+		if len(cards) == 0 || height < viewchrome.StackMinHeight {
+			meta := viewchrome.KeyHint(theme, "enter", "details")
+			return strings.Join(append(rows, renderList(theme, cards, cursor, state.Width, height, meta)), "\n")
+		}
+		listH, detailH := viewchrome.StackHeights(height)
+		list := renderList(theme, cards, cursor, state.Width, listH, fmt.Sprintf("%d", len(cards)))
+		return strings.Join(append(rows, list, detailSection(theme, state, cards[cursor], state.Width, detailH, true)), "\n")
 	}
 	listWidth := listWidthFor(state.Width)
 	list := renderList(theme, cards, cursor, listWidth, height, fmt.Sprintf("%d", len(cards)))
@@ -65,28 +67,11 @@ func Render(theme types.Theme, state types.ContentState) string {
 		return strings.Join(append(rows, viewchrome.JoinColumns(theme, height, list, detail)), "\n")
 	}
 	card := cards[cursor]
-	toggle := "disable"
-	if !card.Definition.Enabled {
-		toggle = "enable"
-	}
-	meta := viewchrome.FitHints(
-		[]string{viewchrome.KeyHint(theme, "e", "edit"), viewchrome.KeyHint(theme, "x", toggle)},
-		max(0, detailWidth-len(card.Definition.Name)-4),
-	)
-	titleStyle := theme.StyleHeader.Bold(true)
-	bucketTitle, bucketMeta := contributorsTitle(theme, card, state.MomentumBucket)
-	var stacked []string
-	if !wide {
-		stacked = append([]string{theme.StylePaneTitle.Render(bucketTitle) + "  " + bucketMeta},
-			ContributorLines(theme, state.MomentumBucketDetail, detailWidth-2)...)
-	}
-	detail := viewchrome.RenderSection(theme, viewchrome.Section{
-		Title: card.Definition.Name, Meta: meta, TitleStyle: &titleStyle, Width: detailWidth, Height: height,
-		Lines: DetailLines(theme, card, detailWidth-2, height-1, state.MomentumBucket, stacked),
-	})
+	detail := detailSection(theme, state, card, detailWidth, height, !wide)
 	if !wide {
 		return strings.Join(append(rows, viewchrome.JoinColumns(theme, height, list, detail)), "\n")
 	}
+	bucketTitle, bucketMeta := contributorsTitle(theme, card, state.MomentumBucket)
 	buckets := viewchrome.RenderSection(theme, viewchrome.Section{
 		Title: bucketTitle, Meta: bucketMeta, Width: bucketsWidth, Height: height,
 		Lines: ContributorLines(theme, state.MomentumBucketDetail, bucketsWidth-2),
@@ -95,6 +80,63 @@ func Render(theme types.Theme, state types.ContentState) string {
 		append(rows, viewchrome.JoinColumns(theme, height, list, detail, buckets)),
 		"\n",
 	)
+}
+
+// dialogRows is how tall the details dialog draws a momentum: its settings, a chart and the
+// contributors under it.
+const dialogRows = 30
+
+// Detail is the selected momentum's name and details — settings, chart and the chosen
+// bucket's contributors — as the stacked pane and the details dialog both show them; ok is
+// false with no momentum.
+func Detail(theme types.Theme, state types.ContentState, width int) (title string, lines []string, ok bool) {
+	cards := visibleCards(state)
+	if len(cards) == 0 {
+		return "Momentum", nil, false
+	}
+	card := cards[min(max(0, state.Cursors["momentum_cards"]), len(cards)-1)]
+	return card.Definition.Name, detailLines(theme, state, card, width, dialogRows, true), true
+}
+
+// detailLines is DetailLines with the bucket's contributors stacked under the chart when
+// withContributors, which screens without a bucket column want.
+func detailLines(
+	theme types.Theme,
+	state types.ContentState,
+	card sharedtypes.MomentumCard,
+	width, height int,
+	withContributors bool,
+) []string {
+	var stacked []string
+	if withContributors {
+		bucketTitle, bucketMeta := contributorsTitle(theme, card, state.MomentumBucket)
+		stacked = append([]string{theme.StylePaneTitle.Render(bucketTitle) + "  " + bucketMeta},
+			ContributorLines(theme, state.MomentumBucketDetail, width)...)
+	}
+	return DetailLines(theme, card, width, height, state.MomentumBucket, stacked)
+}
+
+// detailSection is the momentum's details pane, titled with its name and its edit keys.
+func detailSection(
+	theme types.Theme,
+	state types.ContentState,
+	card sharedtypes.MomentumCard,
+	width, height int,
+	withContributors bool,
+) string {
+	toggle := "disable"
+	if !card.Definition.Enabled {
+		toggle = "enable"
+	}
+	meta := viewchrome.FitHints(
+		[]string{viewchrome.KeyHint(theme, "e", "edit"), viewchrome.KeyHint(theme, "x", toggle)},
+		max(0, width-len(card.Definition.Name)-4),
+	)
+	titleStyle := theme.StyleHeader.Bold(true)
+	return viewchrome.RenderSection(theme, viewchrome.Section{
+		Title: card.Definition.Name, Meta: meta, TitleStyle: &titleStyle, Width: width, Height: height,
+		Lines: detailLines(theme, state, card, width-2, height-1, withContributors),
+	})
 }
 
 // visibleCards are the momentums the list filter keeps, in load order.

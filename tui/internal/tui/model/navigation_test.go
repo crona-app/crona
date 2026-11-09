@@ -13,7 +13,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func TestOpenSelectedViewDialogIncludesWorkedEstimate(t *testing.T) {
+func TestIssueDialogShowsTheDetailsPane(t *testing.T) {
 	issue := api.Issue{
 		ID:            1,
 		Title:         "Investigate timer display",
@@ -44,17 +44,8 @@ func TestOpenSelectedViewDialogIncludesWorkedEstimate(t *testing.T) {
 	if next.dialog != "view_entity" {
 		t.Fatalf("expected view entity dialog, got %q", next.dialog)
 	}
-	if !strings.Contains(next.dialogViewMeta, "worked 1h15m / est. -") {
-		t.Fatalf(
-			"expected dialog meta to include worked/estimate summary, got %q",
-			next.dialogViewMeta,
-		)
-	}
-	if strings.Contains(next.dialogViewBody, "Worked / est.") {
-		t.Fatalf(
-			"expected worked/estimate only in the meta, not repeated in the body, got %q",
-			next.dialogViewBody,
-		)
+	if body := ansi.Strip(next.dialogViewBody); !strings.Contains(body, "1h15m") || next.dialogViewName != "Investigate timer display" {
+		t.Fatalf("expected the details pane's lines, worked time included, got %q", body)
 	}
 }
 

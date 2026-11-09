@@ -10,12 +10,15 @@ import (
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
 	"crona.work/tui/internal/tui/commands"
+	dialogstate "crona.work/tui/internal/tui/dialogs/controller"
 	helperpkg "crona.work/tui/internal/tui/helpers"
 	layoutpkg "crona.work/tui/internal/tui/layout"
 	navigationutil "crona.work/tui/internal/tui/navigationutil"
 	selectionpkg "crona.work/tui/internal/tui/selection"
 	uistate "crona.work/tui/internal/tui/state"
+	habitlist "crona.work/tui/internal/tui/views/habitlist"
 	issuecore "crona.work/tui/internal/tui/views/issuecore"
+	issueview "crona.work/tui/internal/tui/views/issues"
 	"crona.work/tui/internal/tui/views/itemdetail"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	viewtypes "crona.work/tui/internal/tui/views/types"
@@ -363,6 +366,13 @@ func (m Model) openSelectedViewDialog() (Model, bool) {
 		if !ok {
 			return m, false
 		}
+		if m.view == ViewDefault {
+			return m.openDetailDialog("Issue", issueview.Detail, snapshot, func(dialog *dialogstate.State) {
+				if issue.Adhoc {
+					dialog.ViewEntityAdhoc, dialog.IssueID = true, issue.ID
+				}
+			})
+		}
 		repoName, streamName := "-", "-"
 		var issueMeta *api.IssueWithMeta
 		if meta := selectionpkg.IssueMetaByID(snapshot, issue.ID); meta != nil {
@@ -419,25 +429,7 @@ func (m Model) openSelectedViewDialog() (Model, bool) {
 		return m.withDialogState(dialog), true
 	case PaneHabits:
 		if m.view == ViewHabitList {
-			if habit, ok := m.selectedHabitRecord(); ok {
-				meta := []string{
-					fmt.Sprintf(
-						"Schedule %s",
-						formatHabitSchedule(habit.ScheduleType, habit.Weekdays),
-					),
-					fmt.Sprintf("Target %s", formatHabitTarget(habit.TargetMinutes)),
-					fmt.Sprintf("Active %t", habit.Active),
-					fmt.Sprintf("ID %d", habit.ID),
-				}
-				body := append([]string{"Description", optionalText(habit.Description)},
-					m.habitMomentumLines(snapshot, habit.ID)...)
-				return m.openViewEntityDialog(
-					"Habit",
-					habit.Name,
-					strings.Join(meta, "   "),
-					strings.Join(body, "\n"),
-				), true
-			}
+			return m.openDetailDialog("Habit", habitlist.Detail, snapshot, nil)
 		}
 		if m.view == ViewDaily {
 			if habit, ok := m.selectedDailyHabitRecord(); ok {
@@ -663,4 +655,23 @@ func (m Model) habitMomentumLines(snapshot selectionpkg.Snapshot, habitID int64)
 	return itemdetail.HabitMomentumLines(
 		layoutpkg.ViewTheme(), m.detailContentState(snapshot), habitID, viewEntityBodyWidth(m.width),
 	)
+}
+
+// openDetailDialog shows what the view's details pane shows for its selection, at the
+// dialog's width; adjust sets anything the dialog's keys need.
+func (m Model) openDetailDialog(
+	kind string,
+	detail func(viewtypes.Theme, viewtypes.ContentState, int) (string, []string, bool),
+	snapshot selectionpkg.Snapshot,
+	adjust func(*dialogstate.State),
+) (Model, bool) {
+	title, lines, ok := detail(layoutpkg.ViewTheme(), m.detailContentState(snapshot), viewEntityBodyWidth(m.width))
+	if !ok {
+		return m, false
+	}
+	dialog := m.dialogSnapshot().OpenViewEntity(kind, title, "", strings.Join(lines, "\n"))
+	if adjust != nil {
+		adjust(&dialog)
+	}
+	return m.withDialogState(dialog), true
 }

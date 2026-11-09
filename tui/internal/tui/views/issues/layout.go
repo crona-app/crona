@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
-	"crona.work/tui/internal/tui/views/itemdetail"
 	"crona.work/tui/internal/tui/views/scopepane"
 	types "crona.work/tui/internal/tui/views/types"
 )
@@ -22,7 +21,7 @@ func renderView(theme types.Theme, state types.ContentState) string {
 	if state.Width < 100 {
 		rows = append(rows, scopepane.RenderRow(theme, state, state.Width))
 		if height > 1 {
-			rows = append(rows, renderIssues(theme, state, state.Width, height-1))
+			rows = append(rows, listColumn(theme, state, state.Width, height-1))
 		}
 		return strings.Join(rows, "\n")
 	}
@@ -36,25 +35,24 @@ func renderView(theme types.Theme, state types.ContentState) string {
 		detailWidth = (listWidth - 3) / 2
 		listWidth -= detailWidth + 3
 	}
-	columns = append(columns, renderIssues(theme, state, listWidth, height))
+	if detailWidth == 0 {
+		columns = append(columns, listColumn(theme, state, listWidth, height))
+	} else {
+		columns = append(columns, renderIssues(theme, state, listWidth, height))
+	}
 	if detailWidth > 0 {
-		title := "Selected"
-		lines := []string{theme.StyleDim.Render("Nothing selected")}
-		indices := issueIndices(state)
-		cur := state.Cursors["issues"]
-		if cur >= 0 && cur < len(indices) {
-			issue := state.DefaultIssues[indices[cur]].Issue
-			title = issue.Title
-			lines = itemdetail.IssueLines(theme, state, issue, detailWidth-2)
-		}
-		columns = append(
-			columns,
-			viewchrome.RenderSection(
-				theme,
-				viewchrome.Section{Title: title, Width: detailWidth, Height: height, Lines: lines},
-			),
-		)
+		columns = append(columns, renderDetail(theme, state, detailWidth, height))
 	}
 	rows = append(rows, viewchrome.JoinColumns(theme, height, columns...))
 	return strings.Join(rows, "\n")
+}
+
+// listColumn is the list with the details stacked under it when the screen is too narrow for
+// them beside it and tall enough to hold both.
+func listColumn(theme types.Theme, state types.ContentState, width, height int) string {
+	if height < viewchrome.StackMinHeight {
+		return renderIssues(theme, state, width, height)
+	}
+	listH, detailH := viewchrome.StackHeights(height)
+	return renderIssues(theme, state, width, listH) + "\n" + renderDetail(theme, state, width, detailH)
 }

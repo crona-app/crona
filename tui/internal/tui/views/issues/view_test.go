@@ -148,8 +148,12 @@ func TestIssuesLayoutByWidth(t *testing.T) {
 		t.Fatalf("expected scope, list and detail at 200, got %q", wide)
 	}
 	medium := strings.Join(plain(Render(types.Theme{}, issuesState(120, 40))), "\n")
-	if !strings.Contains(medium, "─ Scope") || strings.Contains(medium, "─ Fix sync conflict") {
-		t.Fatalf("expected scope and list only at 120, got %q", medium)
+	if !strings.Contains(medium, "─ Scope") || !strings.Contains(medium, "─ Fix sync conflict") {
+		t.Fatalf("expected the detail stacked under the list at 120, got %q", medium)
+	}
+	short := strings.Join(plain(Render(types.Theme{}, issuesState(120, 20))), "\n")
+	if strings.Contains(short, "─ Fix sync conflict") {
+		t.Fatalf("expected no stacked detail on a short screen, got %q", short)
 	}
 	narrow := strings.Join(plain(Render(types.Theme{}, issuesState(80, 40))), "\n")
 	if strings.Contains(narrow, "─ Scope") || !strings.Contains(narrow, "Scope ‹ crona › tui ›") {

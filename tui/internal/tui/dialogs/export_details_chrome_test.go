@@ -105,13 +105,6 @@ func TestDetailDialogs(t *testing.T) {
 		ViewMeta:  "OSS / cli",
 		ViewBody:  "Body text",
 	}
-	momentum := controllerpkg.State{
-		Kind:        "view_momentum_detail",
-		ViewTitle:   "Momentum Detail",
-		ViewName:    "Recovery Mix",
-		ViewBody:    "Summary",
-		ChoiceItems: []string{"Run", "Read"},
-	}
 	bundle := controllerpkg.State{
 		Kind:      "support_bundle_result",
 		ViewTitle: "Support Bundle Ready",
@@ -120,7 +113,6 @@ func TestDetailDialogs(t *testing.T) {
 	}
 	for _, c := range []formCase{
 		{name: "view_entity", state: entity, title: "Issue"},
-		{name: "view_momentum_detail", state: momentum, title: "Momentum Detail"},
 		{name: "support_bundle_result", state: bundle, title: "Support Bundle Ready"},
 	} {
 		out := ansi.Strip(Render(testTheme(), sized(c.state, 120, 36)))

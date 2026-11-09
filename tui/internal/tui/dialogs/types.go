@@ -86,7 +86,6 @@ func Render(theme Theme, state controllerpkg.State) string {
 		"create_alert_reminder",
 		"edit_alert_reminder",
 		"view_entity",
-		"view_momentum_detail",
 		"support_bundle_result",
 		"complete_habit",
 		"view_jump",

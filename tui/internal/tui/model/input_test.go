@@ -10,6 +10,7 @@ import (
 	inputpkg "crona.work/tui/internal/tui/input"
 	uistate "crona.work/tui/internal/tui/state"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestInputDepsOpenCheckInDialogUsesCreateForMissingCheckIn(t *testing.T) {
@@ -320,8 +321,8 @@ func TestMomentumEnterUsesDetailsInsteadOfEdit(t *testing.T) {
 	if !handled {
 		t.Fatal("expected momentum enter to be handled")
 	}
-	if cmd == nil {
-		t.Fatal("expected momentum enter to load details")
+	if cmd != nil || next.dialog != "view_entity" {
+		t.Fatalf("expected momentum enter to open the details dialog, got %q", next.dialog)
 	}
 	if next.dialog == "edit_momentum" {
 		t.Fatalf("expected enter to avoid edit dialog, got %q", next.dialog)
@@ -381,8 +382,12 @@ func TestMomentumEnterOpensDialogAtAnyWidth(t *testing.T) {
 				},
 			}},
 		}
-		if _, cmd, handled := model.handleInputEnter(); !handled || cmd == nil {
-			t.Fatalf("width %d: expected enter to load the details dialog", width)
+		next, _, handled := model.handleInputEnter()
+		if !handled || next.dialog != "view_entity" || !strings.Contains(next.dialogViewName, "Focus") {
+			t.Fatalf("width %d: expected enter to open the details dialog, got %q", width, next.dialog)
+		}
+		if !strings.Contains(ansi.Strip(next.dialogViewBody), "Cadence") {
+			t.Fatalf("width %d: expected the pane's details in the dialog, got %q", width, next.dialogViewBody)
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package model
 
 import (
+	dialogstate "crona.work/tui/internal/tui/dialogs/controller"
+	"crona.work/tui/internal/tui/views/momentumview"
 	"fmt"
 	"strings"
 
@@ -289,12 +291,9 @@ func (m Model) handleInputEnter() (Model, tea.Cmd, bool) {
 	}
 	if m.view == ViewMomentum {
 		if card, ok := m.selectedMomentumCard(); ok {
-			return m, commands.LoadMomentumDetail(
-				m.client,
-				card.Definition.ID,
-				m.momentumBucketDate(*card),
-				m.currentMomentumWindowDays(),
-			), true
+			m, _ = m.openDetailDialog("Momentum", momentumview.Detail, m.selectionSnapshot(), func(dialog *dialogstate.State) {
+				dialog.HabitStreakDraft = card.Definition
+			})
 		}
 		return m, nil, true
 	}

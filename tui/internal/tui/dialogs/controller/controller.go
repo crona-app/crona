@@ -505,8 +505,6 @@ func Update(
 		return updateAlertReminder(state, msg)
 	case "view_entity":
 		return updateViewEntity(state, msg)
-	case "view_momentum_detail":
-		return updateMomentumDetail(state, msg)
 	case "support_bundle_result":
 		return updateSupportBundleResult(state, msg)
 	case "view_jump":

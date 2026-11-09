@@ -37,7 +37,7 @@ func renderUtilityDialog(theme Theme, state controllerpkg.State) string {
 		return renderOnboardingScreen(theme, state)
 	case "create_alert_reminder", "edit_alert_reminder":
 		return renderReminderForm(theme, state)
-	case "view_entity", "view_momentum_detail", "support_bundle_result":
+	case "view_entity", "support_bundle_result":
 		return renderDetailView(theme, state)
 	case "view_jump":
 		return renderViewJump(theme, state)
