@@ -2,7 +2,6 @@ package daily
 
 import (
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
-	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	types "crona.work/tui/internal/tui/views/types"
 )
 
@@ -26,9 +25,9 @@ func newTaskLine(theme types.Theme, state types.ContentState, width int) string 
 	return viewchrome.FitHints(hints, width)
 }
 
-// taskActionLine stands in for the focused selected card's meta line. It offers what the
+// TaskActionLine stands in for the focused selected card's meta line. It offers what the
 // pane's key list did: keys that start or edit work only while no timer runs.
-func taskActionLine(theme types.Theme, state types.ContentState, width int) string {
+func TaskActionLine(theme types.Theme, state types.ContentState, width int) string {
 	hints := []string{enterHint(theme, state)}
 	if state.SelectedIssueAdhoc {
 		if timerIdle(state) {
@@ -75,15 +74,10 @@ func habitActionLine(theme types.Theme, state types.ContentState, width int) str
 	return "    " + viewchrome.FitHints(hints, width-4)
 }
 
-// TaskActionLine renders the selected issue card action hints.
-func TaskActionLine(theme types.Theme, state types.ContentState, width int) string {
-	return taskActionLine(theme, state, width)
-}
-
 // enterHint names what enter does on a selected task or habit: it shows the details in the
 // detail pane on wide screens, and opens them in a dialog where that pane is hidden or folded.
 func enterHint(theme types.Theme, state types.ContentState) string {
-	if viewhelpers.ClassFor(state.Width) == viewhelpers.WidthWide {
+	if layoutFor(state).wide {
 		return viewchrome.KeyHint(theme, "enter", "details")
 	}
 	return viewchrome.KeyHint(theme, "enter", "open")

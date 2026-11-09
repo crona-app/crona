@@ -8,6 +8,7 @@ import (
 	"crona.work/tui/internal/tui/views/daily"
 	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	issuecore "crona.work/tui/internal/tui/views/issuecore"
+	"crona.work/tui/internal/tui/views/itemdetail"
 	sessionmeta "crona.work/tui/internal/tui/views/sessionmeta"
 	types "crona.work/tui/internal/tui/views/types"
 
@@ -72,10 +73,10 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 			}
 			issue := state.DefaultIssues[indices[pos]]
 			title := issue.Title
-			if penalty := daily.PenaltyMarkerText(state, issue.ID); penalty != "" {
+			if penalty := itemdetail.PenaltyMarker(state, issue.ID); penalty != "" {
 				title += "  " + penalty
 			}
-			if carry := daily.CarryMarkerText(state, issue.ID); carry != "" {
+			if carry := itemdetail.CarryMarker(state, issue.ID); carry != "" {
 				title += "  " + carry
 			}
 			date := issuecore.IssueDateLabel(issue.Status, issue.TodoForDate, issue.CompletedAt, issue.AbandonedAt, state.Settings)

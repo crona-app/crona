@@ -1,6 +1,7 @@
 package daily
 
 import (
+	"crona.work/tui/internal/tui/views/itemdetail"
 	"strings"
 	"testing"
 
@@ -305,7 +306,7 @@ func TestDefinitionHabitStatus(t *testing.T) {
 					{HabitWithMeta: habit, Status: sharedtypes.HabitCompletionStatus(tc.status)},
 				}
 			}
-			got := ansi.Strip(strings.Join(HabitDetailLines(testTheme(), state, habit, 80), "\n"))
+			got := ansi.Strip(strings.Join(itemdetail.DefinitionLines(testTheme(), state, habit, 80), "\n"))
 			if !strings.Contains(got, "● "+tc.want) {
 				t.Fatalf("wanted %q: %s", tc.want, got)
 			}
@@ -314,7 +315,7 @@ func TestDefinitionHabitStatus(t *testing.T) {
 }
 
 func TestDailyHabitZeroStatusRemainsDue(t *testing.T) {
-	lines := habitDetailLines(testTheme(), types.ContentState{}, api.HabitDailyItem{}, 80)
+	lines := itemdetail.HabitLines(testTheme(), types.ContentState{}, api.HabitDailyItem{}, 80)
 	if got := ansi.Strip(strings.Join(lines, "\n")); !strings.Contains(got, "● due") {
 		t.Fatal(got)
 	}
@@ -383,7 +384,7 @@ func TestHabitDetailShowsHitRateTrailAndRecent(t *testing.T) {
 		{HabitID: 7, Date: "2026-05-25", Status: "failed", DurationMinutes: &five},
 		{HabitID: 8, Date: "2026-05-26", Status: "completed"},
 	}
-	got := strings.Join(strings.Fields(ansi.Strip(strings.Join(habitDetailLines(testTheme(), state, habit, 80), "\n"))), " ")
+	got := strings.Join(strings.Fields(ansi.Strip(strings.Join(itemdetail.HabitLines(testTheme(), state, habit, 80), "\n"))), " ")
 	for _, want := range []string{"50%", "Hit/30d", "Last 14d", "✗ ● ·", "Recent", "Tue 26 May", "10m ✓", "5m ✗"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected %q, got %q", want, got)

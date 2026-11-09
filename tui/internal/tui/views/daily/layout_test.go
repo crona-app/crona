@@ -81,8 +81,8 @@ func TestDailySplitsTasksAndHabitsEvenly(t *testing.T) {
 			state := manyIssues(dailyState(width, 40), tasks)
 			rendered := renderView(testTheme(), state)
 			tasksH := rowOf(t, rendered, "─ Habits Due") - rowOf(t, rendered, "─ Tasks")
-			strip := len(renderDayStrip(testTheme(), state, width))
-			if dailySummaryPaneShown(state) {
+			strip := len(dayStripRows(testTheme(), state, width, dayStripMaxRows))
+			if layoutFor(state).wide {
 				strip = 0
 			}
 			habitsH := 40 - strip - tasksH

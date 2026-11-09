@@ -1,4 +1,5 @@
-// Package daily renders the Daily pane's Tasks and Habits lists, with their headers, action lines and meta rows.
+// Package daily renders Today: the day strip, Tasks and Habits, the score calendar and the
+// detail pane.
 package daily
 
 import (
@@ -12,8 +13,8 @@ import (
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	issuecore "crona.work/tui/internal/tui/views/issuecore"
+	"crona.work/tui/internal/tui/views/itemdetail"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
-	sessionmeta "crona.work/tui/internal/tui/views/sessionmeta"
 	types "crona.work/tui/internal/tui/views/types"
 	viewui "crona.work/tui/internal/tui/views/ui"
 
@@ -24,9 +25,9 @@ import (
 func renderIssues(theme types.Theme, state types.ContentState, width, height int) string {
 	active := state.Pane == "issues" && !state.DailyDetailFocus
 	cur := state.Cursors["issues"]
-	sources := filteredDailyIssues(state)
+	sources := state.DailyIssues
 	issues := dailyAPIIssues(sources)
-	indices := dailyIssueIndices(state, issues)
+	indices := dailyIssueIndices(state)
 	total := len(indices)
 	base := viewui.PaneBase{Focused: active, Width: width, Height: height, Cursor: cur}
 	meta := fmt.Sprintf("%d  [←/→]", total)
@@ -144,23 +145,14 @@ func renderCompactDailyIssueList(
 			lines = append(lines, "")
 		}
 		issue := issues[rawIdx]
-		meta := sessionmeta.IssueMetaByID(state.AllIssues, issue.ID)
-		repoName, streamName := dailyIssueContext(sources[rawIdx])
-		workedSeconds := issue.WorkedSeconds
-		if meta != nil {
-			repoName = meta.RepoName
-			streamName = meta.StreamName
-			if workedSeconds <= 0 && meta.WorkedSeconds > 0 {
-				workedSeconds = meta.WorkedSeconds
+		repoName, streamName, _, workedSeconds := itemdetail.IssueWhere(state, sources[rawIdx])
+		title := issue.Title
+		for _, marker := range []string{itemdetail.PenaltyMarker(state, issue.ID), itemdetail.CarryMarker(state, issue.ID)} {
+			if marker != "" {
+				title += "  " + marker
 			}
 		}
-		title := issue.Title
-		if marker := PenaltyMarkerText(state, issue.ID); marker != "" {
-			title += "  " + marker
-		}
-		if marker := CarryMarkerText(state, issue.ID); marker != "" {
-			title += "  " + marker
-		}
+		status := itemdetail.Status(state, issue.ID, issue.Status)
 		lines = append(
 			lines,
 			renderCompactDailyIssueTitle(
@@ -171,11 +163,11 @@ func renderCompactDailyIssueList(
 				active,
 				title,
 				compactDailyIssueDate(state, issue),
-				DisplayIssueStatus(state, issue.ID, issue.Status),
+				status,
 			),
 		)
 		if start+idx == cur && active {
-			lines = append(lines, taskActionLine(theme, state, width))
+			lines = append(lines, TaskActionLine(theme, state, width))
 			continue
 		}
 		lines = append(lines, renderCompactDailyIssueMeta(
@@ -188,7 +180,7 @@ func renderCompactDailyIssueList(
 			streamName,
 			workedSeconds,
 			issue.EstimateMinutes,
-			DisplayIssueStatus(state, issue.ID, issue.Status),
+			status,
 			issuecore.TagChips(theme, issue.Tags, state.Tags, max(0, width/2)),
 		))
 	}
@@ -196,18 +188,6 @@ func renderCompactDailyIssueList(
 		lines = append(lines, base.MoreBelow(theme, remaining))
 	}
 	return lines
-}
-
-// dailyIssueContext is the issue's own repo and stream, used until session metadata has it.
-func dailyIssueContext(issue api.Issue) (string, string) {
-	repo, stream := strings.TrimSpace(issue.RepoName), strings.TrimSpace(issue.StreamName)
-	if repo == "" {
-		repo = "-"
-	}
-	if stream == "" {
-		stream = "-"
-	}
-	return repo, stream
 }
 
 func renderCompactDailyIssueTitle(
@@ -273,7 +253,7 @@ func renderCompactDailyIssueMeta(
 func compactDailyIssueDate(state types.ContentState, issue issuecore.APIIssue) string {
 	// On Planned only pinned tasks can sit on another day, so only they carry a date.
 	if state.DailyTaskSection == "planned" &&
-		(issue.TodoForDate == nil || strings.TrimSpace(*issue.TodoForDate) == dailyDate(state)) {
+		(issue.TodoForDate == nil || strings.TrimSpace(*issue.TodoForDate) == viewruntime.ShownDate(state)) {
 		return ""
 	}
 	return issuecore.IssueDateLabel(
@@ -341,17 +321,13 @@ func dailyPinnedCount(state types.ContentState, sources []api.Issue) int {
 	return count
 }
 
-// filteredDailyIssues is the model's section-scoped task list; the view never re-scopes it.
-func filteredDailyIssues(state types.ContentState) []api.Issue {
-	return state.DailyIssues
-}
-
-// dailyIssueIndices is the model's filtered order for Tasks; the cursor is a position in it.
-func dailyIssueIndices(state types.ContentState, issues []issuecore.APIIssue) []int {
+// dailyIssueIndices is the model's filtered order for Tasks (state.DailyIssues, which the
+// model scopes to the section); the cursor is a position in it.
+func dailyIssueIndices(state types.ContentState) []int {
 	if state.DailyIssueIndices != nil {
 		return state.DailyIssueIndices
 	}
-	return issuecore.FilteredIssueIndices(issues, state.Filters["issues"])
+	return issuecore.FilteredIssueIndices(dailyAPIIssues(state.DailyIssues), state.Filters["issues"])
 }
 
 // dailyHabitIndices is the model's filtered order for Habits; the cursor is a position in it.
@@ -430,13 +406,18 @@ func habitRow(
 	nameWidth, width int,
 	selected, active bool,
 ) string {
-	mark, style := habitMark(theme, habit)
+	look := itemdetail.LookOf(theme, string(habit.Status))
+	style := theme.StyleNormal
+	if habit.Status == "completed" || habit.Status == "failed" {
+		style = lipgloss.NewStyle().Foreground(look.Color)
+	}
+	mark := look.Checkbox
 	cursor := "  "
 	if selected && active {
 		cursor = theme.StyleCursor.Render(viewchrome.SelectionCursor + " ")
 		style = style.Bold(true)
 	}
-	name := style.Render(mark + " " + padCells(habit.Name, min(nameWidth, max(8, width/2))))
+	name := style.Render(mark + " " + viewhelpers.PadCells(habit.Name, min(nameWidth, max(8, width/2))))
 	minutes := theme.StyleDim.Render(habitMinutesText(habit))
 	// The status sits on the meta row, so the title row is name, meter and minutes.
 	for _, parts := range [][]string{
@@ -461,7 +442,7 @@ func habitMetaRow(theme types.Theme, state types.ContentState, habit api.HabitDa
 		status = "failed"
 	}
 	parts := []string{issuecore.IssueContextLabel(habit.RepoName, habit.StreamName)}
-	if schedule := strings.ReplaceAll(string(habit.ScheduleType), "_", " "); schedule != "" {
+	if schedule := itemdetail.Schedule(habit.Habit); schedule != "" {
 		parts = append(parts, schedule)
 	}
 	meta := "    " + strings.Join(append(parts, status), " | ")
@@ -494,37 +475,14 @@ func habitMinutesText(habit api.HabitDailyItem) string {
 // habitMeter fills with logged minutes against the target; a completed habit without a
 // target reads as full.
 func habitMeter(theme types.Theme, habit api.HabitDailyItem) string {
-	filled := 0
+	value, scale := 0, 1
 	switch {
 	case habit.TargetMinutes != nil && *habit.TargetMinutes > 0 && habit.DurationMinutes != nil:
-		filled = min(
-			habitRowBarWidth,
-			*habit.DurationMinutes*habitRowBarWidth / *habit.TargetMinutes,
-		)
+		value, scale = *habit.DurationMinutes, *habit.TargetMinutes
 	case habit.Status == "completed":
-		filled = habitRowBarWidth
+		value = 1
 	}
-	color := theme.ColorYellow
-	switch habit.Status {
-	case "completed":
-		color = theme.ColorGreen
-	case "failed":
-		color = theme.ColorRed
-	}
-	return lipgloss.NewStyle().Foreground(color).Render(strings.Repeat("█", filled)) +
-		theme.StyleDim.Render(strings.Repeat("░", habitRowBarWidth-filled))
-}
-
-// habitMark is a habit's checkbox and the colour its row is drawn in.
-func habitMark(theme types.Theme, habit api.HabitDailyItem) (string, lipgloss.Style) {
-	switch habit.Status {
-	case "completed":
-		return "[x]", lipgloss.NewStyle().Foreground(theme.ColorGreen)
-	case "failed":
-		return "[!]", lipgloss.NewStyle().Foreground(theme.ColorRed)
-	default:
-		return "[ ]", theme.StyleNormal
-	}
+	return itemdetail.Meter(theme, itemdetail.LookOf(theme, string(habit.Status)).Color, value, scale, habitRowBarWidth)
 }
 
 // sectionBodyRows is the list budget left in a section of height rows after its header and lines.

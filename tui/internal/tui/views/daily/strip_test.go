@@ -15,7 +15,7 @@ import (
 )
 
 func stripRows(width int) []string {
-	lines := renderDayStrip(testTheme(), dailySummaryTestState(), width)
+	lines := dayStripRows(testTheme(), dailySummaryTestState(), width, dayStripMaxRows)
 	for i, line := range lines {
 		lines[i] = ansi.Strip(line)
 	}
@@ -70,7 +70,7 @@ func TestDayStripAlignsSignalsAndStreaksInColumns(t *testing.T) {
 func TestDayStripSignalsAverageWithoutCheckIn(t *testing.T) {
 	state := dailySummaryTestState()
 	state.DailyCheckIn = nil
-	rows := renderDayStrip(testTheme(), state, 160)
+	rows := dayStripRows(testTheme(), state, 160, dayStripMaxRows)
 	if want := "Mood avg 3.1/5 Energy avg 3.8/5 Sleep avg 6h15m"; !strings.Contains(
 		fieldsOf(ansi.Strip(rows[0])),
 		want,
@@ -84,7 +84,7 @@ func TestDayStripIsTwoRowsWithoutSignals(t *testing.T) {
 	state.DailyCheckIn = nil
 	state.MetricsRollup = nil
 	state.DailyStreaks = nil
-	if lines := renderDayStrip(testTheme(), state, 160); len(lines) != 2 {
+	if lines := dayStripRows(testTheme(), state, 160, dayStripMaxRows); len(lines) != 2 {
 		t.Fatalf("expected only the two meter rows, got %d", len(lines))
 	}
 }
@@ -111,7 +111,7 @@ func TestDayStripDropsRightmostColumnsWhenNarrow(t *testing.T) {
 
 func TestDayStripFitsWidth(t *testing.T) {
 	for _, width := range []int{40, 60, 80, 120, 285} {
-		for i, line := range renderDayStrip(testTheme(), dailySummaryTestState(), width) {
+		for i, line := range dayStripRows(testTheme(), dailySummaryTestState(), width, dayStripMaxRows) {
 			if got := ansi.StringWidth(line); got != width {
 				t.Fatalf("width %d: row %d is %d cells: %q", width, i, got, ansi.Strip(line))
 			}

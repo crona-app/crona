@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
-	"crona.work/tui/internal/tui/views/daily"
+	"crona.work/tui/internal/tui/views/itemdetail"
 	"crona.work/tui/internal/tui/views/scopepane"
 	types "crona.work/tui/internal/tui/views/types"
 )
@@ -45,7 +45,7 @@ func renderView(theme types.Theme, state types.ContentState) string {
 		if cur >= 0 && cur < len(indices) {
 			issue := state.DefaultIssues[indices[cur]].Issue
 			title = issue.Title
-			lines = daily.IssueDetailLines(theme, state, issue, detailWidth-2)
+			lines = itemdetail.IssueLines(theme, state, issue, detailWidth-2)
 		}
 		columns = append(
 			columns,

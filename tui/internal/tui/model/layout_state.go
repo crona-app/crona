@@ -11,7 +11,7 @@ import (
 	helperpkg "crona.work/tui/internal/tui/helpers"
 	layoutpkg "crona.work/tui/internal/tui/layout"
 	selectionpkg "crona.work/tui/internal/tui/selection"
-	dailyviews "crona.work/tui/internal/tui/views/daily"
+	"crona.work/tui/internal/tui/views/itemdetail"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	viewtypes "crona.work/tui/internal/tui/views/types"
 
@@ -254,8 +254,8 @@ func (m Model) dialogRenderState() dialogstate.State {
 			m.currentDate(),
 		)
 		if state.Parent == "" {
-			state.PenaltyHint = dailyviews.RescheduleHint(m.dailyPlan, state.IssueID)
-			if dailyviews.RescheduleCarries(m.dailyPlan, state.IssueID, m.currentLogicalDate(), m.settings) {
+			state.PenaltyHint = itemdetail.RescheduleHint(m.dailyPlan, state.IssueID)
+			if itemdetail.RescheduleCarries(m.dailyPlan, state.IssueID, m.currentLogicalDate(), m.settings) {
 				state.DateTitle = "Carry Over To"
 				state.PenaltyHint = "Worked on today, so this carries it over instead of postponing it."
 			}

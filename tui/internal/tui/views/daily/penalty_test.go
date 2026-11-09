@@ -1,6 +1,7 @@
 package daily
 
 import (
+	"crona.work/tui/internal/tui/views/itemdetail"
 	"strings"
 	"testing"
 
@@ -99,18 +100,6 @@ func TestDetailShowsOnScheduleWithoutPenalty(t *testing.T) {
 	}
 }
 
-func TestRescheduleHintShowsPushCost(t *testing.T) {
-	if got := RescheduleHint(penaltyPlan(false), 2); got != "Push a day: penalty rises to 3.81 (+0.43)" {
-		t.Fatalf("unexpected hint %q", got)
-	}
-	if got := RescheduleHint(penaltyPlan(true), 2); got != "" {
-		t.Fatalf("expected no hint for a resolved entry, got %q", got)
-	}
-	if got := RescheduleHint(nil, 2); got != "" {
-		t.Fatalf("expected no hint without a plan, got %q", got)
-	}
-}
-
 func TestIssueInsightLinesMatchTheDetailPane(t *testing.T) {
 	state := detailState()
 	state.DailyPlan = penaltyPlan(false)
@@ -120,11 +109,11 @@ func TestIssueInsightLinesMatchTheDetailPane(t *testing.T) {
 		},
 		Current: 4, Longest: 9,
 	}}
-	issue := strings.Join(strings.Fields(ansi.Strip(strings.Join(IssueInsightLines(testTheme(), state, 2, 0, 0, 80), "\n"))), " ")
+	issue := strings.Join(strings.Fields(ansi.Strip(strings.Join(itemdetail.IssueInsightLines(testTheme(), state, 2, 0, 0, 80), "\n"))), " ")
 	if !strings.Contains(issue, "Delay penalty ▲ high risk") {
 		t.Fatalf("expected the delay penalty for the dialog, got %q", issue)
 	}
-	habit := ansi.Strip(strings.Join(HabitMomentumLines(testTheme(), state, 2, 80), "\n"))
+	habit := ansi.Strip(strings.Join(itemdetail.HabitMomentumLines(testTheme(), state, 2, 80), "\n"))
 	if !strings.Contains(habit, "Momentum") || !strings.Contains(habit, "Fitness") || !strings.ContainsAny(habit, "▰▱") {
 		t.Fatalf("expected the habit's momentum ladder for the dialog, got %q", habit)
 	}

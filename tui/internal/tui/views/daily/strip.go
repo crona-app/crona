@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	helperpkg "crona.work/tui/internal/tui/helpers"
+
 	viewcalendar "crona.work/tui/internal/tui/views/calendar"
 	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
@@ -21,11 +23,6 @@ const (
 
 // dayStripMaxRows is the strip's full height: the Tasks and Habits meter rows.
 const dayStripMaxRows = 2
-
-// renderDayStrip is the htop-style header above the Daily lists at its full height.
-func renderDayStrip(theme types.Theme, state types.ContentState, width int) []string {
-	return dayStripRows(theme, state, width, dayStripMaxRows)
-}
 
 // dayStripRows renders at most maxRows of the strip: Tasks over Habits meters, then columns
 // pairing a check-in signal over a streak (Mood over Focus, Energy over Check-ins, then
@@ -79,17 +76,17 @@ func dayStripRows(theme types.Theme, state types.ContentState, width, maxRows in
 			if i < len(column) {
 				cell = column[i]
 			}
-			cells = append(cells, padCells(cell, columnWidth(column)))
+			cells = append(cells, viewhelpers.PadCells(cell, columnWidth(column)))
 		}
 		left := " " + strings.TrimRight(strings.Join(cells, dayStripColumnGap), " ")
 		if i < len(week) {
-			right := padCells(week[i], columnWidth(week)) + " "
+			right := viewhelpers.PadCells(week[i], columnWidth(week)) + " "
 			left += strings.Repeat(
 				" ",
 				max(0, width-ansi.StringWidth(left)-ansi.StringWidth(right)),
 			) + right
 		}
-		rows[i] = padCells(left, width)
+		rows[i] = viewhelpers.PadCells(left, width)
 	}
 	return rows
 }
@@ -97,7 +94,7 @@ func dayStripRows(theme types.Theme, state types.ContentState, width, maxRows in
 // dayWeek is the shown date's week as weekday names over day numbers.
 func dayWeek(theme types.Theme, state types.ContentState) []string {
 	lines, ok := viewcalendar.WeekRow(theme, viewcalendar.Selection{
-		SelectedDate: dailyDate(state),
+		SelectedDate: viewruntime.ShownDate(state),
 		WeekStart:    state.WeekStart,
 		AwayDates:    state.AwayDates(),
 	})
@@ -111,7 +108,7 @@ func dayWeek(theme types.Theme, state types.ContentState) []string {
 // flanked by the date-navigation keys. Within room it drops the key words first, then the
 // keys, then the week, so the date always shows.
 func SubTabMeta(theme types.Theme, state types.ContentState, room int) string {
-	return viewcalendar.DateNav(theme, dailyDate(state), "", state.Settings, state.WeekStart, room)
+	return viewcalendar.DateNav(theme, viewruntime.ShownDate(state), "", state.Settings, state.WeekStart, room)
 }
 
 func dayMeterColumn(theme types.Theme, state types.ContentState, withBars bool) []string {
@@ -146,9 +143,9 @@ func dayMeterColumn(theme types.Theme, state types.ContentState, withBars bool) 
 	valueWidth := max(len(values[0]), len(values[1]))
 	row := func(label, value, bar, tail string) string {
 		line := theme.StyleHeader.Render(
-			padCells(label, 6),
+			viewhelpers.PadCells(label, 6),
 		) + "  " + theme.StyleNormal.Render(
-			padCells(value, valueWidth),
+			viewhelpers.PadCells(value, valueWidth),
 		)
 		if bar != "" {
 			line += "  " + bar
@@ -174,7 +171,7 @@ func dayMeterColumn(theme types.Theme, state types.ContentState, withBars bool) 
 			"Tasks",
 			values[0],
 			tasksBar,
-			theme.StyleDim.Render(issueProgressText(worked, estimate, true)),
+			theme.StyleDim.Render(workedOfEstimate(worked, estimate)),
 		),
 		row("Habits", values[1], habitsBar, ""),
 	}
@@ -185,11 +182,8 @@ func dayMeterColumn(theme types.Theme, state types.ContentState, withBars bool) 
 // neither value is left out.
 func dayGridColumns(theme types.Theme, state types.ContentState) [][]string {
 	type cell struct{ label, value string }
-	top := []cell{
-		{"Mood", signalMoodValue(state)},
-		{"Energy", signalEnergyValue(state)},
-		{"Sleep", signalSleepValue(state)},
-	}
+	mood, energy, sleep := checkInSignals(state)
+	top := []cell{{"Mood", mood}, {"Energy", energy}, {"Sleep", sleep}}
 	bottom := []cell{{"Focus", ""}, {"Check-ins", ""}, {"", ""}, {"Plan", ""}}
 	if streaks := state.DailyStreaks; streaks != nil {
 		bottom[0].value = fmt.Sprintf(
@@ -233,7 +227,7 @@ func dayGridColumns(theme types.Theme, state types.ContentState) [][]string {
 		column := make([]string, len(pair))
 		for row, c := range pair {
 			if c.value != "" {
-				column[row] = theme.StyleHeader.Render(padCells(c.label, labelWidth)) + "  " +
+				column[row] = theme.StyleHeader.Render(viewhelpers.PadCells(c.label, labelWidth)) + "  " +
 					theme.StyleNormal.Render(strings.TrimPrefix(c.value, "today "))
 			}
 		}
@@ -261,19 +255,34 @@ func stripWidth(columns [][]string) int {
 	return width
 }
 
-// dailyDate is the day Daily shows: the loaded summary's date, else the dashboard date.
-func dailyDate(state types.ContentState) string {
-	if state.DailySummary != nil && state.DailySummary.Date != "" {
-		return state.DailySummary.Date
+// checkInSignals are the strip's Mood, Energy and Sleep: today's check-in once made, else
+// the window's averages, "avg"-led; "" where neither has a value.
+func checkInSignals(state types.ContentState) (mood, energy, sleep string) {
+	if r := state.MetricsRollup; r != nil {
+		if r.AverageMood != nil {
+			mood = fmt.Sprintf("avg %.1f/5", *r.AverageMood)
+		}
+		if r.AverageEnergy != nil {
+			energy = fmt.Sprintf("avg %.1f/5", *r.AverageEnergy)
+		}
+		if r.AverageSleepHours != nil {
+			sleep = "avg " + helperpkg.FormatCompactDurationHours(*r.AverageSleepHours)
+		}
 	}
-	return viewruntime.CurrentDashboardDate(state)
+	if c := state.DailyCheckIn; c != nil && c.Date != "" {
+		mood, energy = fmt.Sprintf("%d/5", c.Mood), fmt.Sprintf("%d/5", c.Energy)
+		if c.SleepHours != nil {
+			sleep = helperpkg.FormatCompactDurationHours(*c.SleepHours)
+		}
+	}
+	return mood, energy, sleep
 }
 
-// padCells truncates or pads s to exactly width cells.
-func padCells(s string, width int) string {
-	s = viewhelpers.TruncateANSI(s, width)
-	if w := ansi.StringWidth(s); w < width {
-		s += strings.Repeat(" ", width-w)
+// workedOfEstimate is "1h/2h", or just the time worked without an estimate.
+func workedOfEstimate(workedSeconds, estimateMinutes int) string {
+	worked := helperpkg.FormatCompactDurationSeconds(workedSeconds)
+	if estimateMinutes > 0 {
+		return worked + "/" + helperpkg.FormatCompactDurationMinutes(estimateMinutes)
 	}
-	return ansi.Truncate(s, width, "")
+	return worked
 }

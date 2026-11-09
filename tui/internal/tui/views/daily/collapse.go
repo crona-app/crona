@@ -6,6 +6,7 @@ import (
 	uistate "crona.work/tui/internal/tui/state"
 	viewcalendar "crona.work/tui/internal/tui/views/calendar"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
+	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	types "crona.work/tui/internal/tui/views/types"
 )
 
@@ -42,7 +43,7 @@ func collapsedPane(theme types.Theme, title, pane string, width int) string {
 // scoreCalendarLines is the Summary Calendar for the shown date, boxed as the C dialog draws
 // it; week keeps only the shown week.
 func scoreCalendarLines(theme types.Theme, state types.ContentState, width int, week bool) []string {
-	selection := viewcalendar.ScoreSelection{AnchorDate: dailyDate(state)}
+	selection := viewcalendar.ScoreSelection{AnchorDate: viewruntime.ShownDate(state)}
 	if state.Health != nil {
 		selection.Today = state.Health.CurrentDate
 	}
@@ -57,8 +58,7 @@ func scoreCalendarLines(theme types.Theme, state types.ContentState, width int, 
 	if len(lines) == 0 {
 		return nil
 	}
-	// A blank row parts the month caption from the grid.
-	// A blank row parts the grid from the pane below.
+	// Blank rows part the month caption from the grid, and the grid from the pane below.
 	return append(padded(append([]string{lines[0], ""}, lines[1:]...)), "")
 }
 

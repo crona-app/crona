@@ -48,3 +48,12 @@ func FormatCompactDurationSeconds(totalSeconds int) string {
 func StringsJoin(rows []string) string {
 	return strings.Join(rows, "\n")
 }
+
+// PadCells truncates or pads s to exactly width cells.
+func PadCells(s string, width int) string {
+	s = TruncateANSI(s, width)
+	if w := ansi.StringWidth(s); w < width {
+		s += strings.Repeat(" ", width-w)
+	}
+	return s
+}

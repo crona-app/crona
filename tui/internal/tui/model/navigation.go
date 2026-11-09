@@ -15,8 +15,8 @@ import (
 	navigationutil "crona.work/tui/internal/tui/navigationutil"
 	selectionpkg "crona.work/tui/internal/tui/selection"
 	uistate "crona.work/tui/internal/tui/state"
-	dailyviews "crona.work/tui/internal/tui/views/daily"
 	issuecore "crona.work/tui/internal/tui/views/issuecore"
+	"crona.work/tui/internal/tui/views/itemdetail"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	viewtypes "crona.work/tui/internal/tui/views/types"
 
@@ -402,7 +402,7 @@ func (m Model) openSelectedViewDialog() (Model, bool) {
 		if issueMeta != nil {
 			repoID = issueMeta.RepoID
 		}
-		body = append(body, dailyviews.IssueInsightLines(
+		body = append(body, itemdetail.IssueInsightLines(
 			layoutpkg.ViewTheme(), m.detailContentState(snapshot),
 			issue.ID, repoID, issue.StreamID, viewEntityBodyWidth(m.width),
 		)...)
@@ -660,7 +660,7 @@ func (m Model) detailContentState(snapshot selectionpkg.Snapshot) viewtypes.Cont
 }
 
 func (m Model) habitMomentumLines(snapshot selectionpkg.Snapshot, habitID int64) []string {
-	return dailyviews.HabitMomentumLines(
+	return itemdetail.HabitMomentumLines(
 		layoutpkg.ViewTheme(), m.detailContentState(snapshot), habitID, viewEntityBodyWidth(m.width),
 	)
 }

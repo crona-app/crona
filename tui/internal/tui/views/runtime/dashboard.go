@@ -22,3 +22,11 @@ func HabitDailyItems(habits []api.HabitDailyItem) []string {
 	}
 	return items
 }
+
+// ShownDate is the day Today shows: the loaded summary's date, else the dashboard date.
+func ShownDate(state viewtypes.ContentState) string {
+	if state.DailySummary != nil && state.DailySummary.Date != "" {
+		return state.DailySummary.Date
+	}
+	return CurrentDashboardDate(state)
+}

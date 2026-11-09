@@ -52,34 +52,3 @@ func TestCarriedInIssueShowsOriginAndStall(t *testing.T) {
 	list = ansi.Strip(renderIssues(testTheme(), state, 130, 20))
 	assertContainsLine(t, strings.Split(list, "\n"), "Fix sync conflict", "↩ from 2026-10-23")
 }
-
-func TestRescheduleCarriesOnlyWorkedIssuesToday(t *testing.T) {
-	settings := &api.CoreSettings{CarryOverEnabled: true}
-	plan := carryPlan("2026-10-24", api.DailyPlanEntry{IssueID: 2, Status: sharedtypes.DailyPlanEntryStatusPlanned, WorkedSeconds: 60})
-	if !RescheduleCarries(plan, 2, "2026-10-24", settings) {
-		t.Fatal("expected a worked issue today to carry")
-	}
-	if RescheduleCarries(plan, 2, "2026-10-25", settings) {
-		t.Fatal("expected no carry when the plan is not today's")
-	}
-	plan.Entries[0].WorkedSeconds = 0
-	if RescheduleCarries(plan, 2, "2026-10-24", settings) {
-		t.Fatal("expected an untouched issue to reschedule normally")
-	}
-	plan.Entries[0].WorkedSeconds = 60
-	if RescheduleCarries(plan, 2, "2026-10-24", &api.CoreSettings{}) {
-		t.Fatal("expected no carry when carry-over is off")
-	}
-}
-
-func TestCarriedStatusShowsOnlyOnTheDayCarriedFrom(t *testing.T) {
-	state := detailState()
-	state.DailyPlan = carryPlan(state.DashboardDate, api.DailyPlanEntry{IssueID: 2, Status: sharedtypes.DailyPlanEntryStatusCarried})
-	if got := DisplayIssueStatus(state, 2, sharedtypes.IssueStatusInReview); got != "carried" {
-		t.Fatalf("expected carried on the day carried from, got %q", got)
-	}
-	state.DailyPlan = carryPlan(state.DashboardDate, api.DailyPlanEntry{IssueID: 2, Status: sharedtypes.DailyPlanEntryStatusPlanned, CarriedFromDate: new("2026-10-23")})
-	if got := DisplayIssueStatus(state, 2, sharedtypes.IssueStatusInReview); got != "in_review" {
-		t.Fatalf("expected the issue's own status on the day carried into, got %q", got)
-	}
-}
