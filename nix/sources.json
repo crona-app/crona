@@ -8,9 +8,9 @@
     }
   },
   "crona-beta": {
-    "version": "1.10.0-beta.6",
-    "rev": "v1.10.0-beta.6",
-    "hash": "sha256-E7jX4LtRyHxTlq/0z+pONv8EEEY1sZOHBtjGIAdQrd0=",
+    "version": "1.10.0-beta.7",
+    "rev": "v1.10.0-beta.7",
+    "hash": "sha256-MwPUWgZGh7wW1xK4C+OqRr1hBWQ9keQbiWrtM5XD/38=",
     "vendorHash": "sha256-+9eLhxD/zEMRIz/zsWodyv+wqsYlyIkPDCy2rY5xffY="
   }
 }
