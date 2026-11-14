@@ -13,7 +13,7 @@ import (
 )
 
 // Render draws Today: the day strip over Tasks and Habits, and on wide screens the calendar
-// over the detail pane beside them.
+// over a selection preview and the Day summary beside them.
 func Render(theme types.Theme, state types.ContentState) string {
 	return viewui.NewLayout(theme, state, renderView).RenderView()
 }
@@ -63,16 +63,48 @@ func dailyChrome(theme types.Theme, state types.ContentState, l layout) (dayLine
 	return nil, state.Height
 }
 
-// detailCalendarFits keeps the details at least half the column.
+// detailCalendarFits reserves a compact preview and at least eight summary rows.
 func detailCalendarFits(height int) func(int) bool {
-	return func(h int) bool { return height-h >= max(dailyMinDetailRows, height/2) }
+	return func(h int) bool { return height-h >= max(15, height/2) }
 }
 
-// dailyRightColumn is the score calendar over the detail pane. The calendar gives way first,
-// to its week and then folded, so details keep half the column.
+// dailyRightColumn keeps the item and the day together. Focus temporarily expands one
+// surface without changing saved calendar visibility.
 func dailyRightColumn(theme types.Theme, state types.ContentState, width, height int) string {
+	if height < 3 {
+		return renderDetail(theme, state, width, height)
+	}
+	if state.DailyDetailFocus {
+		calendar, calendarH := focusedCalendar(theme, state, width, height)
+		available := height - calendarH
+		if state.DailyDetailSummary {
+			return lipgloss.JoinVertical(lipgloss.Left, calendar, renderPreview(theme, state, width, 1),
+				renderDetail(theme, state, width, available-1))
+		}
+		summaryH := max(1, min(6, available-dailyMinDetailRows))
+		return lipgloss.JoinVertical(lipgloss.Left, calendar,
+			renderDetail(theme, state, width, available-summaryH), compactSummary(theme, state, width, summaryH))
+	}
 	calendar, calendarH := calendarPane(theme, state, width, detailCalendarFits(height))
-	return lipgloss.JoinVertical(lipgloss.Left, calendar, renderDetail(theme, state, width, height-calendarH))
+	available := height - calendarH
+	previewH := 7
+	if available < 15 {
+		previewH = min(4, available-8)
+		if previewH < 4 {
+			previewH = 1
+		}
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, calendar, renderPreview(theme, state, width, previewH),
+		renderDetail(theme, state, width, available-previewH))
+}
+
+// focusedCalendar keeps the week visible when either side surface expands. Saved hidden
+// calendars remain hidden; short terminals use the one-line week instead of boxed days.
+func focusedCalendar(theme types.Theme, state types.ContentState, width, height int) (string, int) {
+	if height < 6 {
+		return collapsedPane(theme, "Calendar", uistate.CollapseDailyCalendar, width), 1
+	}
+	return weekPane(theme, state, width, height)
 }
 
 // dailyLists is Tasks over Habits. Tasks keeps the top half and Habits the bottom half;

@@ -86,22 +86,26 @@ func habitLines(theme types.Theme, state types.ContentState, habit api.HabitDail
 	days := habitDays(state, habit.ID)
 	today := viewruntime.ShownDate(state)
 	off := status == "not due today" || status == "paused"
-	arcs := []viewsummary.Arc{habitTodayArc(theme, habit, status, off)}
+	arcs := []viewsummary.Arc{HabitTodayArc(theme, habit, status, off)}
 	if hit, ok := habitHitArc(theme, days, today); ok {
 		arcs = append(arcs, hit)
 	}
-	facts := []string{habitStatusLine(theme, habit, status, off)}
+	facts := []string{habitStatusLine(theme, habit, status, off) + detailKey(theme, state, "x", "done") + detailKey(theme, state, "F", "fail")}
 	if context := Context(habit.RepoName, habit.StreamName); context != "-" {
 		facts = append(facts, theme.StyleNormal.Render(context))
 	}
 	facts = append(facts, idLine(theme, habit.ID, nil))
 	if len(habit.Tags) > 0 {
-		facts = append(facts, issuecore.TagChips(theme, habit.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3)))
+		facts = append(facts, issuecore.TagChips(theme, habit.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3))+detailKey(theme, state, "+", "tags"))
 	}
 	lines := description(theme, habit.Description, width)
 	lines = append(lines, besideArcs(theme, arcs, facts, width)...)
 	lines = append(lines, habitTrailLines(theme, days, today, width)...)
-	lines = append(lines, habitRecentLines(theme, days, habit, today, width)...)
+	recent := habitRecentLines(theme, days, habit, today, width)
+	if len(recent) > 1 {
+		recent[1] += detailLogKey(theme, state)
+	}
+	lines = append(lines, recent...)
 	lines = append(lines, titledText(theme, "Notes", habit.Notes, width)...)
 	return append(lines, HabitMomentumLines(theme, state, habit.ID, width)...)
 }
@@ -134,8 +138,8 @@ func habitDays(state types.ContentState, habitID int64) map[string]habitDay {
 	return days
 }
 
-// habitTodayArc fills with minutes logged against the target, or full once done without one.
-func habitTodayArc(theme types.Theme, habit api.HabitDailyItem, status string, off bool) viewsummary.Arc {
+// HabitTodayArc fills with minutes logged against the target, or full once done without one.
+func HabitTodayArc(theme types.Theme, habit api.HabitDailyItem, status string, off bool) viewsummary.Arc {
 	arc := viewsummary.Arc{Label: "Today", Color: LookOf(theme, string(habit.Status)).Color}
 	logged := 0
 	if habit.DurationMinutes != nil {

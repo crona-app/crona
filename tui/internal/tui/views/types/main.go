@@ -82,10 +82,10 @@ type ContentState struct {
 	DailyIssues []api.Issue
 	// DailyPlannedIssues is the Planned section whatever tab is shown; the strip counts it.
 	DailyPlannedIssues []api.Issue
-	// DailyDetailFocus focuses Daily's detail pane on the selection (enter); otherwise it
-	// shows the Day summary. DailyDetailScroll is how far the focused pane is scrolled.
+	// DailyDetailFocus expands the selected item (enter) or summary (S/tab).
+	// Otherwise wide screens show the compact preview above the day summary.
 	DailyDetailFocus bool
-	// DailyDetailSummary keeps the focused detail pane on the Day summary (tab into it).
+	// DailyDetailSummary keeps the expanded surface on the Day summary.
 	DailyDetailSummary bool
 	DailyDetailScroll  int
 	// DailyPlanSelect makes the Day summary's plan list selectable (P on the focused summary);

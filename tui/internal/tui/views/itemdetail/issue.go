@@ -33,21 +33,28 @@ func IssueLines(theme types.Theme, state types.ContentState, issue api.Issue, wi
 		estimate = *issue.EstimateMinutes
 	}
 	head := statusStyle.Render("● " + issuecore.PlainIssueStatus(status))
+	if !issue.Adhoc {
+		head += detailKey(theme, state, "s", "status")
+	}
 	if date := issuecore.IssueDateLabel(issue.Status, issue.TodoForDate, issue.CompletedAt, issue.AbandonedAt, state.Settings); date != "" {
 		head += theme.StyleDim.Render(" · ") + theme.StyleNormal.Render(date)
 	}
 	if issue.PinnedDaily {
-		head += theme.StyleDim.Render(" · pinned")
+		head += theme.StyleDim.Render(" · pinned") + detailKey(theme, state, "P", "unpin")
 	}
-	facts := []string{head, theme.StyleNormal.Render(Context(repo, stream)), idLine(theme, issue.ID, issue.TodoForDate)}
+	due := idLine(theme, issue.ID, issue.TodoForDate)
+	if !issue.Adhoc {
+		due += detailKey(theme, state, "d", "due")
+	}
+	facts := []string{head, theme.StyleNormal.Render(Context(repo, stream)), due}
 	if len(issue.Tags) > 0 {
-		facts = append(facts, issuecore.TagChips(theme, issue.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3)))
+		facts = append(facts, issuecore.TagChips(theme, issue.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3))+detailKey(theme, state, "+", "tags"))
 	}
 	penalty := issuePenaltyView(theme, state, issue.ID, width)
 	if penalty.verdict != "" {
 		facts = append(facts, penalty.verdict)
 	}
-	arcs := []viewsummary.Arc{effortArc(theme, worked, estimate)}
+	arcs := []viewsummary.Arc{EffortArc(theme, worked, estimate)}
 	if penalty.arc != nil {
 		arcs = append(arcs, *penalty.arc)
 	}
@@ -90,9 +97,9 @@ func IssueInsightLines(theme types.Theme, state types.ContentState, issueID, rep
 	return append(lines, momentumLines(theme, state, momentumhelpers.ForContext(state.MomentumCards, repoID, streamID), width)...)
 }
 
-// effortArc fills with worked time against the estimate: cyan on the way, green at the
+// EffortArc fills with worked time against the estimate: cyan on the way, green at the
 // estimate and orange past it. Without an estimate it shows the time worked on a dim track.
-func effortArc(theme types.Theme, workedSeconds, estimateMinutes int) viewsummary.Arc {
+func EffortArc(theme types.Theme, workedSeconds, estimateMinutes int) viewsummary.Arc {
 	arc := viewsummary.Arc{Label: "Effort", Value: helperpkg.FormatCompactDurationSeconds(workedSeconds), Color: theme.ColorCyan}
 	if estimateMinutes <= 0 {
 		return arc

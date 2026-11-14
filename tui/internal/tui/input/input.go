@@ -21,12 +21,11 @@ type State struct {
 	Filters             map[uistate.Pane]string
 	DefaultIssueSection uistate.DefaultIssueSection
 	DailyTaskSection    uistate.DailyTaskSection
-	// DailyDetailFocus shows the selection in Daily's detail pane instead of the Day summary;
-	// DailyDetailScroll scrolls it.
+	// DailyDetailFocus expands Daily's item details or summary; DailyDetailScroll scrolls it.
 	DailyDetailFocus bool
 	// DailyDetailSummary keeps the focused pane on the Day summary rather than the selection.
 	DailyDetailSummary bool
-	// DailyDetailShown is true while Today shows its detail pane (wide screens).
+	// DailyDetailShown enables Today's summary focus stop on both wide and narrow screens.
 	DailyDetailShown  bool
 	DailyDetailScroll int
 	// DailyPlanSelect makes the focused Day summary's plan list selectable; DailyPlanCursor is
@@ -211,6 +210,13 @@ func Handle(state State, key tea.KeyMsg, deps Deps) (State, tea.Cmd) {
 			}
 			return next.(State), cmd
 		}
+	}
+	if state.ActiveView == uistate.ViewDaily && key.String() == "S" && deps.OpenDaySummary != nil {
+		deps.OpenDaySummary(&state)
+		return state, nil
+	}
+	if next, handled := handleDailyDetailBrowse(state, key, deps); handled {
+		return next, nil
 	}
 	if next, handled := handlePlanSelect(state, key, deps); handled {
 		return next, nil

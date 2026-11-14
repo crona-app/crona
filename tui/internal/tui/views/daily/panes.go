@@ -156,7 +156,7 @@ func renderCompactDailyIssueList(
 				width,
 				start+idx,
 				cur,
-				active,
+				active || (state.Pane == "issues" && state.DailyDetailFocus && !state.DailyDetailSummary),
 				title,
 				compactDailyIssueDate(state, issue),
 				status,
@@ -379,7 +379,7 @@ func renderHabits(theme types.Theme, state types.ContentState, width, height int
 			lines = append(lines, "")
 		}
 		habit := state.DueHabits[indices[i]]
-		lines = append(lines, habitRow(theme, habit, nameWidth, width-1, i == cur, active))
+		lines = append(lines, habitRow(theme, habit, nameWidth, width-1, i == cur, active || (state.Pane == "habits" && state.DailyDetailFocus && !state.DailyDetailSummary)))
 		if i == cur && active {
 			lines = append(lines, habitActionLine(theme, state, width-1))
 			continue

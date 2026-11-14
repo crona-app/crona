@@ -28,7 +28,7 @@ func issueSessionLines(theme types.Theme, state types.ContentState, issueID int6
 	}
 	sessions := slices.Clone(state.DetailSessions)
 	if len(sessions) == 0 {
-		return append(heading(theme, "Sessions"), "  "+theme.StyleDim.Render("no work logged yet"))
+		return append(heading(theme, "Sessions"+detailLogKey(theme, state)), "  "+theme.StyleDim.Render("no work logged yet"))
 	}
 	slices.SortFunc(sessions, func(a, b api.SessionHistoryEntry) int { return strings.Compare(b.StartTime, a.StartTime) })
 	total := 0
@@ -36,7 +36,7 @@ func issueSessionLines(theme types.Theme, state types.ContentState, issueID int6
 		total += sessionSeconds(session)
 	}
 	lines := heading(theme, "Sessions")
-	lines[1] += theme.StyleDim.Render(fmt.Sprintf("  %d · %s total", len(sessions), helperpkg.FormatCompactDurationSeconds(total)))
+	lines[1] += theme.StyleDim.Render(fmt.Sprintf("  %d · %s total", len(sessions), helperpkg.FormatCompactDurationSeconds(total))) + detailLogKey(theme, state)
 	shown := sessions[:min(len(sessions), recentRows)]
 	longest := 1
 	for _, session := range shown {

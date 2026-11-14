@@ -1,6 +1,7 @@
 package daily
 
 import (
+	"strings"
 	"time"
 
 	"crona.work/tui/internal/api"
@@ -18,13 +19,20 @@ import (
 func renderDetail(theme types.Theme, state types.ContentState, width, height int) string {
 	title, lines := detailBody(theme, state, max(1, width-2))
 	// Unfocused, the lists' action lines already offer enter, so the title carries no key.
-	meta := ""
+	meta := viewchrome.KeyHint(theme, "S", "expand")
 	scroll := 0
 	if state.DailyDetailFocus {
 		meta = viewchrome.KeyHint(theme, "esc", "back")
+		if !state.DailyDetailSummary && width >= 60 {
+			meta = viewchrome.KeyHint(theme, "←/→", "item") + "  " + meta
+		}
 		scroll = state.DailyDetailScroll
 	}
-	visible := max(1, height-1)
+	footer := detailFooter(theme, state, max(1, width-2-2*panePad))
+	if len(footer) > height-3 {
+		footer = nil
+	}
+	visible := max(1, height-1-len(footer))
 	scroll = min(scroll, max(0, len(lines)-visible))
 	lines = lines[scroll:]
 	if more := len(lines) > visible; more || scroll > 0 {
@@ -33,6 +41,15 @@ func renderDetail(theme types.Theme, state types.ContentState, width, height int
 			meta = arrows
 		} else {
 			meta = arrows + "  " + meta
+		}
+	}
+	if len(footer) > 0 {
+		lines = lines[:min(len(lines), visible)]
+		for len(lines) < visible {
+			lines = append(lines, "")
+		}
+		for _, line := range footer {
+			lines = append(lines, strings.Repeat(" ", panePad)+line)
 		}
 	}
 	// A long title gives way so the key always fits: lead, padded title, a fill cell, meta.

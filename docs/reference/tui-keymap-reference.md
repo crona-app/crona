@@ -73,6 +73,17 @@ These apply to items in most planning tables or lists:
 - `up` / `down`: Scroll a long summary.
 
 ### Daily Dashboard
+On wide terminals (160 columns or more), the side column shows the calendar, a preview of the selected task or habit, and the day summary. The preview follows list selection without opening details. Short terminals reduce the calendar and preview to preserve summary space.
+
+- `enter`: Expand the selected item's details. On smaller terminals, details replace the lower list pane.
+- `esc`: Return to the lists and restore the preview/summary split.
+- `←` / `→`: Browse the current filtered list while details are expanded; otherwise switch task sections.
+- `↑` / `↓`, `j` / `k`: Scroll expanded details or the focused summary; otherwise move list selection.
+- `S`: Expand the day summary; press again or use `esc` to return.
+- `tab` / `shift+tab`: Move focus between Tasks, Habits, and the summary.
+- `H`: Fold or expand Habits (`alt+1` remains an alias).
+- `V`: Cycle calendar visibility (`alt+2` remains an alias).
+- `C`: Open the full calendar. Focusing details or the summary shows the week in place of the month; a hidden calendar stays hidden. Saved visibility is restored on return.
 - `,` / `.`: Page calendar date backward / forward.
 - `g`: Reset view date to today.
 - `x`: Toggle selected habit completion.

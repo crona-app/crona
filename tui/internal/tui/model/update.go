@@ -65,6 +65,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 // Daily's detail pane shows, once each time the pane opens on it, and forgets them when the
 // pane shows anything else.
 func (m *Model) syncDetailSessions() tea.Cmd {
+	if m.view == ViewDaily && m.dailyDetailFocus && !m.dailyDetailSummary {
+		total := m.listLen(m.pane)
+		m.clamp(m.pane, total)
+		if total == 0 {
+			m.dailyDetailFocus, m.dailyDetailScroll = false, 0
+		}
+	}
 	var id int64
 	if m.view == ViewDaily && m.pane == PaneIssues && m.dailyDetailFocus && !m.dailyDetailSummary {
 		if issue, ok := selectionpkg.SelectedIssue(m.selectionSnapshot()); ok {
@@ -73,6 +80,9 @@ func (m *Model) syncDetailSessions() tea.Cmd {
 	}
 	var cmds []tea.Cmd
 	if id != m.detailSessionsIssueID {
+		if id != 0 {
+			m.dailyDetailScroll = 0
+		}
 		m.detailSessionsIssueID, m.detailSessions = id, nil
 		if id != 0 && m.client != nil {
 			cmds = append(cmds, commands.LoadDetailIssueHistory(m.client, id))
@@ -85,6 +95,9 @@ func (m *Model) syncDetailSessions() tea.Cmd {
 		}
 	}
 	if habitID != m.detailHistoryHabitID {
+		if habitID != 0 {
+			m.dailyDetailScroll = 0
+		}
 		m.detailHistoryHabitID, m.detailHabitHistory = habitID, nil
 		if habitID != 0 && m.client != nil {
 			cmds = append(cmds, commands.LoadDetailHabitHistory(m.client, habitID))

@@ -18,7 +18,6 @@ import (
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	tagsmeta "crona.work/tui/internal/tui/views/tagsmeta"
 
-	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -143,13 +142,13 @@ func (m Model) inputState() inputpkg.State {
 }
 
 func (m Model) applyInputState(state inputpkg.State) Model {
-	// Moving the selection or leaving Daily returns its detail pane to the Day summary.
-	moved := state.ActivePane != m.pane || state.ActiveView != m.view ||
-		state.Cursor[PaneIssues] != m.cursor[PaneIssues] || state.Cursor[PaneHabits] != m.cursor[PaneHabits]
+	// Browsing another item keeps details expanded; leaving the source pane closes them.
+	moved := state.ActivePane != m.pane || state.ActiveView != m.view
+	selectionMoved := state.Cursor[PaneIssues] != m.cursor[PaneIssues] || state.Cursor[PaneHabits] != m.cursor[PaneHabits]
 	m.dailyDetailFocus = state.DailyDetailFocus && !moved
 	m.dailyDetailSummary = state.DailyDetailSummary && m.dailyDetailFocus
 	m.dailyDetailScroll = 0
-	if m.dailyDetailFocus {
+	if m.dailyDetailFocus && !selectionMoved {
 		m.dailyDetailScroll = max(0, state.DailyDetailScroll)
 	}
 	m = m.applyPlanSelect(state)
@@ -265,14 +264,9 @@ func (m Model) inputDeps() inputpkg.Deps {
 			return dailyviews.CalendarMonthFits(layoutpkg.ViewTheme(), m.applyInputState(state).layoutState().ContentState)
 		},
 		OpenDaySummary: func(state *inputpkg.State) bool {
-			// Wide, the detail pane's resting view is the Day summary; narrower, S swaps
-			// Habits' half for it and back.
-			next := m.applyInputState(*state)
-			if viewhelpers.ClassFor(next.width) == viewhelpers.WidthWide {
-				return false
-			}
 			open := !state.DailyDetailFocus || !state.DailyDetailSummary
 			state.DailyDetailFocus, state.DailyDetailSummary, state.DailyDetailScroll = open, open, 0
+			state.DailyPlanSelect, state.DailyWorkSelect = false, false
 			return true
 		},
 		OpenSummaryCalendar: func(state *inputpkg.State) bool {
@@ -557,6 +551,9 @@ func (m Model) inputDeps() inputpkg.Deps {
 		EnterAction: func(state *inputpkg.State) (tea.Cmd, bool) {
 			next := m.applyInputState(*state)
 			if next.dailyDetailShown() {
+				if next.listLen(next.pane) == 0 {
+					return nil, true
+				}
 				next.dailyDetailFocus, next.dailyDetailSummary, next.dailyDetailScroll = true, false, 0
 				*state = next.inputState()
 				return nil, true

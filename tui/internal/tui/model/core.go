@@ -122,10 +122,10 @@ type Model struct {
 	reviewWindowDays int
 	reviewWindowEnd  string
 	summarySnapshot  *api.SummarySnapshot
-	// dailyDetailFocus shows the selection in Daily's detail pane (enter) instead of the Day
-	// summary, until esc or the selection moves; dailyDetailScroll scrolls it.
+	// dailyDetailFocus expands Daily's selected item or summary until esc or a pane change.
+	// dailyDetailScroll scrolls the expanded surface.
 	dailyDetailFocus bool
-	// dailyDetailSummary keeps the focused pane on the Day summary (tab into it).
+	// dailyDetailSummary expands the Day summary (S or tab into it).
 	dailyDetailSummary bool
 	// dailyPlanSelect makes the focused Day summary's plan list selectable (P);
 	// dailyPlanIssueID is the selected issue, so the cursor follows it as the list re-sorts.
