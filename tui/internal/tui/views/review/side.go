@@ -6,14 +6,10 @@ import (
 	"strings"
 
 	"crona.work/tui/internal/api"
-	helperpkg "crona.work/tui/internal/tui/helpers"
 	uistate "crona.work/tui/internal/tui/state"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
-	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	viewsummary "crona.work/tui/internal/tui/views/summary"
 	types "crona.work/tui/internal/tui/views/types"
-
-	"github.com/charmbracelet/lipgloss"
 )
 
 // sideLines are the risk, where the work went and how the plan held.
@@ -51,37 +47,20 @@ func workMeta(theme types.Theme, state types.ContentState) string {
 	return strings.Join(hints, "  ")
 }
 
-func planLines(theme types.Theme, state types.ContentState, width int) []string {
-	window := state.DashboardWindow
-	planned := window != nil && window.PlannedCount > 0
-	meta := theme.StyleDim.Render("nothing planned")
-	if planned {
-		count := func(color lipgloss.Color, n int, word string) string {
-			return lipgloss.NewStyle().Foreground(color).Render(fmt.Sprint(n)) + theme.StyleDim.Render(" "+word)
-		}
-		meta = count(theme.ColorRed, window.MissedCount, "missed") + theme.StyleDim.Render(" · ") +
-			count(theme.ColorYellow, window.CarryOverCount, "carried")
-	}
-	lines := []string{rule(theme, "Plan", meta, width)}
-	if planned {
-		lines = append(lines, planCount(window.CompletedCount, window.PlannedCount)+" done")
-	}
-	if progress := state.GoalProgress; progress != nil && progress.EstimatedItems > 0 {
-		lines = append(lines, fmt.Sprintf("worked %s of %s estimated",
-			viewhelpers.FormatCompactDurationSeconds(progress.TotalActualSeconds),
-			helperpkg.FormatCompactDurationMinutes(progress.TotalEstimateMinutes)),
-			theme.StyleDim.Render(estimateDrift(progress)))
-	} else {
-		lines = append(lines, theme.StyleDim.Render("no estimated work"))
-	}
-	return lines
-}
-
 // estimateDrift says how far estimates were off: over-estimates "ran high", under "ran low".
 func estimateDrift(progress *api.GoalProgressSummary) string {
 	pct := math.Abs(progress.AverageDeltaPercent)
-	items := fmt.Sprintf("%d %s", progress.EstimatedItems,
-		map[bool]string{true: "issue", false: "issues"}[progress.EstimatedItems == 1])
+	kind, plural := "issue", "issues"
+	switch progress.GroupBy {
+	case "repo":
+		kind, plural = "repo", "repos"
+	case "stream":
+		kind, plural = "stream", "streams"
+	}
+	if progress.EstimatedItems != 1 {
+		kind = plural
+	}
+	items := fmt.Sprintf("%d compared %s", progress.EstimatedItems, kind)
 	switch strings.TrimSpace(progress.EstimateBias) {
 	case "over":
 		return fmt.Sprintf("estimates ran %.0f%% high across %s", pct, items)

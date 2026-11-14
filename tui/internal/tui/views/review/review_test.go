@@ -166,7 +166,7 @@ func TestEstimateDriftInWords(t *testing.T) {
 	cases := map[string]string{"over": "ran 39% high", "under": "ran 39% low", "balanced": "held"}
 	for bias, want := range cases {
 		got := estimateDrift(&api.GoalProgressSummary{EstimatedItems: 3, AverageDeltaPercent: -39, EstimateBias: bias})
-		if !strings.Contains(got, want) || !strings.Contains(got, "3 issues") {
+		if !strings.Contains(got, want) || !strings.Contains(got, "3 compared issues") {
 			t.Fatalf("%s: %q lacks %q", bias, got, want)
 		}
 	}
