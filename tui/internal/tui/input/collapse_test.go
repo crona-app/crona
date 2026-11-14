@@ -43,3 +43,35 @@ func TestAltNumbersFoldTodayPanesAndSaveThem(t *testing.T) {
 		t.Fatal("expected a second alt+1 to unfold Habits")
 	}
 }
+
+func TestLetterFoldKeysWorkInDailySelectionModes(t *testing.T) {
+	for _, mode := range []string{"tasks", "plan", "work"} {
+		t.Run(mode, func(t *testing.T) {
+			state := State{
+				ActiveView: uistate.ViewDaily, ActivePane: uistate.PaneIssues,
+				Settings: &api.CoreSettings{}, DailyDetailFocus: mode != "tasks",
+				DailyDetailSummary: mode != "tasks", DailyPlanSelect: mode == "plan",
+				DailyWorkSelect: mode == "work",
+			}
+			deps := Deps{DailyCalendarMonthFits: func(State) bool { return true }}
+			press := func(s State, key rune) State {
+				next, _ := Handle(s, tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{key}}, deps)
+				return next
+			}
+			state = press(state, 'H')
+			if !uistate.PaneCollapsed(state.Settings.CollapsedPanes, uistate.CollapseDailyHabits) {
+				t.Fatal("H did not fold Habits")
+			}
+			state = press(state, 'H')
+			if uistate.PaneCollapsed(state.Settings.CollapsedPanes, uistate.CollapseDailyHabits) {
+				t.Fatal("H did not expand Habits")
+			}
+			for _, want := range []uistate.CalendarMode{uistate.CalendarWeek, uistate.CalendarHidden, uistate.CalendarMonth} {
+				state = press(state, 'V')
+				if got := uistate.DailyCalendarMode(state.Settings.CollapsedPanes); got != want {
+					t.Fatalf("V calendar mode = %v, want %v", got, want)
+				}
+			}
+		})
+	}
+}

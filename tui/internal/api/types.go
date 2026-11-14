@@ -77,4 +77,8 @@ type SummarySnapshot struct {
 	Focus          *FocusScoreSummary
 	Metrics        *DailyMetricsDay
 	CalendarScores map[string]FocusScoreRangeDay
+	// RecentUpdates holds the shown day's latest issue operations, newest first.
+	RecentUpdates            []Op
+	RecentUpdatesUnavailable bool
+	UpdateTitles             map[string]string
 }

@@ -9,7 +9,7 @@ func TestKeyLabelUsesOptionGlyphOnMac(t *testing.T) {
 	if got := keyLabelFor("linux", "alt+1"); got != "alt+1" {
 		t.Fatalf("linux: got %q, want alt+1", got)
 	}
-	if got := FoldKey(CollapseDailyCalendar); got != "alt+2" {
-		t.Fatalf("FoldKey(calendar) = %q, want alt+2", got)
+	if got := FoldKey(CollapseDailyCalendar); got != "V" {
+		t.Fatalf("FoldKey(calendar) = %q, want V", got)
 	}
 }

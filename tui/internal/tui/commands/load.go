@@ -318,18 +318,25 @@ func LoadSummarySnapshot(c *api.Client, date string) tea.Cmd {
 		for _, score := range scores {
 			calendarScores[score.Date] = score
 		}
+		updates, titles, updatesErr := loadSummaryUpdates(c, date)
+		if updatesErr != nil {
+			logger.Errorf("load summary updates: %v", updatesErr)
+		}
 		return SummarySnapshotLoadedMsg{Snapshot: &api.SummarySnapshot{
-			Date:           date,
-			Issues:         summary,
-			Habits:         habits,
-			Plan:           plan,
-			CheckIn:        checkIn,
-			LastCheckIn:    lastCheckIn,
-			Rollup:         rollup,
-			Streaks:        streaks,
-			Focus:          focus,
-			Metrics:        metrics,
-			CalendarScores: calendarScores,
+			Date:                     date,
+			Issues:                   summary,
+			Habits:                   habits,
+			Plan:                     plan,
+			CheckIn:                  checkIn,
+			LastCheckIn:              lastCheckIn,
+			Rollup:                   rollup,
+			Streaks:                  streaks,
+			Focus:                    focus,
+			Metrics:                  metrics,
+			CalendarScores:           calendarScores,
+			RecentUpdates:            updates,
+			UpdateTitles:             titles,
+			RecentUpdatesUnavailable: updatesErr != nil,
 		}}
 	}
 }

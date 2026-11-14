@@ -200,6 +200,18 @@ func Handle(state State, key tea.KeyMsg, deps Deps) (State, tea.Cmd) {
 		state.SessionDetailOpen,
 		state.SessionContextOpen,
 	)
+	if state.ActiveView == uistate.ViewDaily {
+		if pane, ok := uistate.DailyCollapseKeys[key.String()]; ok {
+			var next tea.Model
+			var cmd tea.Cmd
+			if pane == uistate.CollapseDailyCalendar {
+				next, cmd, _ = handleCycleCalendar(state, deps)
+			} else {
+				next, cmd, _ = handleToggleCollapsed(state, deps, pane)
+			}
+			return next.(State), cmd
+		}
+	}
 	if next, handled := handlePlanSelect(state, key, deps); handled {
 		return next, nil
 	}
@@ -459,7 +471,7 @@ func newRouter(deps Deps) *router {
 		}
 		return s, nil, deps.OpenSummaryCalendar(&s)
 	})
-	// alt+1/2/3 fold and unfold Habits, the calendar and the detail pane; the choice is saved.
+	// H folds Habits and V cycles calendar visibility; Alt+1/2 remain aliases.
 	for key, pane := range uistate.DailyCollapseKeys {
 		r.RegisterView(uistate.ViewDaily, key, func(s State, _ tea.KeyMsg) (tea.Model, tea.Cmd, bool) {
 			if pane == uistate.CollapseDailyCalendar {

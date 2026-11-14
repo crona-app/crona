@@ -35,6 +35,8 @@ func DayLines(theme types.Theme, state types.ContentState, width int) []string {
 	lines = append(lines, renderPlan(theme, state, snapshot.Plan, width)...)
 	lines = append(lines, renderPlanIssues(theme, state, width)...)
 	lines = append(lines, "")
+	lines = append(lines, renderRecentUpdates(theme, state, width)...)
+	lines = append(lines, "")
 	lines = append(lines, WorkLines(theme, state, width,
 		state.DailyDetailFocus && state.DailyDetailSummary && !state.DailyPlanSelect)...)
 	lines = append(lines, "")

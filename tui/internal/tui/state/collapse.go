@@ -16,8 +16,10 @@ const (
 	CollapseDailyCalendarWeek = "daily/calendar-week"
 )
 
-// DailyCollapseKeys maps Today's alt+number keys to the pane each collapses.
+// DailyCollapseKeys maps Today's fold keys and legacy Alt aliases to their panes.
 var DailyCollapseKeys = map[string]string{
+	"H":     CollapseDailyHabits,
+	"V":     CollapseDailyCalendar,
 	"alt+1": CollapseDailyHabits,
 	"alt+2": CollapseDailyCalendar,
 }
@@ -99,12 +101,13 @@ func keyLabelFor(goos, key string) string {
 	return key
 }
 
-// FoldKey is the key that folds a Today pane, the reverse of DailyCollapseKeys.
+// FoldKey is the primary, terminal-independent key shown in a pane's fold hint.
 func FoldKey(pane string) string {
-	for key, p := range DailyCollapseKeys {
-		if p == pane {
-			return key
-		}
+	switch pane {
+	case CollapseDailyHabits:
+		return "H"
+	case CollapseDailyCalendar:
+		return "V"
 	}
 	return ""
 }

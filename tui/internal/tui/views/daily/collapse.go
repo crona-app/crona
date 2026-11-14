@@ -22,7 +22,7 @@ func dailyCollapsed(state types.ContentState, pane string) bool {
 	return uistate.PaneCollapsed(state.Settings.CollapsedPanes, pane)
 }
 
-// foldHint is a pane header's `[⌥1] fold` (or `expand` when folded).
+// foldHint is a pane header's `[H] fold` (or `expand` when folded).
 func foldHint(theme types.Theme, pane, action string) string {
 	return viewchrome.KeyHint(theme, uistate.KeyLabel(uistate.FoldKey(pane)), action)
 }
