@@ -31,9 +31,11 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 	active := state.Pane == "issues"
 	indices := issueIndices(state)
 	cur := state.Cursors["issues"]
-	open, done := theme.StyleSelectedInverse.Render("Open"), theme.StyleDim.Render("Done")
+	openIndices, doneIndices := issuecore.SplitDefaultIssueIndices(state.DefaultIssues, state.Filters["issues"], state.Settings)
+	openLabel, doneLabel := fmt.Sprintf("Open %d", len(openIndices)), fmt.Sprintf("Done %d", len(doneIndices))
+	open, done := theme.StyleSelectedInverse.Render(openLabel), theme.StyleDim.Render(doneLabel)
 	if state.DefaultIssueSection == "completed" {
-		open, done = theme.StyleDim.Render("Open"), theme.StyleSelectedInverse.Render("Done")
+		open, done = theme.StyleDim.Render(openLabel), theme.StyleSelectedInverse.Render(doneLabel)
 	}
 	selector := open + "  " + done
 	lines := []string{selector}
@@ -114,7 +116,7 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 			lines = append(lines, theme.StyleDim.Render(fmt.Sprintf("↓ %d more", len(indices)-end)))
 		}
 	}
-	meta := fmt.Sprintf("%d", len(indices))
+	meta := fmt.Sprintf("%d", len(openIndices)+len(doneIndices))
 	if active {
 		meta += "  [←/→]"
 	}

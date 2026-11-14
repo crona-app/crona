@@ -258,3 +258,17 @@ func TestDetailHistoryRejectsOlderSameItemGenerations(t *testing.T) {
 		t.Fatal("older same-habit response overwrote refreshed completions")
 	}
 }
+
+func TestWorkDetailHistoryVisibilityMatchesHeaderlessLayout(t *testing.T) {
+	for _, width := range []int{80, 120, 160} {
+		for _, height := range []int{24, 26, 28, 30, 36} {
+			m := issueDialogModel(width)
+			m.height = height
+			state := m.layoutState().ContentState
+			visible := strings.Contains(ansi.Strip(issues.Render(layoutpkg.ViewTheme(), state)), "[enter] expand")
+			if got := m.workDetailPaneShown(); got != visible {
+				t.Errorf("%dx%d: history visibility %v differs from rendered pane %v", width, height, got, visible)
+			}
+		}
+	}
+}

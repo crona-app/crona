@@ -10,47 +10,6 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func TestHabitStripTwoRows(t *testing.T) {
-	state := types.ContentState{}
-	for i := range 6 {
-		state.ScopedHabits = append(
-			state.ScopedHabits,
-			api.HabitWithMeta{Habit: api.Habit{ID: int64(i), Active: i < 5}},
-		)
-	}
-	for i := range 3 {
-		state.DueHabits = append(
-			state.DueHabits,
-			api.HabitDailyItem{HabitWithMeta: state.ScopedHabits[i], Completed: i < 2},
-		)
-	}
-	state.MomentumCards = []api.MomentumCard{
-		{
-			Definition: api.HabitStreakDefinition{
-				Enabled:    true,
-				TargetKind: "habit",
-				Period:     "day",
-				HabitIDs:   []int64{1},
-			},
-			Longest: 12,
-		},
-	}
-	for _, width := range []int{60, 100, 160} {
-		rows := StripRows(types.Theme{}, state, width)
-		if len(rows) != 2 {
-			t.Fatal(rows)
-		}
-		for _, row := range rows {
-			if ansi.StringWidth(row) != width {
-				t.Fatal(row)
-			}
-		}
-		if !strings.Contains(rows[0], "Active 5  paused 1  due today 3") ||
-			!strings.Contains(rows[1], "Done today 2  failed 0  best streak 12d") {
-			t.Fatal(rows)
-		}
-	}
-}
 func TestHabitListCardsAndActions(t *testing.T) {
 	target := 30
 	state := types.ContentState{
@@ -91,54 +50,6 @@ func TestHabitListCardsAndActions(t *testing.T) {
 	}
 }
 
-func TestBestStreakRespectsScopeAndPeriod(t *testing.T) {
-	state := types.ContentState{ScopedHabits: []api.HabitWithMeta{{Habit: api.Habit{ID: 1}}}}
-	state.MomentumCards = []api.MomentumCard{
-		{
-			Definition: api.HabitStreakDefinition{
-				Enabled:    true,
-				TargetKind: "habit",
-				Period:     "day",
-				HabitIDs:   []int64{1},
-			},
-			Longest: 12,
-		},
-		{
-			Definition: api.HabitStreakDefinition{
-				Enabled:    true,
-				TargetKind: "habit",
-				Period:     "day",
-				HabitIDs:   []int64{1, 2},
-			},
-			Longest: 90,
-		},
-		{
-			Definition: api.HabitStreakDefinition{
-				Enabled:    true,
-				TargetKind: "habit",
-				Period:     "week",
-				HabitIDs:   []int64{1},
-			},
-			Longest: 50,
-		},
-		{
-			Definition: api.HabitStreakDefinition{
-				TargetKind: "habit",
-				Period:     "day",
-				HabitIDs:   []int64{1},
-			},
-			Longest: 99,
-		},
-	}
-	if row := StripRows(types.Theme{}, state, 100)[1]; !strings.Contains(row, "best streak 12d") {
-		t.Fatal(row)
-	}
-	state.MomentumCards = state.MomentumCards[1:]
-	if row := StripRows(types.Theme{}, state, 100)[1]; !strings.Contains(row, "best streak —") {
-		t.Fatal(row)
-	}
-}
-
 func TestHabitLayoutDimensions(t *testing.T) {
 	for _, width := range []int{60, 99, 100, 159, 160, 200} {
 		state := types.ContentState{View: "habit_list", Pane: "habits", Width: width, Height: 20}
@@ -172,5 +83,35 @@ func TestHabitPagingKeepsBothIndicators(t *testing.T) {
 	if !strings.Contains(rendered, "↑") || !strings.Contains(rendered, "↓") ||
 		strings.Contains(rendered, "↓ more") {
 		t.Fatalf("paged cards lost indicator: %s", rendered)
+	}
+}
+
+func TestHabitLayoutBeginsWithPanesAndKeepsScopedCount(t *testing.T) {
+	for _, width := range []int{60, 120, 200} {
+		state := types.ContentState{
+			View: "habit_list", Pane: "habits", Width: width, Height: 40,
+			ScopedHabits: []api.HabitWithMeta{
+				{Habit: api.Habit{ID: 1, Name: "Walk", Active: true}},
+				{Habit: api.Habit{ID: 2, Name: "Read", Active: false}},
+			},
+		}
+		text := ansi.Strip(Render(types.Theme{}, state))
+		if first := strings.Split(text, "\n")[0]; !strings.Contains(first, "Scope") {
+			t.Errorf("width %d: expected panes at the top, got %q", width, first)
+		}
+		for _, removed := range []string{"Done today", "due today 0", "best streak"} {
+			if strings.Contains(text, removed) {
+				t.Errorf("width %d: removed aggregate %q remains", width, removed)
+			}
+		}
+		found := false
+		for _, line := range strings.Split(text, "\n") {
+			if strings.Contains(line, "─ Habits") && strings.Contains(line, "2") {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("width %d: scoped count missing from habit heading", width)
+		}
 	}
 }

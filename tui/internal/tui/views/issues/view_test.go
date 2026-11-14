@@ -52,42 +52,10 @@ func plain(s string) []string { return strings.Split(ansi.Strip(s), "\n") }
 
 func squash(s string) string { return strings.Join(strings.Fields(s), " ") }
 
-func TestIssuesStripTwoRows(t *testing.T) {
-	for _, width := range []int{60, 100, 160} {
-		rows := StripRows(types.Theme{}, issuesState(width, 40), width)
-		if len(rows) != 2 {
-			t.Fatalf("width %d: expected 2 strip rows, got %d", width, len(rows))
-		}
-		for i, row := range rows {
-			if w := ansi.StringWidth(row); w != width {
-				t.Fatalf("width %d: row %d is %d cells: %q", width, i, w, ansi.Strip(row))
-			}
-		}
-	}
-	rows := StripRows(types.Theme{}, issuesState(160, 40), 160)
-	top, bottom := squash(ansi.Strip(rows[0])), squash(ansi.Strip(rows[1]))
-	for _, want := range []string{"Open 4", "in progress 1", "blocked 1", "Due today 0", "overdue 2"} {
-		if !strings.Contains(top, want) {
-			t.Fatalf("expected %q in %q", want, top)
-		}
-	}
-	for _, want := range []string{"Closed 1", "done 1", "abandoned 0", "Est. 4h over 4 issues"} {
-		if !strings.Contains(bottom, want) {
-			t.Fatalf("expected %q in %q", want, bottom)
-		}
-	}
-	if narrow := ansi.Strip(strings.Join(StripRows(types.Theme{}, issuesState(60, 40), 60), "\n")); strings.Contains(
-		narrow,
-		"Due",
-	) {
-		t.Fatalf("expected the Due column dropped at 60, got %q", narrow)
-	}
-}
-
 func TestIssuesListSelectorAndCreateLine(t *testing.T) {
 	rows := plain(Render(types.Theme{}, issuesState(120, 40)))
 	joined := strings.Join(rows, "\n")
-	if !strings.Contains(joined, "Open Done") && !strings.Contains(squash(joined), "Open Done") {
+	if !strings.Contains(squash(joined), "Open 4 Done 1") {
 		t.Fatalf("expected the Open/Done selector, got %q", joined)
 	}
 	if !strings.Contains(squash(joined), "[a] new issue [A] quick timer") {
@@ -201,8 +169,27 @@ func TestIssuesListHintsRequireListFocus(t *testing.T) {
 				t.Errorf("unfocused list height %d shows %s: %q", height, hint, rendered)
 			}
 		}
-		if !strings.Contains(squash(rendered), "Open Done") {
+		if !strings.Contains(squash(rendered), "Open 4 Done 1") {
 			t.Errorf("unfocused selector missing at height %d: %q", height, rendered)
+		}
+	}
+}
+
+func TestIssuesBeginWithPanesAndKeepCountsOnTabs(t *testing.T) {
+	for _, width := range []int{60, 120, 200} {
+		state := issuesState(width, 40)
+		text := ansi.Strip(Render(types.Theme{}, state))
+		first := strings.Split(text, "\n")[0]
+		if !strings.Contains(first, "Scope") {
+			t.Errorf("width %d: expected scope and panes at the top, got %q", width, first)
+		}
+		if !strings.Contains(squash(text), "Open 4 Done 1") || strings.Contains(text, "Closed") || strings.Contains(text, "Est.") {
+			t.Errorf("width %d: counts should live on selectors without aggregate rows:\n%s", width, text)
+		}
+		state.Filters["issues"] = "release"
+		text = ansi.Strip(Render(types.Theme{}, state))
+		if !strings.Contains(squash(text), "Open 1 Done 0") {
+			t.Errorf("width %d: selector counts did not follow filter:\n%s", width, text)
 		}
 	}
 }

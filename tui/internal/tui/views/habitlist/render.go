@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
 	helperpkg "crona.work/tui/internal/tui/helpers"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
@@ -14,82 +13,6 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 )
-
-// StripRows renders the scoped habit summary in two width-exact rows.
-func StripRows(theme types.Theme, state types.ContentState, width int) []string {
-	active, paused, due, done, failed := 0, 0, 0, 0, 0
-	ids := map[int64]bool{}
-	for _, habit := range state.ScopedHabits {
-		ids[habit.ID] = true
-		if habit.Active {
-			active++
-		} else {
-			paused++
-		}
-	}
-	for _, habit := range state.DueHabits {
-		if !ids[habit.ID] {
-			continue
-		}
-		due++
-		if habit.Completed || habit.Status == "completed" {
-			done++
-		}
-		if habit.Status == "failed" {
-			failed++
-		}
-	}
-	best := -1
-	for _, card := range state.MomentumCards {
-		def := sharedtypes.NormalizeHabitStreakDefinition(card.Definition)
-		if !def.Enabled || def.TargetKind != sharedtypes.MomentumTargetKindHabit ||
-			def.Period != sharedtypes.HabitStreakPeriodDay ||
-			len(def.HabitIDs) == 0 {
-			continue
-		}
-		contained := true
-		for _, id := range def.HabitIDs {
-			if !ids[id] {
-				contained = false
-				break
-			}
-		}
-		if contained {
-			best = max(best, card.Longest)
-		}
-	}
-	streak := "—"
-	if best >= 0 {
-		streak = fmt.Sprintf("%dd", best)
-	}
-
-	groups := [][2]string{
-		{fmt.Sprintf("Active %d", active), fmt.Sprintf("Done today %d", done)},
-		{fmt.Sprintf("paused %d", paused), fmt.Sprintf("failed %d", failed)},
-		{fmt.Sprintf("due today %d", due), "best streak " + streak},
-	}
-	rows := []string{"", ""}
-	for _, group := range groups {
-		gap := ""
-		if rows[0] != "" {
-			gap = "  "
-		}
-		if max(
-			ansi.StringWidth(rows[0]+gap+group[0]),
-			ansi.StringWidth(rows[1]+gap+group[1]),
-		) > width {
-			break
-		}
-		for i := range rows {
-			rows[i] += gap + group[i]
-		}
-	}
-	for i := range rows {
-		rows[i] = ansi.Truncate(rows[i], max(0, width), "")
-		rows[i] += strings.Repeat(" ", max(0, width-ansi.StringWidth(rows[i])))
-	}
-	return rows
-}
 
 func habitIndices(state types.ContentState) []int {
 	filter := helperpkg.ParseItemFilter(state.Filters["habits"])
@@ -195,5 +118,9 @@ func habitMeta(habit api.HabitWithMeta) string {
 	if habit.TargetMinutes != nil {
 		target = helperpkg.FormatCompactDurationMinutes(*habit.TargetMinutes)
 	}
-	return habit.RepoName + " › " + habit.StreamName + " | " + schedule + " | " + target
+	status := "active"
+	if !habit.Active {
+		status = "paused"
+	}
+	return habit.RepoName + " › " + habit.StreamName + " | " + schedule + " | " + target + " | " + status
 }

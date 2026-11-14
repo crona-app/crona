@@ -9,17 +9,13 @@ import (
 	types "crona.work/tui/internal/tui/views/types"
 )
 
-// Render shows the habit summary, scope, cards and wide-screen detail.
+// Render shows the scope, habit cards and adaptive detail pane.
 func Render(theme types.Theme, state types.ContentState) string {
 	if state.Width < 1 || state.Height < 1 {
 		return ""
 	}
-	rows := StripRows(theme, state, state.Width)
-	rows = rows[:min(len(rows), state.Height)]
-	height := state.Height - len(rows)
-	if height == 0 {
-		return strings.Join(rows, "\n")
-	}
+	rows := []string{}
+	height := state.Height
 	detailHeight := height
 	if state.Width < 100 {
 		detailHeight--

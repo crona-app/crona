@@ -9,8 +9,6 @@ import (
 	"crona.work/tui/internal/api"
 	"crona.work/tui/internal/tui/commands"
 	"crona.work/tui/internal/tui/scope"
-	"crona.work/tui/internal/tui/views/habitlist"
-	types "crona.work/tui/internal/tui/views/types"
 )
 
 func TestCreateHabitDefaultsToBrowseScope(t *testing.T) {
@@ -120,9 +118,8 @@ func TestHabitSummaryUsesTodayDespiteHistoricalDailyDate(t *testing.T) {
 	m = loaded.(Model)
 	m.view = ViewHabitList
 	state := m.layoutState().ContentState
-	rows := habitlist.StripRows(types.Theme{}, state, 100)
-	if !strings.Contains(rows[1], "Done today 1  failed 0") {
-		t.Fatal(rows)
+	if len(state.DueHabits) != 1 || state.DueHabits[0].Status != "completed" {
+		t.Fatalf("Work habits should use today's outcomes: %+v", state.DueHabits)
 	}
 	m.view = ViewDaily
 	if due := m.layoutState().ContentState.DueHabits; len(due) != 1 || due[0].Status != "failed" ||

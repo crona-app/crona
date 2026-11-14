@@ -148,12 +148,12 @@ func (m Model) updateItemDetailDialog(key tea.KeyMsg) (Model, tea.Cmd, bool) {
 }
 
 // workDetailPaneShown mirrors the Work layouts: a side pane from 160 columns, or a
-// stacked pane when the body below the two-row strip (and narrow scope row) is tall enough.
+// stacked pane when the body (minus the narrow scope row) is tall enough.
 func (m Model) workDetailPaneShown() bool {
 	if m.view != ViewDefault && m.view != ViewHabitList {
 		return false
 	}
-	height := m.contentHeight() - 2
+	height := m.contentHeight()
 	if m.width >= 160 {
 		return height > 0
 	}
