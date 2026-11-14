@@ -92,7 +92,11 @@ func habitLines(theme types.Theme, state types.ContentState, habit api.HabitDail
 			arcs = append(arcs, hit)
 		}
 	}
-	facts := []string{habitStatusLine(theme, habit, status, off) + detailKey(theme, state, "x", "done") + detailKey(theme, state, "F", "fail")}
+	head := habitStatusLine(theme, habit, status, off)
+	if state.View == "daily" {
+		head += detailKey(theme, state, "x", "done") + detailKey(theme, state, "F", "fail")
+	}
+	facts := []string{head}
 	if context := Context(habit.RepoName, habit.StreamName); context != "-" {
 		facts = append(facts, theme.StyleNormal.Render(context))
 	}

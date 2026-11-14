@@ -278,11 +278,14 @@ func LoadSummarySnapshot(c *api.Client, date string) tea.Cmd {
 		if err != nil {
 			return ErrMsg{Err: err, Operation: "load summary check-in"}
 		}
-		lastCheckIn := ""
+		lastCheckIn, lastCheckInAt := "", ""
+		if checkIn != nil && checkIn.Date <= date {
+			lastCheckIn, lastCheckInAt = checkIn.Date, checkIn.CreatedAt
+		}
 		if recent, err := c.ListDailyCheckIns(shiftISODate(date, -365), date); err == nil {
 			for _, item := range recent {
-				if item.Date > lastCheckIn && item.Date <= date {
-					lastCheckIn = item.Date
+				if item.Date <= date && (item.Date > lastCheckIn || (item.Date == lastCheckIn && lastCheckInAt == "")) {
+					lastCheckIn, lastCheckInAt = item.Date, item.CreatedAt
 				}
 			}
 		}
@@ -329,6 +332,7 @@ func LoadSummarySnapshot(c *api.Client, date string) tea.Cmd {
 			Plan:                     plan,
 			CheckIn:                  checkIn,
 			LastCheckIn:              lastCheckIn,
+			LastCheckInAt:            lastCheckInAt,
 			Rollup:                   rollup,
 			Streaks:                  streaks,
 			Focus:                    focus,
@@ -418,7 +422,7 @@ func LoadMetricsLifetimeStreaks(c *api.Client, date string) tea.Cmd {
 }
 
 // LoadDetailHabitHistory loads one habit's history across every repo and stream.
-func LoadDetailHabitHistory(c *api.Client, habitID int64) tea.Cmd {
+func LoadDetailHabitHistory(c *api.Client, habitID int64, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		completions, err := c.ListHabitHistory(nil, nil)
 		if err != nil {
@@ -431,7 +435,7 @@ func LoadDetailHabitHistory(c *api.Client, habitID int64) tea.Cmd {
 				own = append(own, completion)
 			}
 		}
-		return DetailHabitHistoryLoadedMsg{HabitID: habitID, Completions: own}
+		return DetailHabitHistoryLoadedMsg{HabitID: habitID, Completions: own, Generation: generation}
 	}
 }
 
@@ -448,14 +452,14 @@ func LoadIssueSessions(c *api.Client, issueID int64) tea.Cmd {
 
 // LoadDetailIssueHistory loads an issue's sessions with their parsed notes for Daily's
 // detail pane.
-func LoadDetailIssueHistory(c *api.Client, issueID int64) tea.Cmd {
+func LoadDetailIssueHistory(c *api.Client, issueID int64, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		sessions, err := c.ListSessionHistory(&issueID, 0)
 		if err != nil {
 			logger.Errorf("loadDetailIssueHistory(%d): %v", issueID, err)
 			return ErrMsg{Err: err}
 		}
-		return DetailIssueHistoryLoadedMsg{IssueID: issueID, Sessions: sessions}
+		return DetailIssueHistoryLoadedMsg{IssueID: issueID, Sessions: sessions, Generation: generation}
 	}
 }
 

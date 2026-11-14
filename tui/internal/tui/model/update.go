@@ -32,23 +32,32 @@ const (
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	before, wasWide := m.selectedSessionID(), m.width >= 100
+	if event, ok := msg.(commands.KernelEventMsg); ok {
+		switch event.Event.Type {
+		case "habit.completed", "habit.uncompleted":
+			m.detailHistoryHabitID = 0
+		case "session.history_changed":
+			m.detailSessionsIssueID = 0
+		}
+	}
 	if loaded, ok := msg.(commands.DetailIssueHistoryLoadedMsg); ok {
-		if loaded.IssueID == m.detailSessionsIssueID {
+		if loaded.IssueID == m.detailSessionsIssueID && loaded.Generation == m.detailSessionsGeneration {
 			m.detailSessions = loaded.Sessions
 		}
-		return m, nil
+		return m.refreshItemDetailDialog(), nil
 	}
 	if loaded, ok := msg.(commands.DetailHabitHistoryLoadedMsg); ok {
-		if loaded.HabitID == m.detailHistoryHabitID {
+		if loaded.HabitID == m.detailHistoryHabitID && loaded.Generation == m.detailHabitHistoryGeneration {
 			m.detailHabitHistory = loaded.Completions
 		}
-		return m, nil
+		return m.refreshItemDetailDialog(), nil
 	}
 	next, cmd := m.update(msg)
 	if model, ok := next.(Model); ok {
 		if load := model.syncDetailSessions(); load != nil {
 			cmd = tea.Batch(cmd, load)
 		}
+		model = model.refreshItemDetailDialog()
 		if tick := model.sessionPreviewTick(before, wasWide); tick != nil {
 			cmd = tea.Batch(cmd, tick)
 		}
@@ -61,46 +70,64 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return next, cmd
 }
 
-// syncDetailSessions loads the sessions of the issue, or the history of the habit, that
-// Daily's detail pane shows, once each time the pane opens on it, and forgets them when the
-// pane shows anything else.
+// syncDetailSessions loads history for the item in a visible Work pane, expanded Daily
+// pane, or item dialog.
+// Selection changes clear the old history, and replies are matched to the current item.
 func (m *Model) syncDetailSessions() tea.Cmd {
-	if m.view == ViewDaily && m.dailyDetailFocus && !m.dailyDetailSummary {
+	itemModal := m.isItemDetailDialog()
+	workPane := m.workDetailPaneShown()
+	snapshot := m.selectionSnapshot()
+	if workPane && m.pane == PaneScope {
+		if m.view == ViewDefault {
+			snapshot.Pane = PaneIssues
+		} else {
+			snapshot.Pane = PaneHabits
+		}
+	}
+	if (m.view == ViewDaily && m.dailyDetailFocus && !m.dailyDetailSummary) || itemModal {
 		total := m.listLen(m.pane)
 		m.clamp(m.pane, total)
 		if total == 0 {
 			m.dailyDetailFocus, m.dailyDetailScroll = false, 0
+			if itemModal {
+				*m = m.withDialogState(dialogstate.Close(m.dialogState()))
+				itemModal = false
+			}
 		}
 	}
 	var id int64
-	if m.view == ViewDaily && m.pane == PaneIssues && m.dailyDetailFocus && !m.dailyDetailSummary {
-		if issue, ok := selectionpkg.SelectedIssue(m.selectionSnapshot()); ok {
+	if snapshot.Pane == PaneIssues && ((m.view == ViewDaily && m.dailyDetailFocus && !m.dailyDetailSummary) || itemModal || workPane) {
+		if issue, ok := selectionpkg.SelectedIssue(snapshot); ok {
 			id = issue.ID
 		}
 	}
 	var cmds []tea.Cmd
 	if id != m.detailSessionsIssueID {
+		m.detailSessionsGeneration++
 		if id != 0 {
 			m.dailyDetailScroll = 0
 		}
 		m.detailSessionsIssueID, m.detailSessions = id, nil
 		if id != 0 && m.client != nil {
-			cmds = append(cmds, commands.LoadDetailIssueHistory(m.client, id))
+			cmds = append(cmds, commands.LoadDetailIssueHistory(m.client, id, m.detailSessionsGeneration))
 		}
 	}
 	var habitID int64
-	if m.view == ViewDaily && m.pane == PaneHabits && m.dailyDetailFocus && !m.dailyDetailSummary {
-		if habit, ok := selectionpkg.SelectedDailyHabit(m.selectionSnapshot()); ok {
+	if snapshot.Pane == PaneHabits && ((m.view == ViewDaily && m.dailyDetailFocus && !m.dailyDetailSummary) || itemModal || workPane) {
+		if habit, ok := selectionpkg.SelectedDailyHabit(snapshot); ok {
+			habitID = habit.ID
+		} else if habit, ok := selectionpkg.SelectedHabit(snapshot); ok {
 			habitID = habit.ID
 		}
 	}
 	if habitID != m.detailHistoryHabitID {
+		m.detailHabitHistoryGeneration++
 		if habitID != 0 {
 			m.dailyDetailScroll = 0
 		}
 		m.detailHistoryHabitID, m.detailHabitHistory = habitID, nil
 		if habitID != 0 && m.client != nil {
-			cmds = append(cmds, commands.LoadDetailHabitHistory(m.client, habitID))
+			cmds = append(cmds, commands.LoadDetailHabitHistory(m.client, habitID, m.detailHabitHistoryGeneration))
 		}
 	}
 	return tea.Batch(cmds...)
@@ -361,6 +388,9 @@ func batchCmds(cmds ...tea.Cmd) tea.Cmd {
 }
 
 func (m Model) updateDialog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if next, cmd, handled := m.updateItemDetailDialog(msg); handled {
+		return next, cmd
+	}
 	state, action, status := m.dialogSnapshot().Update(msg)
 	if status != "" {
 		state.ErrorMessage = status

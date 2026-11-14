@@ -41,7 +41,11 @@ func DayLines(theme types.Theme, state types.ContentState, width int) []string {
 		state.DailyDetailFocus && state.DailyDetailSummary && !state.DailyPlanSelect)...)
 	lines = append(lines, "")
 	lines = append(lines, renderWellbeing(theme, snapshot.CheckIn, snapshot.Rollup, state.Settings, width)...)
-	lines = append(lines, lastCheckInLine(theme, snapshot.LastCheckIn, state.Settings, time.Now(), width)...)
+	latestDate, latestAt := snapshot.LastCheckIn, snapshot.LastCheckInAt
+	if snapshot.CheckIn != nil && (snapshot.CheckIn.Date > latestDate || (snapshot.CheckIn.Date == latestDate && latestAt == "")) {
+		latestDate, latestAt = snapshot.CheckIn.Date, snapshot.CheckIn.CreatedAt
+	}
+	lines = append(lines, lastCheckInLine(theme, latestDate, latestAt, state.Settings, time.Now(), width)...)
 	lines = append(lines, "")
 	return append(lines, renderMomentum(theme, state, snapshot.Streaks, width)...)
 }
@@ -731,12 +735,12 @@ func limitColor(theme types.Theme, left, limit int) lipgloss.Color {
 }
 
 // lastCheckInLine names the latest check-in and how long ago it was; empty when there is none.
-func lastCheckInLine(theme types.Theme, date string, settings *sharedtypes.CoreSettings, now time.Time, width int) []string {
-	day, err := time.ParseInLocation("2006-01-02", date, time.Local)
+func lastCheckInLine(theme types.Theme, date, createdAt string, settings *sharedtypes.CoreSettings, now time.Time, width int) []string {
+	day, err := time.Parse(time.DateOnly, date)
 	if err != nil {
 		return nil
 	}
-	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.Local)
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	ago := "today"
 	switch days := int(today.Sub(day).Hours() / 24); {
 	case days == 1:
@@ -746,7 +750,18 @@ func lastCheckInLine(theme types.Theme, date string, settings *sharedtypes.CoreS
 	case days < 0:
 		ago = "ahead"
 	}
-	return []string{"", Row(theme, "Check-in", day.Format("Mon ")+helperpkg.FormatDisplayDate(date, settings)+theme.StyleDim.Render(" ("+ago+")"), width)}
+	parts := []string{day.Format("Mon ") + helperpkg.FormatDisplayDate(date, settings)}
+	if at, err := time.Parse(time.RFC3339Nano, strings.TrimSpace(createdAt)); err == nil {
+		parts = append(parts, at.In(now.Location()).Format("15:04"))
+	}
+	parts = append(parts, theme.StyleDim.Render("("+ago+")"))
+	lines := []string{""}
+	label := "Check-in"
+	for _, value := range joinWrapped(parts, " ", max(1, width-labelWidth)) {
+		lines = append(lines, Row(theme, label, value, width))
+		label = ""
+	}
+	return lines
 }
 
 var workGroupNames = map[string][2]string{

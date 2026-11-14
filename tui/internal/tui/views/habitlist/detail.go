@@ -15,10 +15,18 @@ func Detail(theme types.Theme, state types.ContentState, width int) (title strin
 		return "Selected", []string{theme.StyleDim.Render("Nothing selected")}, false
 	}
 	habit := state.ScopedHabits[indices[cur]]
+	state.ItemDetailActions = state.Pane == "habits"
 	return habit.Name, itemdetail.DefinitionLines(theme, state, habit, width), true
 }
 
 func renderDetail(theme types.Theme, state types.ContentState, width, height int) string {
-	title, lines, _ := Detail(theme, state, width-2)
-	return viewchrome.RenderSection(theme, viewchrome.Section{Title: title, Width: width, Height: height, Lines: lines})
+	title, lines, ok := Detail(theme, state, width-2)
+	var actions [][2]string
+	meta := ""
+	if ok && state.Pane == "habits" {
+		indices, cur := habitIndices(state), state.Cursors["habits"]
+		actions = itemdetail.HabitFooterKeys(state, state.ScopedHabits[indices[cur]].Habit)
+		meta = viewchrome.KeyHint(theme, "enter", "expand")
+	}
+	return itemdetail.RenderPane(theme, viewchrome.Section{Title: title, Meta: meta, Width: width, Height: height, Lines: lines}, actions)
 }

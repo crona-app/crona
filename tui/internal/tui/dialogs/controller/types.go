@@ -69,6 +69,8 @@ type State struct {
 	PromotingAdhoc            bool
 	MovingInbox               bool
 	ViewEntityAdhoc           bool
+	ViewItemDetail            bool
+	ViewDetailHints           []string
 	AdhocResolution           sharedtypes.AdhocSessionResolution
 	AdhocIssueIDs             []int64
 	AdhocIssueTab             int

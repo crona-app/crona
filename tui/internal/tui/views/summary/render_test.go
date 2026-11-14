@@ -422,12 +422,12 @@ func TestLastCheckInLineSaysHowLongAgo(t *testing.T) {
 	now := time.Date(2026, 11, 8, 15, 0, 0, 0, time.Local)
 	cases := map[string]string{"2026-11-08": "(today)", "2026-11-07": "(yesterday)", "2026-11-04": "(4 days ago)"}
 	for date, want := range cases {
-		got := ansi.Strip(strings.Join(lastCheckInLine(types.Theme{}, date, nil, now, 60), "\n"))
+		got := ansi.Strip(strings.Join(lastCheckInLine(types.Theme{}, date, "", nil, now, 60), "\n"))
 		if !strings.Contains(got, want) || !strings.Contains(got, date) {
 			t.Errorf("%s: %q lacks %q", date, got, want)
 		}
 	}
-	if lines := lastCheckInLine(types.Theme{}, "", nil, now, 60); lines != nil {
+	if lines := lastCheckInLine(types.Theme{}, "", "", nil, now, 60); lines != nil {
 		t.Errorf("no check-in should add nothing, got %q", lines)
 	}
 }
@@ -449,5 +449,42 @@ func TestWorkBreakdownRowsAndDrill(t *testing.T) {
 	text = squash(dayText(state, 90))
 	if !strings.Contains(text, "Repo › OSS › Streams") || !strings.Contains(text, "[esc] back") {
 		t.Fatalf("drill should show its path and keys:\n%s", text)
+	}
+}
+
+func TestCheckInDateAndTimeUseSameRecordAndWrap(t *testing.T) {
+	now := time.Date(2026, 11, 15, 18, 0, 0, 0, time.FixedZone("IST", 19800))
+	for _, width := range []int{30, 42, 80} {
+		lines := lastCheckInLine(types.Theme{}, "2026-11-15", "2026-11-15T03:45:00Z", nil, now, width)
+		text := squash(ansi.Strip(strings.Join(lines, "\n")))
+		for _, want := range []string{"2026-11-15", "09:15", "(today)"} {
+			if !strings.Contains(text, want) {
+				t.Errorf("width %d: check-in missing %q: %q", width, want, text)
+			}
+		}
+		for _, line := range lines {
+			if ansi.StringWidth(line) > width {
+				t.Errorf("check-in row exceeds width %d: %q", width, line)
+			}
+		}
+	}
+	for _, timestamp := range []string{"", "invalid"} {
+		text := ansi.Strip(strings.Join(lastCheckInLine(types.Theme{}, "2026-11-14", timestamp, nil, now, 80), "\n"))
+		if !strings.Contains(text, "2026-11-14") || !strings.Contains(text, "(yesterday)") || strings.Contains(text, "00:00") {
+			t.Errorf("missing timestamp should preserve date without inventing time: %q", text)
+		}
+	}
+}
+
+func TestSummaryCheckInTimestampFallsBackToShownDaysRecord(t *testing.T) {
+	state := summaryTestState()
+	state.SummarySnapshot.LastCheckIn = "2026-07-27"
+	state.SummarySnapshot.LastCheckInAt = "2026-07-27T01:00:00Z"
+	state.SummarySnapshot.CheckIn.Date = "2026-07-28"
+	state.SummarySnapshot.CheckIn.CreatedAt = "2026-07-28T09:15:00Z"
+	expected, _ := time.Parse(time.RFC3339, state.SummarySnapshot.CheckIn.CreatedAt)
+	text := dayText(state, 100)
+	if !strings.Contains(text, expected.Local().Format("15:04")) || strings.Contains(text, "2026-07-27") {
+		t.Errorf("summary used an older check-in instead of the displayed day's record:\n%s", text)
 	}
 }

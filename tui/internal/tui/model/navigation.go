@@ -10,16 +10,12 @@ import (
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/api"
 	"crona.work/tui/internal/tui/commands"
+	"crona.work/tui/internal/tui/dialogs"
 	dialogstate "crona.work/tui/internal/tui/dialogs/controller"
-	helperpkg "crona.work/tui/internal/tui/helpers"
 	layoutpkg "crona.work/tui/internal/tui/layout"
 	navigationutil "crona.work/tui/internal/tui/navigationutil"
 	selectionpkg "crona.work/tui/internal/tui/selection"
 	uistate "crona.work/tui/internal/tui/state"
-	habitlist "crona.work/tui/internal/tui/views/habitlist"
-	issuecore "crona.work/tui/internal/tui/views/issuecore"
-	issueview "crona.work/tui/internal/tui/views/issues"
-	"crona.work/tui/internal/tui/views/itemdetail"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	viewtypes "crona.work/tui/internal/tui/views/types"
 
@@ -328,13 +324,12 @@ func (m Model) openSelectedEditDialog() (Model, bool) {
 	return m, false
 }
 
-// viewEntityBodyWidth is the text width inside the view_entity modal (76 wide, padded 3 a side).
+// viewEntityBodyWidth matches the modal content width, including narrow-screen clamping.
 func viewEntityBodyWidth(width int) int {
-	return max(24, min(width-8, 76)-6)
+	return dialogs.FrameInner(width, []string{strings.Repeat(" ", 76)})
 }
 
 func (m Model) openSelectedViewDialog() (Model, bool) {
-	snapshot := m.selectionSnapshot()
 	switch m.pane {
 	case PaneScope:
 		node, ok := m.selectedScopeNode()
@@ -361,106 +356,10 @@ func (m Model) openSelectedViewDialog() (Model, bool) {
 		}, "   ")
 		body := strings.Join([]string{"Description", optionalText(stream.Description)}, "\n")
 		return m.openViewEntityDialog("Stream", node.Name, meta, body), true
-	case PaneIssues:
-		issue, ok := m.selectedIssueRecord()
-		if !ok {
-			return m, false
-		}
-		if m.view == ViewDefault {
-			return m.openDetailDialog("Issue", issueview.Detail, snapshot, func(dialog *dialogstate.State) {
-				if issue.Adhoc {
-					dialog.ViewEntityAdhoc, dialog.IssueID = true, issue.ID
-				}
-			})
-		}
-		repoName, streamName := "-", "-"
-		var issueMeta *api.IssueWithMeta
-		if meta := selectionpkg.IssueMetaByID(snapshot, issue.ID); meta != nil {
-			issueMeta = meta
-			repoName = meta.RepoName
-			streamName = meta.StreamName
-		}
-		spentSeconds := issue.WorkedSeconds
-		if issueMeta != nil && issueMeta.WorkedSeconds > spentSeconds {
-			spentSeconds = issueMeta.WorkedSeconds
-		}
-		due := "-"
-		if issue.TodoForDate != nil && strings.TrimSpace(*issue.TodoForDate) != "" {
-			due = strings.TrimSpace(*issue.TodoForDate)
-		}
-		metaBits := []string{
-			fmt.Sprintf("Repo %s", repoName),
-			fmt.Sprintf("Stream %s", streamName),
-			fmt.Sprintf("Status %s", issue.Status),
-			issuecore.IssueWorkedEstimateSummary(spentSeconds, issue.EstimateMinutes),
-			fmt.Sprintf("Due %s", due),
-			fmt.Sprintf("ID %d", issue.ID),
-		}
-		body := []string{
-			"Description",
-			optionalText(issue.Description),
-		}
-		body = append(
-			body,
-			issuecore.NotesLines(
-				layoutpkg.ViewTheme(),
-				m.settings,
-				issue.Notes,
-				viewEntityBodyWidth(m.width),
-			)...)
-		var repoID int64
-		if issueMeta != nil {
-			repoID = issueMeta.RepoID
-		}
-		body = append(body, itemdetail.IssueInsightLines(
-			layoutpkg.ViewTheme(), m.detailContentState(snapshot),
-			issue.ID, repoID, issue.StreamID, viewEntityBodyWidth(m.width),
-		)...)
-		dialog := m.dialogSnapshot().OpenViewEntity(
-			"Issue",
-			issue.Title,
-			strings.Join(metaBits, "   "),
-			strings.Join(body, "\n"),
-		)
-		if issue.Adhoc {
-			dialog.ViewEntityAdhoc = true
-			dialog.IssueID = issue.ID
-		}
-		return m.withDialogState(dialog), true
-	case PaneHabits:
-		if m.view == ViewHabitList {
-			return m.openDetailDialog("Habit", habitlist.Detail, snapshot, nil)
-		}
-		if m.view == ViewDaily {
-			if habit, ok := m.selectedDailyHabitRecord(); ok {
-				habitStatus := string(habit.Status)
-				if strings.TrimSpace(habitStatus) == "" {
-					habitStatus = "pending"
-				}
-				meta := []string{
-					fmt.Sprintf("Repo %s", habit.RepoName),
-					fmt.Sprintf("Stream %s", habit.StreamName),
-					fmt.Sprintf(
-						"Schedule %s",
-						formatHabitSchedule(habit.ScheduleType, habit.Weekdays),
-					),
-					fmt.Sprintf("Status %s", habitStatus),
-					fmt.Sprintf("Duration %s", formatHabitTarget(habit.DurationMinutes)),
-				}
-				body := []string{"Description", optionalText(habit.Description)}
-				if habit.Notes != nil && strings.TrimSpace(*habit.Notes) != "" {
-					body = append(body, "", "Notes", strings.TrimSpace(*habit.Notes))
-				}
-				body = append(body, m.habitMomentumLines(snapshot, habit.ID)...)
-				return m.openViewEntityDialog(
-					"Habit",
-					habit.Name,
-					strings.Join(meta, "   "),
-					strings.Join(body, "\n"),
-				), true
-			}
-		}
+	case PaneIssues, PaneHabits:
+		return m.openItemDetailDialog()
 	}
+
 	return m, false
 }
 
@@ -469,38 +368,6 @@ func optionalText(text *string) string {
 		return "-"
 	}
 	return strings.TrimSpace(*text)
-}
-
-func formatHabitSchedule(scheduleType sharedtypes.HabitScheduleType, weekdays []int) string {
-	switch scheduleType {
-	case sharedtypes.HabitScheduleWeekdays:
-		return "weekdays"
-	case sharedtypes.HabitScheduleWeekly:
-		return formatHabitWeekdays(weekdays)
-	default:
-		return "daily"
-	}
-}
-
-func formatHabitWeekdays(weekdays []int) string {
-	if len(weekdays) == 0 {
-		return "-"
-	}
-	names := []string{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}
-	out := make([]string, 0, len(weekdays))
-	for _, day := range weekdays {
-		if day >= 0 && day < len(names) {
-			out = append(out, names[day])
-		}
-	}
-	return strings.Join(out, ", ")
-}
-
-func formatHabitTarget(target *int) string {
-	if target == nil {
-		return "-"
-	}
-	return helperpkg.FormatCompactDurationMinutes(*target)
 }
 
 func (m Model) openSelectedDeleteDialog() (Model, bool) {
@@ -649,12 +516,6 @@ func (m Model) currentWeekStart() sharedtypes.WeekStart {
 // detailContentState is the content state the detail dialogs read penalties and momentums from.
 func (m Model) detailContentState(snapshot selectionpkg.Snapshot) viewtypes.ContentState {
 	return m.viewContentState(m.mainContentWidth(), m.height, snapshot, nil)
-}
-
-func (m Model) habitMomentumLines(snapshot selectionpkg.Snapshot, habitID int64) []string {
-	return itemdetail.HabitMomentumLines(
-		layoutpkg.ViewTheme(), m.detailContentState(snapshot), habitID, viewEntityBodyWidth(m.width),
-	)
 }
 
 // openDetailDialog shows what the view's details pane shows for its selection, at the

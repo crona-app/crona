@@ -16,6 +16,7 @@ import (
 	types "crona.work/tui/internal/tui/views/types"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // IssueLines are an issue's details: its description, the effort and penalty arcs beside its
@@ -48,7 +49,11 @@ func IssueLines(theme types.Theme, state types.ContentState, issue api.Issue, wi
 	}
 	facts := []string{head, theme.StyleNormal.Render(Context(repo, stream)), due}
 	if len(issue.Tags) > 0 {
-		facts = append(facts, issuecore.TagChips(theme, issue.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3))+detailKey(theme, state, "+", "tags"))
+		tags := issuecore.TagChips(theme, issue.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3))
+		if !issue.Adhoc {
+			tags += detailKey(theme, state, "+", "tags")
+		}
+		facts = append(facts, tags)
 	}
 	penalty := issuePenaltyView(theme, state, issue.ID, width)
 	if penalty.verdict != "" {
@@ -132,7 +137,15 @@ func Context(repo, stream string) string {
 
 func besideArcs(theme types.Theme, arcs []viewsummary.Arc, facts []string, width int) []string {
 	arcWidth := viewsummary.ArcsWidth(len(arcs))
-	return viewsummary.BesideArcs(viewsummary.Arcs(theme, arcs, arcWidth), facts, arcWidth, width)
+	factWidth := width
+	if width >= arcWidth+30 {
+		factWidth = width - arcWidth - 3
+	}
+	wrapped := []string{}
+	for _, fact := range facts {
+		wrapped = append(wrapped, strings.Split(ansi.Wrap(fact, max(1, factWidth), ""), "\n")...)
+	}
+	return viewsummary.BesideArcs(viewsummary.Arcs(theme, arcs, arcWidth), wrapped, arcWidth, width)
 }
 
 // description leads the details with the item's description and a blank row.

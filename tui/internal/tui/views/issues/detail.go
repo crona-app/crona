@@ -15,10 +15,18 @@ func Detail(theme types.Theme, state types.ContentState, width int) (title strin
 		return "Selected", []string{theme.StyleDim.Render("Nothing selected")}, false
 	}
 	issue := state.DefaultIssues[indices[cur]].Issue
+	state.ItemDetailActions = state.Pane == "issues"
 	return issue.Title, itemdetail.IssueLines(theme, state, issue, width), true
 }
 
 func renderDetail(theme types.Theme, state types.ContentState, width, height int) string {
-	title, lines, _ := Detail(theme, state, width-2)
-	return viewchrome.RenderSection(theme, viewchrome.Section{Title: title, Width: width, Height: height, Lines: lines})
+	title, lines, ok := Detail(theme, state, width-2)
+	var actions [][2]string
+	meta := ""
+	if ok && state.Pane == "issues" {
+		indices, cur := issueIndices(state), state.Cursors["issues"]
+		actions = itemdetail.IssueFooterKeys(state, state.DefaultIssues[indices[cur]].Issue)
+		meta = viewchrome.KeyHint(theme, "enter", "expand")
+	}
+	return itemdetail.RenderPane(theme, viewchrome.Section{Title: title, Meta: meta, Width: width, Height: height, Lines: lines}, actions)
 }

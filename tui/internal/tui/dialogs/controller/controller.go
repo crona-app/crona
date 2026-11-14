@@ -131,6 +131,8 @@ func Close(state State) State {
 	state.PromotingAdhoc = false
 	state.MovingInbox = false
 	state.ViewEntityAdhoc = false
+	state.ViewItemDetail = false
+	state.ViewDetailHints = nil
 	state.AdhocResolution = ""
 	state.AdhocIssueIDs = nil
 	state.AdhocIssueTab = 0

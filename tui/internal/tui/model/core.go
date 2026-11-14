@@ -147,12 +147,14 @@ type Model struct {
 	dailyPlanIssueID   int64
 	// detailSessions are the sessions of detailSessionsIssueID, loaded when Daily's detail
 	// pane opens on an issue.
-	detailSessions        []api.SessionHistoryEntry
-	detailSessionsIssueID int64
-	detailHabitHistory    []api.HabitCompletion
-	detailHistoryHabitID  int64
-	dailyDetailScroll     int
-	momentumWindowDays    int
+	detailSessions               []api.SessionHistoryEntry
+	detailSessionsIssueID        int64
+	detailSessionsGeneration     uint64
+	detailHabitHistory           []api.HabitCompletion
+	detailHistoryHabitID         int64
+	detailHabitHistoryGeneration uint64
+	dailyDetailScroll            int
+	momentumWindowDays           int
 	// momentumBucket is the chart's chosen bucket, counted back from the latest; the
 	// contributors pane shows momentumBucketDetail, loaded for momentumBucketKey.
 	momentumBucketGeneration uint64
@@ -237,6 +239,8 @@ type Model struct {
 	dialogPromotingAdhoc                 bool
 	dialogMovingInbox                    bool
 	dialogViewEntityAdhoc                bool
+	dialogViewItemDetail                 bool
+	dialogViewDetailHints                []string
 	dialogAdhocResolution                sharedtypes.AdhocSessionResolution
 	dialogAdhocIssueIDs                  []int64
 	dialogAdhocIssueTab                  int

@@ -95,7 +95,7 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 				style = style.Bold(true)
 			}
 			lines = append(lines, marker+style.Render(ansi.Truncate(title, room, "…")))
-			if pos == cur && active {
+			if pos == cur && active && !state.ItemDetailActions {
 				lines = append(lines, daily.TaskActionLine(theme, state, width))
 				continue
 			}

@@ -149,14 +149,26 @@ func detailViewSpec(theme Theme, state controllerpkg.State) FrameSpec {
 		if strings.TrimSpace(state.ViewPath) != "" || state.HabitStreakDraft.ID != "" {
 			d.hints = append(d.hints, "e edit")
 		}
-		if state.ViewEntityAdhoc {
+		if state.ViewItemDetail {
+			d.esc = "[esc] close"
+			d.hints = append(d.hints, detailViewKey(theme, "←/→", "item"))
+			for _, hint := range state.ViewDetailHints {
+				key, label, _ := strings.Cut(hint, " ")
+				d.hints = append(d.hints, detailViewKey(theme, key, label))
+			}
+		}
+		if state.ViewEntityAdhoc && !state.ViewItemDetail {
 			d.hints = append(d.hints, "e convert to regular issue")
 		}
 		if state.Kind == "view_entity" {
 			d.scrollable, d.scroll = true, state.ViewScroll
 			d.body = body
 			withHint := d
-			withHint.hints = append([]string{"↑/↓ scroll"}, d.hints...)
+			scrollHint := "↑/↓ scroll"
+			if state.ViewItemDetail {
+				scrollHint = detailViewKey(theme, "↑/↓", "scroll")
+			}
+			withHint.hints = append([]string{scrollHint}, d.hints...)
 			if FrameMaxScroll(listDialogSpec(theme, state, withHint)) > 0 {
 				d = withHint
 			}
@@ -164,4 +176,8 @@ func detailViewSpec(theme Theme, state controllerpkg.State) FrameSpec {
 	}
 	d.body = body
 	return listDialogSpec(theme, state, d)
+}
+
+func detailViewKey(theme Theme, key, label string) string {
+	return theme.StyleHeader.Render("["+key+"]") + theme.StyleDim.Render(" "+label)
 }

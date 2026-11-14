@@ -71,7 +71,9 @@ type SummarySnapshot struct {
 	Plan    *DailyPlan
 	CheckIn *DailyCheckIn
 	// LastCheckIn is the latest check-in date on or before Date (within a year), or "".
-	LastCheckIn    string
+	LastCheckIn string
+	// LastCheckInAt is the creation timestamp of the same latest check-in.
+	LastCheckInAt  string
 	Rollup         *MetricsRollup
 	Streaks        *StreakSummary
 	Focus          *FocusScoreSummary

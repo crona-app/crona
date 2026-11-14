@@ -85,6 +85,8 @@ type ContentState struct {
 	// DailyDetailFocus expands the selected item (enter) or summary (S/tab).
 	// Otherwise wide screens show the compact preview above the day summary.
 	DailyDetailFocus bool
+	// ItemDetailActions enables contextual keys in interactive item details.
+	ItemDetailActions bool
 	// DailyDetailSummary keeps the expanded surface on the Day summary.
 	DailyDetailSummary bool
 	DailyDetailScroll  int

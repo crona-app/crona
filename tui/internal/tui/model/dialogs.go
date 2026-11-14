@@ -773,6 +773,8 @@ func (m Model) dialogState() dialogstate.State {
 		PromotingAdhoc:            m.dialogPromotingAdhoc,
 		MovingInbox:               m.dialogMovingInbox,
 		ViewEntityAdhoc:           m.dialogViewEntityAdhoc,
+		ViewItemDetail:            m.dialogViewItemDetail,
+		ViewDetailHints:           m.dialogViewDetailHints,
 		AdhocResolution:           m.dialogAdhocResolution,
 		AdhocIssueIDs:             m.dialogAdhocIssueIDs,
 		AdhocIssueTab:             m.dialogAdhocIssueTab,
@@ -936,6 +938,8 @@ func (m Model) withDialogState(state dialogstate.State) Model {
 	m.dialogPromotingAdhoc = state.PromotingAdhoc
 	m.dialogMovingInbox = state.MovingInbox
 	m.dialogViewEntityAdhoc = state.ViewEntityAdhoc
+	m.dialogViewItemDetail = state.ViewItemDetail
+	m.dialogViewDetailHints = state.ViewDetailHints
 	m.dialogAdhocResolution = state.AdhocResolution
 	m.dialogAdhocIssueIDs = state.AdhocIssueIDs
 	m.dialogAdhocIssueTab = state.AdhocIssueTab

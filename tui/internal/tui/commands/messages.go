@@ -89,6 +89,7 @@ type SupportBundleGeneratedMsg struct {
 
 // DetailHabitHistoryLoadedMsg carries one habit's history for Daily's detail pane.
 type DetailHabitHistoryLoadedMsg struct {
+	Generation  uint64
 	HabitID     int64
 	Completions []api.HabitCompletion
 }
@@ -96,8 +97,9 @@ type DetailHabitHistoryLoadedMsg struct {
 // DetailIssueHistoryLoadedMsg carries the session history, notes parsed, of the issue
 // Daily's detail pane shows.
 type DetailIssueHistoryLoadedMsg struct {
-	IssueID  int64
-	Sessions []api.SessionHistoryEntry
+	Generation uint64
+	IssueID    int64
+	Sessions   []api.SessionHistoryEntry
 }
 
 type IssueSessionsLoadedMsg struct {

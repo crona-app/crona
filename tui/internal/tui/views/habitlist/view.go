@@ -20,6 +20,11 @@ func Render(theme types.Theme, state types.ContentState) string {
 	if height == 0 {
 		return strings.Join(rows, "\n")
 	}
+	detailHeight := height
+	if state.Width < 100 {
+		detailHeight--
+	}
+	state.ItemDetailActions = state.Width >= 160 || detailHeight >= viewchrome.StackMinHeight
 	if state.Width < 100 {
 		rows = append(rows, scopepane.RenderRow(theme, state, state.Width))
 		if height > 1 {

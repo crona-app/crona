@@ -113,7 +113,7 @@ func cardSecondLine(t *testing.T, rendered, title string) string {
 }
 
 func TestIssuesCardActionLine(t *testing.T) {
-	focused := Render(types.Theme{}, issuesState(120, 40))
+	focused := Render(types.Theme{}, issuesState(120, 20))
 	line := cardSecondLine(t, focused, "Fix sync conflict")
 	for _, want := range []string{"[s] status", "[d] due", "[e] edit"} {
 		if !strings.Contains(line, want) {
@@ -123,7 +123,7 @@ func TestIssuesCardActionLine(t *testing.T) {
 	if !strings.Contains(cardSecondLine(t, focused, "Write release notes"), "crona") {
 		t.Fatal("expected other cards to keep their meta")
 	}
-	unfocused := issuesState(120, 40)
+	unfocused := issuesState(120, 20)
 	unfocused.Pane = "scope"
 	if line := cardSecondLine(t, Render(types.Theme{}, unfocused), "Fix sync conflict"); strings.Contains(
 		line,

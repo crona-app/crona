@@ -100,6 +100,10 @@ On wide terminals (160 columns or more), the side column shows the calendar, a p
 - `E`: Set range end date.
 - `g`: Reset range to current week.
 
+### Issue and Habit Detail Dialogs
+
+The Work → Issues and Habits detail panes and their dialogs use the same contextual keys, action footers, arcs, facts, notes, and history, including habit hit rates over 7 and 30 days. Use `←` / `→` to browse the source list, `↑` / `↓` to scroll, and `esc` to return to the selected item. Field actions appear beside their data; general actions remain in the footer. Only keys supported by the source view are offered.
+
 ## Dialog & Text Form Controls
 
 - `esc`: Cancel, dismiss, or go back.

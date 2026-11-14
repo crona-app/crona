@@ -141,7 +141,7 @@ func renderHabits(theme types.Theme, state types.ContentState, width, height int
 			style = style.Bold(true)
 		}
 		lines = append(lines, marker+style.Render(ansi.Truncate(habit.Name, max(1, width-4), "…")))
-		if active && pos == cur {
+		if active && pos == cur && !state.ItemDetailActions {
 			hints := []string{
 				viewchrome.KeyHint(theme, "enter", "open"),
 				viewchrome.KeyHint(theme, "e", "edit"),
