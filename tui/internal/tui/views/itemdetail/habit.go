@@ -80,15 +80,17 @@ func HabitMomentumLines(theme types.Theme, state types.ContentState, habitID int
 }
 
 // habitLines lay a habit out like an issue: a Today arc of minutes logged against the target
-// (or done or not), a hit-rate arc over the last 30 days, and the facts beside them; then a
+// (or done or not), hit-rate arcs over the last 7 and 30 days, and the facts beside them; then a
 // two-week trail, recent entries, notes and momentum.
 func habitLines(theme types.Theme, state types.ContentState, habit api.HabitDailyItem, status string, width int) []string {
 	days := habitDays(state, habit.ID)
 	today := viewruntime.ShownDate(state)
 	off := status == "not due today" || status == "paused"
 	arcs := []viewsummary.Arc{HabitTodayArc(theme, habit, status, off)}
-	if hit, ok := habitHitArc(theme, days, today); ok {
-		arcs = append(arcs, hit)
+	for _, window := range []int{7, habitHitWindow} {
+		if hit, ok := habitHitArc(theme, days, today, window); ok {
+			arcs = append(arcs, hit)
+		}
 	}
 	facts := []string{habitStatusLine(theme, habit, status, off) + detailKey(theme, state, "x", "done") + detailKey(theme, state, "F", "fail")}
 	if context := Context(habit.RepoName, habit.StreamName); context != "-" {
@@ -96,7 +98,7 @@ func habitLines(theme types.Theme, state types.ContentState, habit api.HabitDail
 	}
 	facts = append(facts, idLine(theme, habit.ID, nil))
 	if len(habit.Tags) > 0 {
-		facts = append(facts, issuecore.TagChips(theme, habit.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(2)-3))+detailKey(theme, state, "+", "tags"))
+		facts = append(facts, issuecore.TagChips(theme, habit.Tags, state.Tags, max(8, width-viewsummary.ArcsWidth(len(arcs))-3))+detailKey(theme, state, "+", "tags"))
 	}
 	lines := description(theme, habit.Description, width)
 	lines = append(lines, besideArcs(theme, arcs, facts, width)...)
@@ -169,14 +171,14 @@ func HabitTodayArc(theme types.Theme, habit api.HabitDailyItem, status string, o
 	return arc
 }
 
-// habitHitArc is the share of the last 30 days with an outcome that the habit was done.
-func habitHitArc(theme types.Theme, days map[string]habitDay, today string) (viewsummary.Arc, bool) {
+// habitHitArc is the completed share of recorded outcomes in the given day window.
+func habitHitArc(theme types.Theme, days map[string]habitDay, today string, window int) (viewsummary.Arc, bool) {
 	end, err := time.Parse(time.DateOnly, today)
 	if err != nil {
 		return viewsummary.Arc{}, false
 	}
 	done, decided := 0, 0
-	for i := range habitHitWindow {
+	for i := range window {
 		day := days[end.AddDate(0, 0, -i).Format(time.DateOnly)]
 		if day.status == "" {
 			continue
@@ -198,7 +200,7 @@ func habitHitArc(theme types.Theme, days map[string]habitDay, today string) (vie
 		color = theme.ColorYellow
 	}
 	return viewsummary.Arc{
-		Label: fmt.Sprintf("Hit/%dd", habitHitWindow), Value: fmt.Sprintf("%.0f%%", fraction*100),
+		Label: fmt.Sprintf("Hit/%dd", window), Value: fmt.Sprintf("%.0f%%", fraction*100),
 		Fraction: fraction, Color: color,
 	}, true
 }

@@ -385,7 +385,7 @@ func TestHabitDetailShowsHitRateTrailAndRecent(t *testing.T) {
 		{HabitID: 8, Date: "2026-05-26", Status: "completed"},
 	}
 	got := strings.Join(strings.Fields(ansi.Strip(strings.Join(itemdetail.HabitLines(testTheme(), state, habit, 80), "\n"))), " ")
-	for _, want := range []string{"50%", "Hit/30d", "Last 14d", "✗ ● ·", "Recent", "Tue 26 May", "10m ✓", "5m ✗"} {
+	for _, want := range []string{"50%", "Hit/7d", "Hit/30d", "Last 14d", "✗ ● ·", "Recent", "Tue 26 May", "10m ✓", "5m ✗"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("expected %q, got %q", want, got)
 		}
