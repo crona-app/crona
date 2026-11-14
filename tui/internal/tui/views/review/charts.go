@@ -39,7 +39,10 @@ func chartLines(theme types.Theme, s daySeries, m metricSet, width, height int) 
 	}
 	lines := []string{rule(theme, "Wellbeing", theme.StyleDim.Render(meta), width)}
 	lines = append(lines, wellbeingChart(theme, s, m, width, wellRows)...)
-	lines = append(lines, rule(theme, "Work", legend(theme,
+	worked := m.worked
+	worked.name = "work"
+	workTitle := strings.TrimSpace(laneHeading(theme, lane{metric: worked, values: s.worked}, s))
+	lines = append(lines, rule(theme, workTitle, legend(theme,
 		legendItem{"hours worked", m.worked.color}, legendItem{"focus 0–100", m.focus.color}), width))
 	lines = append(lines, workChart(theme, s, m, width, workRows)...)
 	lines = append(lines, dateAxis(theme, s, width), readout(theme, s, m))

@@ -89,7 +89,7 @@ func TestDashboardSections(t *testing.T) {
 	for _, want := range []string{
 		"Thu 8 Oct – Wed 14 Oct · 7 days",
 		"Worked 17h", "Focus 72", "Plan 22/27", "Mood 3.8", "Energy 3.4", "Sleep 7h06m",
-		"─ Wellbeing ", "Mood · avg 2.5", "Energy · avg 3 · Wed 14 3", "┄ window average", "─ Work ", "● hours worked", "● focus",
+		"─ Wellbeing ", "Mood · avg 2.5", "Energy · avg 3 · Wed 14 3", "┄ window average", "─ Work · avg 5h · Wed 14 8h", "● hours worked", "● focus",
 		"Thu 8", "▸Wed 14", "▸ Wed 14 Oct · mood 2 · energy 3", "plan 4/5",
 		"─ Risk ", "20 LOW", "easing ◀│▶ raising", "+30 Break debt",
 		"[b] group", "OSS", "─ Plan ", "22/27 done",
