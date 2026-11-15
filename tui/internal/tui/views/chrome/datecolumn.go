@@ -8,7 +8,7 @@ import (
 )
 
 // DateColumnList draws the cursor's window of rows grouped by day, laid out like Settings: a
-// blank line between days, the day as a quiet heading with its summary dim at the right, and
+// blank line between days, the day as a quiet heading with its summary beside it, and
 // the day's rows indented under it. Rows off the cursor are faint.
 func DateColumnList(
 	theme Theme,
@@ -19,7 +19,6 @@ func DateColumnList(
 	if len(rows) == 0 || height < 1 {
 		return nil
 	}
-	inner := max(1, width-2)
 	lines := make([]dayLine, 0, len(rows)*2)
 	for i, row := range rows {
 		if i == 0 || row.Date != rows[i-1].Date {
@@ -29,13 +28,10 @@ func DateColumnList(
 			heading := " " + theme.StyleDim.Bold(true).Render(strings.ToUpper(dateColumnLabel(row.Date)))
 			if summary != nil {
 				if tail := summary(row.Date); tail != "" {
-					gap := inner + 2 - ansi.StringWidth(heading) - ansi.StringWidth(tail)
-					if gap >= 2 {
-						heading += strings.Repeat(" ", gap) + theme.StyleDim.Render(tail)
-					}
+					heading += theme.StyleDim.Render(" · " + tail)
 				}
 			}
-			lines = append(lines, dayLine{text: heading, row: -1})
+			lines = append(lines, dayLine{text: ansi.Truncate(heading, max(1, width), "…"), row: -1})
 		}
 		line := " " + row.Line
 		if i != cursor {

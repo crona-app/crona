@@ -14,6 +14,7 @@ const (
 	ViewTags           View = "tags"
 	ViewSessionHistory View = "session_history"
 	ViewHabitHistory   View = "habit_history"
+	ViewCheckInHistory View = "checkin_history"
 	ViewSessionActive  View = "session_active"
 	ViewOps            View = "ops"
 	ViewReports        View = "reports"
@@ -35,6 +36,7 @@ const (
 	PaneReviewDays    Pane = "review_days"
 	PaneSessions      Pane = "sessions"
 	PaneHabitHistory  Pane = "habit_history"
+	PaneCheckIns      Pane = "checkins"
 	PaneMomentumCards Pane = "momentum_cards"
 	PaneOps           Pane = "ops"
 	PaneExportReports Pane = "export_reports"
@@ -75,6 +77,7 @@ var viewOrder = []View{
 	ViewSupport,
 	ViewSessionHistory,
 	ViewHabitHistory,
+	ViewCheckInHistory,
 }
 
 var viewPanes = map[View][]Pane{
@@ -87,6 +90,7 @@ var viewPanes = map[View][]Pane{
 	ViewTags:           {PaneTags},
 	ViewSessionHistory: {PaneSessions},
 	ViewHabitHistory:   {PaneHabitHistory},
+	ViewCheckInHistory: {PaneCheckIns},
 	ViewSessionActive:  {},
 	ViewOps:            {PaneOps},
 	ViewReports:        {PaneExportReports},
@@ -107,6 +111,7 @@ var viewDefaultPane = map[View]Pane{
 	ViewTags:           PaneTags,
 	ViewSessionHistory: PaneSessions,
 	ViewHabitHistory:   PaneHabitHistory,
+	ViewCheckInHistory: PaneCheckIns,
 	ViewSessionActive:  PaneIssues,
 	ViewOps:            PaneOps,
 	ViewReports:        PaneExportReports,

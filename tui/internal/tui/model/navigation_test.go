@@ -145,6 +145,7 @@ func TestAvailableViewsFollowSidebarOrder(t *testing.T) {
 		ViewSupport,
 		ViewSessionHistory,
 		ViewHabitHistory,
+		ViewCheckInHistory,
 	}
 	if len(views) != len(want) {
 		t.Fatalf("unexpected view count: got %d want %d (%#v)", len(views), len(want), views)

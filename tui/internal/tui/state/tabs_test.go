@@ -8,7 +8,7 @@ import (
 func TestEveryViewBelongsToExactlyOneTab(t *testing.T) {
 	all := []View{
 		ViewAway, ViewDefault, ViewDaily, ViewReview, ViewMomentum, ViewHabitList,
-		ViewSessionHistory, ViewHabitHistory, ViewSessionActive, ViewOps,
+		ViewSessionHistory, ViewHabitHistory, ViewCheckInHistory, ViewSessionActive, ViewOps,
 		ViewReports, ViewConfig, ViewSettings, ViewAlerts, ViewUpdates, ViewSupport,
 	}
 	seen := map[View]Tab{}
@@ -75,5 +75,14 @@ func TestWorkTabSubTabs(t *testing.T) {
 	}
 	if len(ViewPanes(View("meta"))) > 0 {
 		t.Fatal("Meta still registered")
+	}
+}
+
+func TestOpsBelongsToSystemRatherThanHistory(t *testing.T) {
+	if TabForView(ViewOps) != TabSystem || !slices.Contains(TabViews(TabSystem), ViewOps) {
+		t.Fatal("Ops must belong to System")
+	}
+	if slices.Contains(TabViews(TabLog), ViewOps) {
+		t.Fatal("Log should contain session and habit history only")
 	}
 }

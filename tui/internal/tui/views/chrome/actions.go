@@ -139,6 +139,13 @@ func GlobalActions(theme Theme, state ActionsState) []string {
 }
 
 func ContextualActions(theme Theme, state ActionsState) []string {
+	if state.View == "checkin_history" {
+		actions := []string{KeyHint(theme, "enter", "details"), KeyHint(theme, "/", "filter"), KeyHint(theme, "r", "refresh")}
+		if !state.RestModeActive {
+			actions = append(actions, KeyHint(theme, "e", "edit selected check-in"), KeyHint(theme, "D", "delete selected check-in"))
+		}
+		return actions
+	}
 	if state.Pane == string(uistate.PaneScope) ||
 		(state.View == string(uistate.ViewDefault) && state.Pane == string(uistate.PaneIssues)) ||
 		(state.View == string(uistate.ViewHabitList) && state.Pane == string(uistate.PaneHabits)) {

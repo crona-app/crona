@@ -36,8 +36,8 @@ The top line shows the tabs; the line under it shows the current tab's sub-tabs.
 | `1` Today | Daily, Summary, Session (while a timer runs), Away (during rest) |
 | `2` Issues | Issues, Meta |
 | `3` Insights | Rollup, Momentum, Wellbeing |
-| `4` Log | Sessions, Habits, Ops |
-| `5` System | Settings, Alerts, Reports, Config, Updates, Support |
+| `4` Log | Sessions, Habits, Check-ins |
+| `5` System | Settings, Alerts, Reports, Ops, Config, Updates, Support |
 
 While a timer runs, only Today and Log are available. During configured rest or away mode, only Today (Away), Log, and System (Settings, Reports) are available.
 
@@ -113,3 +113,16 @@ The Work → Issues and Habits detail panes and their dialogs use the same conte
 - `g`: Set date field to today.
 - `c`: Clear text in selector fields.
 - `left` / `right` / `enter`: Cycle options and select in popups.
+
+### Check-ins History
+
+Log → Check-ins shows all recorded wellbeing check-ins, newest first, across all repo/stream scopes. Each date heading includes the local creation time. The selected record's full wellbeing gauges and notes appear beside the list on larger terminals.
+
+- `↑` / `↓`, `j` / `k`: Select a check-in.
+- `/`: Search dates, ratings, or notes; `esc` clears the filter.
+- `enter`: Open the full, scrollable details; `←` / `→` browses filtered records inside the dialog.
+- `e`: Edit the selected check-in; its recorded date stays fixed.
+- `D`: Delete the selected check-in after confirmation.
+- `r`: Refresh or retry a failed load.
+
+Editing and deletion are unavailable during protected rest. Historical actions preserve Daily's selected date. Create new check-ins from Daily.

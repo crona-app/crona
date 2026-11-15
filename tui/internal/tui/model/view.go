@@ -20,7 +20,7 @@ func (m Model) View() string {
 // effectiveView is the view the shell shows: Away replaces views that protected rest hides.
 func (m Model) effectiveView() View {
 	if m.view == ViewReports || m.view == ViewSessionHistory ||
-		m.view == ViewHabitHistory || m.view == ViewSettings {
+		m.view == ViewHabitHistory || m.view == ViewCheckInHistory || m.view == ViewSettings {
 		return m.view
 	}
 	if protected, _, _ := viewruntime.ProtectedRestMode(m.settings, m.currentLogicalDate()); protected {
@@ -63,6 +63,7 @@ func (m Model) layoutState() layoutpkg.State {
 		ViewMomentum,
 		ViewSessionHistory,
 		ViewHabitHistory,
+		ViewCheckInHistory,
 		ViewOps,
 		ViewSettings,
 		ViewTags,

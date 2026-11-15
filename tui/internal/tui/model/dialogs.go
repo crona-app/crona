@@ -1147,6 +1147,9 @@ func (m Model) dialogRuntimeDeps() dialogruntime.Deps {
 			return commands.CheckoutContext(m.client, repoID, repoName, streamID, streamName)
 		},
 		UpsertDailyCheckIn: func(req shareddto.DailyCheckInUpsertRequest, refreshDate string) tea.Cmd {
+			if m.view == ViewCheckInHistory {
+				return commands.SaveHistoryCheckIn(m.client, req)
+			}
 			return commands.UpsertDailyCheckIn(m.client, req, refreshDate)
 		},
 		UpdateIssue: func(issueID, streamID int64, title string, description *string, estimateMinutes *int, dueDate *string, dashboardDate string) tea.Cmd {
@@ -1240,7 +1243,12 @@ func (m Model) dialogRuntimeDeps() dialogruntime.Deps {
 		DeleteHabit: func(habitID, streamID int64, dashboardDate string) tea.Cmd {
 			return commands.DeleteHabit(m.client, habitID, streamID, dashboardDate)
 		},
-		DeleteDailyCheckIn:   func(id string) tea.Cmd { return commands.DeleteDailyCheckIn(m.client, id) },
+		DeleteDailyCheckIn: func(id string) tea.Cmd {
+			if m.view == ViewCheckInHistory {
+				return commands.DeleteHistoryCheckIn(m.client, id)
+			}
+			return commands.DeleteDailyCheckIn(m.client, id)
+		},
 		DeleteExportReport:   func(report api.ExportReportFile) tea.Cmd { return commands.DeleteExportReport(m.client, report) },
 		DeleteSessionHistory: func(id string) tea.Cmd { return commands.DeleteSessionHistory(m.client, id) },
 		ChangeIssueStatus: func(issueID int64, status string, note *string, streamID int64, dashboardDate string) tea.Cmd {

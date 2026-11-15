@@ -491,6 +491,11 @@ func planRow(theme types.Theme, item PlanItem) string {
 	return mark + item.Title + theme.StyleDim.Render(" · ") + lipgloss.NewStyle().Foreground(color).Render(why)
 }
 
+// CheckInLines renders one check-in with the same wellbeing gauges used in the day summary.
+func CheckInLines(theme types.Theme, checkIn *sharedtypes.DailyCheckIn, settings *sharedtypes.CoreSettings, width int) []string {
+	return renderWellbeing(theme, checkIn, nil, settings, width)
+}
+
 func renderWellbeing(
 	theme types.Theme,
 	checkIn *sharedtypes.DailyCheckIn,

@@ -98,6 +98,8 @@ func terminalViewTitle(view View) string {
 		return "History"
 	case ViewHabitHistory:
 		return "Habit History"
+	case ViewCheckInHistory:
+		return "Check-ins"
 	case ViewSessionActive:
 		return "Session"
 	case ViewOps:

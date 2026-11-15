@@ -36,6 +36,7 @@ const (
 	ViewHabitList      = uistate.ViewHabitList
 	ViewSessionHistory = uistate.ViewSessionHistory
 	ViewHabitHistory   = uistate.ViewHabitHistory
+	ViewCheckInHistory = uistate.ViewCheckInHistory
 	ViewSessionActive  = uistate.ViewSessionActive
 	ViewOps            = uistate.ViewOps
 	ViewReports        = uistate.ViewReports
@@ -58,6 +59,7 @@ const (
 	PaneReviewDays    = uistate.PaneReviewDays
 	PaneSessions      = uistate.PaneSessions
 	PaneHabitHistory  = uistate.PaneHabitHistory
+	PaneCheckIns      = uistate.PaneCheckIns
 	PaneMomentumCards = uistate.PaneMomentumCards
 	PaneOps           = uistate.PaneOps
 	PaneExportReports = uistate.PaneExportReports
@@ -81,6 +83,12 @@ const (
 // ---------- Model ----------
 
 type Model struct {
+	checkInHistory                                                   []api.DailyCheckIn
+	checkInHistoryGeneration                                         uint64
+	checkInHistoryLoaded, checkInHistoryLoading, checkInHistoryStale bool
+	checkInHistoryError                                              string
+	checkInDetailDate                                                string
+
 	// kernel client
 	client    *api.Client
 	telemetry sharedposthog.Client

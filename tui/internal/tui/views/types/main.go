@@ -38,6 +38,11 @@ type Theme struct {
 }
 
 type ContentState struct {
+	CheckInHistory         []api.DailyCheckIn
+	CheckInHistoryLoading  bool
+	CheckInHistoryError    string
+	CheckInHistoryReadOnly bool
+
 	View               string
 	Pane               string
 	SelectedIssueAdhoc bool

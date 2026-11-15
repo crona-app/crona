@@ -5,6 +5,7 @@ import (
 	alerts "crona.work/tui/internal/tui/views/alerts"
 	away "crona.work/tui/internal/tui/views/away"
 	viewcalendar "crona.work/tui/internal/tui/views/calendar"
+	"crona.work/tui/internal/tui/views/checkins"
 	config "crona.work/tui/internal/tui/views/config"
 	daily "crona.work/tui/internal/tui/views/daily"
 	habitlist "crona.work/tui/internal/tui/views/habitlist"
@@ -40,6 +41,8 @@ func RenderContent(theme types.Theme, state types.ContentState) string {
 		return sessions.Render(theme, state)
 	case "habit_history":
 		return habits.Render(theme, state)
+	case "checkin_history":
+		return checkins.Render(theme, state)
 	case "ops":
 		return ops.Render(theme, state)
 	case "config":

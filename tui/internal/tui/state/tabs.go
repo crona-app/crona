@@ -16,8 +16,8 @@ var tabViews = map[Tab][]View{
 	TabToday:    {ViewDaily, ViewSessionActive, ViewAway},
 	TabIssues:   {ViewDefault, ViewHabitList, ViewTags},
 	TabInsights: {ViewReview, ViewMomentum},
-	TabLog:      {ViewSessionHistory, ViewHabitHistory, ViewOps},
-	TabSystem:   {ViewSettings, ViewAlerts, ViewReports, ViewConfig, ViewUpdates, ViewSupport},
+	TabLog:      {ViewSessionHistory, ViewHabitHistory, ViewCheckInHistory},
+	TabSystem:   {ViewSettings, ViewAlerts, ViewReports, ViewOps, ViewConfig, ViewUpdates, ViewSupport},
 }
 
 var tabLabels = map[Tab]string{
@@ -39,6 +39,7 @@ var viewLabels = map[View]string{
 	ViewMomentum:       "Momentum",
 	ViewSessionHistory: "Sessions",
 	ViewHabitHistory:   "Habits",
+	ViewCheckInHistory: "Check-ins",
 	ViewOps:            "Ops",
 	ViewSettings:       "Settings",
 	ViewAlerts:         "Alerts",

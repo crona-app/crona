@@ -46,6 +46,7 @@ func (m Model) selectionSnapshot() selectionpkg.Snapshot {
 		DueHabits:      m.dueHabits,
 		MomentumCards:  m.momentumCards,
 		HabitHistory:   m.habitHistory,
+		CheckInHistory: m.checkInHistory,
 		ExportReports:  m.exportReports,
 		SessionHistory: m.sessionHistory,
 		Ops:            m.ops,
@@ -85,7 +86,7 @@ func (m Model) inputState() inputpkg.State {
 	if nextProtected, _, _ := viewruntime.ProtectedRestMode(m.settings, time.Now().Format("2006-01-02")); nextProtected {
 		protected = true
 		if activeView != ViewReports && activeView != ViewSessionHistory &&
-			activeView != ViewHabitHistory && activeView != ViewSettings {
+			activeView != ViewHabitHistory && activeView != ViewCheckInHistory && activeView != ViewSettings {
 			activeView = ViewAway
 			activePane = uistate.DefaultPane(activeView)
 		}

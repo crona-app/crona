@@ -813,6 +813,7 @@ var filterablePanes = map[uistate.Pane]bool{
 	uistate.PaneHabits:        true,
 	uistate.PaneSessions:      true,
 	uistate.PaneHabitHistory:  true,
+	uistate.PaneCheckIns:      true,
 	uistate.PaneMomentumCards: true,
 	uistate.PaneOps:           true,
 	uistate.PaneExportReports: true,

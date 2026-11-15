@@ -10,6 +10,7 @@ import (
 	helperpkg "crona.work/tui/internal/tui/helpers"
 	uistate "crona.work/tui/internal/tui/state"
 	alertsmeta "crona.work/tui/internal/tui/views/alertsmeta"
+	"crona.work/tui/internal/tui/views/checkins"
 	issuecore "crona.work/tui/internal/tui/views/issuecore"
 	settingsmeta "crona.work/tui/internal/tui/views/settingsmeta"
 	tagsmeta "crona.work/tui/internal/tui/views/tagsmeta"
@@ -42,6 +43,7 @@ type Snapshot struct {
 	ExportReports  []api.ExportReportFile
 	SessionHistory []api.SessionHistoryEntry
 	HabitHistory   []api.HabitCompletion
+	CheckInHistory []api.DailyCheckIn
 	Ops            []api.Op
 	Settings       *api.CoreSettings
 	AlertStatus    *api.AlertStatus
@@ -294,6 +296,8 @@ func PaneItems(s Snapshot, pane uistate.Pane) []string {
 		for _, entry := range s.HabitHistory {
 			items = append(items, habitHistorySummary(entry, s.Settings))
 		}
+	case uistate.PaneCheckIns:
+		items = checkins.Items(s.CheckInHistory, s.Settings)
 	case uistate.PaneOps:
 		items = make([]string, 0, len(s.Ops))
 		for _, op := range s.Ops {
@@ -319,6 +323,9 @@ func PaneItems(s Snapshot, pane uistate.Pane) []string {
 func FilteredIndices(s Snapshot, pane uistate.Pane) []int {
 	if indices, ok := s.filteredIndicesCache[pane]; ok {
 		return indices
+	}
+	if pane == uistate.PaneCheckIns {
+		return checkins.FilteredIndices(s.CheckInHistory, s.Filters[pane], s.Settings)
 	}
 	var indices []int
 	if pane == uistate.PaneIssues && s.View == uistate.ViewDefault {

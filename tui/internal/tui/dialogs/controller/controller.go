@@ -505,7 +505,7 @@ func Update(
 		return updateOnboarding(state, msg)
 	case "create_alert_reminder", "edit_alert_reminder":
 		return updateAlertReminder(state, msg)
-	case "view_entity":
+	case "view_entity", "checkin_detail":
 		return updateViewEntity(state, msg)
 	case "support_bundle_result":
 		return updateSupportBundleResult(state, msg)

@@ -32,8 +32,22 @@ const (
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	before, wasWide := m.selectedSessionID(), m.width >= 100
+	beforeView := m.view
+	if loaded, ok := msg.(commands.CheckInHistoryLoadedMsg); ok {
+		return m.applyCheckInHistory(loaded), nil
+	}
+	if result, ok := msg.(commands.CheckInHistoryMutationMsg); ok {
+		if result.Err != nil {
+			return m.withStatus(result.Err.Error(), true), nil
+		}
+		m.checkInHistoryStale = true
+		load := m.syncCheckInHistory(false)
+		return m, batchCmds(load, commands.LoadWellbeingDay(m.client, m.currentDate()), commands.LoadSummarySnapshot(m.client, m.currentDate()), commands.RequestRollupRefresh())
+	}
 	if event, ok := msg.(commands.KernelEventMsg); ok {
 		switch event.Event.Type {
+		case "checkin.updated", "checkin.deleted":
+			m.checkInHistoryStale = true
 		case "habit.completed", "habit.uncompleted":
 			m.detailHistoryHabitID = 0
 		case "session.history_changed":
@@ -54,6 +68,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	next, cmd := m.update(msg)
 	if model, ok := next.(Model); ok {
+		if load := model.syncCheckInHistory(beforeView != model.view); load != nil {
+			cmd = tea.Batch(cmd, load)
+		}
+		model = model.refreshCheckInModal()
 		if load := model.syncDetailSessions(); load != nil {
 			cmd = tea.Batch(cmd, load)
 		}
@@ -176,6 +194,9 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			next, cmd := m.updateSessionContextOverlay(key)
 			return next, batchCmds(touch, cmd)
 		case scopeShell:
+			if next, cmd, handled := m.handleCheckInHistoryKey(key); handled {
+				return next, batchCmds(touch, cmd)
+			}
 			logger.Infof("tui key route: input")
 			state, cmd := inputpkg.Handle(m.inputState(), key, m.inputDeps())
 			logger.Infof(
@@ -388,6 +409,9 @@ func batchCmds(cmds ...tea.Cmd) tea.Cmd {
 }
 
 func (m Model) updateDialog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if next, cmd, handled := m.handleCheckInHistoryKey(msg); handled {
+		return next, cmd
+	}
 	if next, cmd, handled := m.updateItemDetailDialog(msg); handled {
 		return next, cmd
 	}
