@@ -7,6 +7,37 @@ hosted: false
 
 All notable changes to **Crona** are documented here.
 
+## [1.10.0-beta.8] - 2026-11-15
+
+Crona v1.10.0-beta.8 streamlines browsing tasks and habits, adds check-in history, and improves Daily and Insights. The local IPC protocol stays at `1.7`.
+
+### Today and item details
+
+- **Selection previews:** wide terminals show the selected task or habit between the calendar and Day summary. Enter expands its details, left/right browses items, and Esc returns to the preview. The selection marker follows the item being viewed.
+- The calendar stays visible while details or the summary are focused, switching from month to week when needed. Saved hidden calendars stay hidden.
+- Task previews show worked time against the estimate; habit previews show logged time against the target. Habit details include both 7-day and 30-day hit-rate arcs.
+- Detail panes and dialogs share the same content across Today and Work, with action hints beside the fields they affect and general actions at the bottom.
+- The Plan section shows the seven most recent updates, color-coded by action. Check-ins show their time alongside their date.
+- `H` folds Habits and `V` cycles the calendar, providing portable alternatives to Option-number shortcuts.
+
+### Insights
+
+- Review's Plan section explains outcomes, carry-over, missed work, and estimate accuracy in more detail.
+- The Work chart heading shows the window average and the selected day's worked time, alongside the existing wellbeing readouts.
+- Away dates retain their graphs. Review adds thin away-day guides and marked dates, while both Insights tabs show a recovery message for the selected away date.
+- Momentum marks away days in daily charts and shows away-day counts for weekly and monthly buckets. Its detail dialog uses the same annotations.
+
+### Work and Log
+
+- Work's Issues and Habits tabs use simpler headers, with counts in the selectors rather than crowded summary rows.
+- **Check-ins history:** a new Log tab lists wellbeing check-ins by date, with search, details, editing, and confirmed deletion.
+- Session and habit-history totals sit beside their date headings. Ops moves from Log to System.
+
+### Away-day browsing
+
+- Historical away dates no longer replace the whole Today screen. Pane headings and positions remain, task, habit, and summary contents clear, and a centered recovery message appears in Tasks. The item preview hides and the calendar remains available.
+- Today's active away/rest protection and existing scoring and streak rules remain unchanged.
+
 ## [1.10.0-beta.7] - 2026-11-09
 
 Crona v1.10.0-beta.7 fixes deleted issues still counting toward the day's plan. The local IPC protocol stays at `1.7`.
