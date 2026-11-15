@@ -29,6 +29,16 @@ func DetailLines(
 	width, height, bucket int,
 	stacked []string,
 ) []string {
+	return detailLinesWithAway(theme, card, width, height, bucket, stacked, nil)
+}
+
+func detailLinesWithAway(
+	theme types.Theme,
+	card sharedtypes.MomentumCard,
+	width, height, bucket int,
+	stacked []string,
+	away map[string]bool,
+) []string {
 	lines := append(headerLines(theme, card, width), "")
 	room := height - len(lines)
 	chartRows := room
@@ -38,7 +48,7 @@ func DetailLines(
 			chartRows, stacked = room, nil
 		}
 	}
-	lines = append(lines, chartLines(theme, card, width, chartRows, bucket)...)
+	lines = append(lines, chartLines(theme, card, width, chartRows, bucket, away)...)
 	if stacked != nil {
 		lines = append(append(lines, ""), stacked...)
 	}
@@ -93,14 +103,26 @@ func headerLines(theme types.Theme, card sharedtypes.MomentumCard, width int) []
 }
 
 // chartLines is the chart and the latest-bucket footnote at exactly height lines.
-func chartLines(theme types.Theme, card sharedtypes.MomentumCard, width, height, bucket int) []string {
+func chartLines(theme types.Theme, card sharedtypes.MomentumCard, width, height, bucket int, away map[string]bool) []string {
 	if height <= 0 {
 		return nil
 	}
 	def := card.Definition
-	footnote := theme.StyleDim.Render(
-		viewhelpers.Truncate(bucketFootnote(card, bucket), width),
-	)
+	footnoteText := bucketFootnote(card, bucket)
+	if point, _, ok := selectedBucket(card, bucket); ok {
+		if count := awayDayCount(point, away); count > 0 {
+			footnoteText = awayBucketLabel(count) + " · " + footnoteText
+		}
+	}
+	if sharedtypes.NormalizeHabitStreakPeriod(def.Period) == sharedtypes.HabitStreakPeriodDay {
+		for _, point := range card.Series {
+			if awayDayCount(point, away) > 0 {
+				footnoteText = "A/shaded: contains away · " + footnoteText
+				break
+			}
+		}
+	}
+	footnote := theme.StyleDim.Render(viewhelpers.Truncate(footnoteText, width))
 	rows := height - 1
 	var chart []string
 	switch {
@@ -113,9 +135,10 @@ func chartLines(theme types.Theme, card sharedtypes.MomentumCard, width, height,
 			rows,
 			def.Enabled,
 			selectedKey(card, bucket),
+			away,
 		)
 	default:
-		chart = renderMomentumBars(theme, def, card.Series, width, rows, def.Enabled, selectedIndex(card, bucket))
+		chart = renderMomentumBars(theme, def, card.Series, width, rows, def.Enabled, selectedIndex(card, bucket), away)
 	}
 	lines := make([]string, 0, height)
 	for _, line := range chart[:min(len(chart), max(0, rows))] {

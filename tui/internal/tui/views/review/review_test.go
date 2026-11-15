@@ -1,6 +1,8 @@
 package review
 
 import (
+	"math"
+	"slices"
 	"strings"
 	"testing"
 
@@ -141,22 +143,56 @@ func TestLongWindowKeepsDailyPoints(t *testing.T) {
 }
 
 func TestHistoricalAwayDate(t *testing.T) {
+	for _, width := range []int{90, 200} {
+		state := reviewState(width, 60)
+		state.HistoricalAwayDate = "2026-10-14"
+		state.Settings = &api.CoreSettings{AwayDates: []string{"2026-10-08", "2026-10-14"}}
+		out := plain(Render(types.Theme{}, state))
+		for _, want := range []string{"Wellbeing", "Risk", "Plan", "Worked 17h", "22/27 done", "▸Wed 14*", "* away day", "Wed 14 Oct · Away day"} {
+			if !strings.Contains(out, want) {
+				t.Fatalf("width %d: expected %q on away date:\n%s", width, want, out)
+			}
+		}
+	}
+}
+
+func TestAwayDatesDoNotChangeReviewMetrics(t *testing.T) {
 	state := reviewState(200, 50)
-	state.HistoricalAwayDate = "2026-10-14"
-	if out := plain(Render(types.Theme{}, state)); !strings.Contains(out, "rest and recover") {
-		t.Fatalf("expected the away message:\n%s", out)
+	normal := collectSeries(state)
+	state.Settings = &api.CoreSettings{AwayDates: []string{"2026-10-08", "2026-10-14"}}
+	away := collectSeries(state)
+	equal := func(a, b float64) bool { return a == b || math.IsNaN(a) && math.IsNaN(b) }
+	for i, values := range [][]float64{normal.mood, normal.energy, normal.sleep, normal.worked, normal.focus} {
+		if !slices.EqualFunc(values, [][]float64{away.mood, away.energy, away.sleep, away.worked, away.focus}[i], equal) {
+			t.Fatalf("metric %d changed on away dates", i)
+		}
+	}
+	if !slices.Equal(normal.done, away.done) || !slices.Equal(normal.planned, away.planned) {
+		t.Fatal("away dates changed plan counts")
+	}
+	if !away.away[0] || !away.away[6] || away.away[1] {
+		t.Fatalf("incorrect away markers: %v", away.away)
+	}
+	if out := plain(dateAxis(types.Theme{}, away, 190)); !strings.Contains(out, "Thu 8*") {
+		t.Fatalf("expected unselected away date marked: %q", out)
 	}
 }
 
 func TestRenderExactSize(t *testing.T) {
 	for _, size := range [][2]int{{60, 20}, {120, 36}, {200, 50}, {200, 22}} {
-		lines := strings.Split(Render(types.Theme{}, reviewState(size[0], size[1])), "\n")
-		if len(lines) != size[1] {
-			t.Fatalf("%v: expected %d lines, got %d", size, size[1], len(lines))
-		}
-		for i, line := range lines {
-			if w := ansi.StringWidth(line); w != size[0] {
-				t.Fatalf("%v: line %d is %d cells: %q", size, i, w, plain(line))
+		for _, away := range []bool{false, true} {
+			state := reviewState(size[0], size[1])
+			if away {
+				state.HistoricalAwayDate = state.DashboardDate
+			}
+			lines := strings.Split(Render(types.Theme{}, state), "\n")
+			if len(lines) != size[1] {
+				t.Fatalf("%v away %t: expected %d lines, got %d", size, away, size[1], len(lines))
+			}
+			for i, line := range lines {
+				if w := ansi.StringWidth(line); w != size[0] {
+					t.Fatalf("%v away %t: line %d is %d cells: %q", size, away, i, w, plain(line))
+				}
 			}
 		}
 	}
@@ -178,5 +214,46 @@ func TestChangeLevelAtShownPrecision(t *testing.T) {
 	}
 	if got := plain(change(types.Theme{}, 0.06, rating)); got != "▲ 0.1" {
 		t.Fatalf("a change that shows as 0.1 shows %q", got)
+	}
+}
+
+func TestAwayStripKeepsReviewChartsInPlace(t *testing.T) {
+	for _, width := range []int{60, 120, 200} {
+		state := reviewState(width, 60)
+		normal := strings.Split(plain(Render(types.Theme{}, state)), "\n")
+		state.Settings = &api.CoreSettings{AwayDates: []string{state.DashboardDate}}
+		marked := strings.Split(plain(Render(types.Theme{}, state)), "\n")
+		if !strings.Contains(strings.Join(marked, "\n"), "Away day") {
+			t.Fatalf("width %d: missing recovery strip", width)
+		}
+		for i, line := range normal {
+			if strings.Contains(line, "─ Wellbeing ") && !strings.Contains(marked[i], "─ Wellbeing ") {
+				t.Fatalf("width %d: away strip moved the charts", width)
+			}
+		}
+	}
+}
+
+func TestAwayGuidesUseOnlyDateColumns(t *testing.T) {
+	state := reviewState(200, 50)
+	state.Settings = &api.CoreSettings{AwayDates: []string{"2026-10-08", "2026-10-14"}}
+	s := collectSeries(state)
+	for _, width := range []int{3, 30, 100} {
+		cells := awayMarkerCells(s, width)
+		if len(cells) != width || !cells[0] || !cells[width-1] {
+			t.Fatalf("width %d: away endpoints missing: %v", width, cells)
+		}
+		count := 0
+		for _, marked := range cells {
+			if marked {
+				count++
+			}
+		}
+		if count != 2 {
+			t.Fatalf("width %d: guides occupy %d cells, want 2", width, count)
+		}
+		if cells[width/2] {
+			t.Fatalf("width %d: ordinary middle day marked", width)
+		}
 	}
 }

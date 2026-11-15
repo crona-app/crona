@@ -17,7 +17,7 @@ func twoWeeks() []string {
 		[]int{0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1},
 		1,
 	)
-	return calendarLines(types.Theme{}, series, 70, 20, true, "")
+	return calendarLines(types.Theme{}, series, 70, 20, true, "", nil)
 }
 
 func TestCalendarFillsHeightWithinWidth(t *testing.T) {
@@ -57,7 +57,7 @@ func TestCalendarCountsHitsPerWeekday(t *testing.T) {
 
 func TestCalendarDropsOldestWeeksWhenShort(t *testing.T) {
 	series := dailyMomentumSeries(time.Date(2026, 8, 10, 0, 0, 0, 0, time.UTC), make([]int, 70), 1)
-	text := ansi.Strip(strings.Join(calendarLines(types.Theme{}, series, 70, 6, true, ""), "\n"))
+	text := ansi.Strip(strings.Join(calendarLines(types.Theme{}, series, 70, 6, true, "", nil), "\n"))
 	if strings.Contains(text, "W33") || !strings.Contains(text, "W42") {
 		t.Fatalf("expected the latest weeks only, got\n%s", text)
 	}
@@ -122,7 +122,7 @@ func TestCalendarCellsUseTheWholePane(t *testing.T) {
 		},
 		1,
 	)
-	text := ansi.Strip(strings.Join(calendarLines(types.Theme{}, series, 83, 40, true, ""), "\n"))
+	text := ansi.Strip(strings.Join(calendarLines(types.Theme{}, series, 83, 40, true, "", nil), "\n"))
 	if !strings.Contains(text, strings.Repeat("█", 10)) {
 		t.Fatalf("expected 10-cell squares in an 83-cell pane, got\n%s", text)
 	}
@@ -137,7 +137,7 @@ func TestCalendarMarksToday(t *testing.T) {
 		[]int{0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1},
 		1,
 	)
-	lines := calendarLines(types.Theme{}, series, 70, 20, true, "2026-10-17")
+	lines := calendarLines(types.Theme{}, series, 70, 20, true, "2026-10-17", nil)
 	header := ansi.Strip(lines[0])
 	if !strings.Contains(header, "Sat•") || strings.Contains(header, "Fri•") {
 		t.Fatalf("expected Saturday marked in the header, got %q", header)

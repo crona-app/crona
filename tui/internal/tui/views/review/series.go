@@ -10,6 +10,7 @@ import (
 	"crona.work/tui/internal/api"
 	helperpkg "crona.work/tui/internal/tui/helpers"
 	uistate "crona.work/tui/internal/tui/state"
+	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	types "crona.work/tui/internal/tui/views/types"
 
 	sharedtypes "crona.work/shared/types"
@@ -22,6 +23,7 @@ type daySeries struct {
 	days                               []time.Time
 	mood, energy, sleep, worked, focus []float64
 	done, planned                      []int
+	away                               []bool
 	selected                           int
 	long                               bool
 }
@@ -70,6 +72,7 @@ func collectSeries(state types.ContentState) daySeries {
 		if score := scores[date]; score.HasData {
 			focus = float64(score.Score)
 		}
+		s.away = append(s.away, viewruntime.HistoricalAwayDate(state.Settings, date) || date == state.HistoricalAwayDate)
 		s.days = append(s.days, t)
 		s.mood, s.energy, s.sleep = append(s.mood, mood), append(s.energy, energy), append(s.sleep, sleep)
 		s.focus = append(s.focus, focus)

@@ -23,6 +23,9 @@ import (
 )
 
 func renderIssues(theme types.Theme, state types.ContentState, width, height int) string {
+	if state.HistoricalAwayDate != "" {
+		return awaySection(theme, "Tasks", width, height, true)
+	}
 	active := state.Pane == "issues" && !state.DailyDetailFocus
 	cur := state.Cursors["issues"]
 	sources := state.DailyIssues
@@ -338,6 +341,9 @@ func dailyHabitIndices(state types.ContentState) []int {
 }
 
 func renderHabits(theme types.Theme, state types.ContentState, width, height int) string {
+	if state.HistoricalAwayDate != "" {
+		return awaySection(theme, "Habits Due", width, height, false)
+	}
 	active := state.Pane == "habits" && !state.DailyDetailFocus
 	cur := state.Cursors["habits"]
 	indices := dailyHabitIndices(state)

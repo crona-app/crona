@@ -2,7 +2,6 @@ package daily
 
 import (
 	uistate "crona.work/tui/internal/tui/state"
-	viewaway "crona.work/tui/internal/tui/views/away"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	viewsummary "crona.work/tui/internal/tui/views/summary"
@@ -38,9 +37,6 @@ func layoutFor(state types.ContentState) layout {
 // moves as the other changes: beside the detail pane on wide screens, under the day line
 // otherwise.
 func renderView(theme types.Theme, state types.ContentState) string {
-	if state.HistoricalAwayDate != "" {
-		return viewaway.RenderHistorical(theme, state)
-	}
 	l := layoutFor(state)
 	dayLine, rest := dailyChrome(theme, state, l)
 	body := dailyLists(theme, state, l.listW, rest, !l.wide)
@@ -57,6 +53,9 @@ func dailyChrome(theme types.Theme, state types.ContentState, l layout) (dayLine
 		return nil, state.Height
 	}
 	if line := viewsummary.DayLine(theme, state, state.Width); line != "" {
+		if state.HistoricalAwayDate != "" {
+			line = ""
+		}
 		// A blank row parts the line from the panes under it.
 		return []string{line, ""}, state.Height - 2
 	}

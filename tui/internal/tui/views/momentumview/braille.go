@@ -7,6 +7,7 @@ import (
 
 	sharedtypes "crona.work/shared/types"
 	"crona.work/tui/internal/tui/views/charts"
+	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	types "crona.work/tui/internal/tui/views/types"
 
 	"github.com/charmbracelet/lipgloss"
@@ -64,6 +65,7 @@ func renderMomentumBars(
 	width, height int,
 	enabled bool,
 	selected int,
+	away map[string]bool,
 ) []string {
 	if len(series) == 0 || width < 1 || height < 1 {
 		return []string{theme.StyleDim.Render("no data")}
@@ -104,8 +106,15 @@ func renderMomentumBars(
 			grid[row][col] = line
 		}
 	}
+	daily := sharedtypes.NormalizeHabitStreakPeriod(def.Period) == sharedtypes.HabitStreakPeriodDay
 	seriesX := make([]int, len(series))
+	awayGroups := make([]bool, len(groups))
 	for i, group := range groups {
+		for idx := group.first; idx <= group.last; idx++ {
+			if daily && awayDayCount(series[idx], away) > 0 {
+				awayGroups[i] = true
+			}
+		}
 		for idx := group.first; idx <= group.last; idx++ {
 			seriesX[idx] = starts[i] + barWidth/2
 		}
@@ -125,6 +134,16 @@ func renderMomentumBars(
 		}
 	}
 
+	for i, marked := range awayGroups {
+		if !marked {
+			continue
+		}
+		for row := range chartRows {
+			for col := starts[i]; col < starts[i]+barWidth; col++ {
+				grid[row][col] = viewchrome.AwayBand(grid[row][col])
+			}
+		}
+	}
 	lines := make([]string, 0, chartRows+2)
 	for row := range chartRows {
 		label := fmt.Sprintf("%*s", labelWidth, tickLabels[row])
@@ -134,6 +153,11 @@ func renderMomentumBars(
 		return lines[:min(len(lines), height)]
 	}
 	axis := []rune(strings.Repeat("─", chartWidth))
+	for i, marked := range awayGroups {
+		if marked {
+			axis[starts[i]+barWidth/2] = 'A'
+		}
+	}
 	marker := ""
 	if selected >= 0 && selected < len(seriesX) && seriesX[selected] < chartWidth {
 		axis[seriesX[selected]] = '▲'

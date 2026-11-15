@@ -97,6 +97,9 @@ func renderPreview(theme types.Theme, state types.ContentState, width, height in
 	if height <= 0 {
 		return ""
 	}
+	if state.HistoricalAwayDate != "" {
+		return blankRegion(width, height)
+	}
 	title, lines, selected := previewBody(theme, state, max(1, width-2-2*panePad), height)
 	meta := ""
 	if selected && !state.DailyDetailSummary {
@@ -113,6 +116,9 @@ func renderPreview(theme types.Theme, state types.ContentState, width, height in
 func compactSummary(theme types.Theme, state types.ContentState, width, height int) string {
 	if height <= 0 {
 		return ""
+	}
+	if state.HistoricalAwayDate != "" {
+		return awaySection(theme, dayTitle(state), width, height, false)
 	}
 	lines := []string{theme.StyleDim.Render("Loading summary…")}
 	snapshot := state.SummarySnapshot

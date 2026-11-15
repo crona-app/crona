@@ -7,12 +7,10 @@ import (
 	"slices"
 	"strings"
 
-	helperpkg "crona.work/tui/internal/tui/helpers"
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	viewhelpers "crona.work/tui/internal/tui/views/helpers"
 	types "crona.work/tui/internal/tui/views/types"
 
-	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -31,9 +29,6 @@ const (
 func Render(theme types.Theme, state types.ContentState) string {
 	if state.Width < 1 || state.Height < 1 {
 		return ""
-	}
-	if state.HistoricalAwayDate != "" {
-		return renderAway(theme, state)
 	}
 	s := collectSeries(state)
 	hints := []string{viewchrome.KeyHint(theme, "←/→", "day"), viewchrome.KeyHint(theme, "enter", "open in Today"),
@@ -54,7 +49,7 @@ func windowTitle(s daySeries) string {
 func dashboardLines(theme types.Theme, state types.ContentState, s daySeries, width, height int) []string {
 	m := metricsFor(theme)
 	lines := tileLines(theme, tilesFor(theme, state, s, m), width)
-	lines = append(lines, "")
+	lines = append(lines, viewchrome.AwayDayStrip(theme, state.DashboardDate, state.Settings, width))
 	room := height - len(lines)
 	if width < sideColumnAt {
 		side := sideLines(theme, state, width)
@@ -96,12 +91,4 @@ func rule(theme types.Theme, title, meta string, width int) string {
 func fit(line string, width int) string {
 	line = viewhelpers.TruncateANSI(line, width)
 	return line + strings.Repeat(" ", max(0, width-ansi.StringWidth(line)))
-}
-
-func renderAway(theme types.Theme, state types.ContentState) string {
-	message := fmt.Sprintf("You chose to rest and recover on %s.",
-		helperpkg.FormatDisplayDate(state.HistoricalAwayDate, state.Settings))
-	lines := make([]string, max(0, (state.Height-2)/2))
-	lines = append(lines, lipgloss.PlaceHorizontal(max(1, state.Width-2), lipgloss.Center, theme.StyleHeader.Render(message)))
-	return viewchrome.RenderSection(theme, viewchrome.Section{Title: "Away", Width: state.Width, Height: state.Height, Lines: lines})
 }

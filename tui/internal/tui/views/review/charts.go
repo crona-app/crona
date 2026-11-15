@@ -3,6 +3,7 @@ package review
 import (
 	"fmt"
 	"math"
+	"slices"
 	"strings"
 
 	"crona.work/tui/internal/tui/views/charts"
@@ -36,6 +37,9 @@ func chartLines(theme types.Theme, s daySeries, m metricSet, width, height int) 
 	meta := "┄ window average"
 	if s.long {
 		meta = fmt.Sprintf("%d-day average · dots are days · ", 2*smoothRadius+1) + meta
+	}
+	if slices.Contains(s.away, true) {
+		meta = "* away day · " + meta
 	}
 	lines := []string{rule(theme, "Wellbeing", theme.StyleDim.Render(meta), width)}
 	lines = append(lines, wellbeingChart(theme, s, m, width, wellRows)...)
@@ -160,6 +164,7 @@ func drawCanvas(theme types.Theme, canvas *charts.LineCanvas, s daySeries, rows 
 	if s.selected >= 0 {
 		cursor = canvas.Cell(s.selected, len(s.days))
 	}
+	markers := awayMarkerCells(s, canvas.Width)
 	lines := make([]string, 0, rows)
 	for row := range rows {
 		axis := "│"
@@ -169,13 +174,21 @@ func drawCanvas(theme types.Theme, canvas *charts.LineCanvas, s daySeries, rows 
 		var b strings.Builder
 		b.WriteString(theme.StyleDim.Render(fmt.Sprintf("%*s %s", axisWidth-2, labels[row], axis)))
 		for cell := range canvas.Width {
-			if text, ok := draw(row, cell); ok {
-				b.WriteString(text)
-			} else if cell == cursor {
-				b.WriteString(theme.StyleDim.Render("┊"))
-			} else {
-				b.WriteString(" ")
+			text, drawn := draw(row, cell)
+			if !drawn {
+				text = " "
+				switch {
+				case markers[cell]:
+					style := lipgloss.NewStyle().Foreground(theme.ColorDullGreen)
+					if cell == cursor {
+						style = lipgloss.NewStyle().Foreground(theme.ColorGreen).Bold(true)
+					}
+					text = style.Render("┆")
+				case cell == cursor:
+					text = theme.StyleDim.Render("┊")
+				}
 			}
+			b.WriteString(text)
 		}
 		lines = append(lines, b.String())
 	}
@@ -195,6 +208,9 @@ func dateAxis(theme types.Theme, s daySeries, width int) string {
 	}
 	place := func(i int, mark bool) {
 		label := []rune(s.days[i].Format(format))
+		if i < len(s.away) && s.away[i] {
+			label = append(label, '*')
+		}
 		if mark {
 			label = append([]rune("▸"), label...)
 		}
@@ -232,6 +248,9 @@ func readout(theme types.Theme, s daySeries, m metricSet) string {
 		return ""
 	}
 	parts := []string{theme.StyleHeader.Render("▸ " + s.days[i].Format(dayFormat))}
+	if i < len(s.away) && s.away[i] {
+		parts = append(parts, lipgloss.NewStyle().Foreground(theme.ColorGreen).Bold(true).Render("Away day"))
+	}
 	for _, v := range []struct {
 		metric
 		value float64
@@ -257,4 +276,19 @@ func legend(theme types.Theme, items ...legendItem) string {
 		parts = append(parts, lipgloss.NewStyle().Foreground(item.color).Render("●")+" "+theme.StyleDim.Render(item.text))
 	}
 	return strings.Join(parts, "  ")
+}
+
+// awayMarkerCells aligns thin away-day guides with the plotted dates. Compressed
+// dates share a marker without turning the space between points into a filled band.
+func awayMarkerCells(s daySeries, width int) []bool {
+	cells := make([]bool, width)
+	if width < 1 {
+		return cells
+	}
+	for i, away := range s.away {
+		if away && i < len(s.days) {
+			cells[charts.PointCell(i, len(s.days), width)] = true
+		}
+	}
+	return cells
 }

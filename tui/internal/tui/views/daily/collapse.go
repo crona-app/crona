@@ -132,7 +132,7 @@ func calendarMode(state types.ContentState) uistate.CalendarMode {
 // month; narrower ones show the week on a line.
 func CalendarMonthFits(theme types.Theme, state types.ContentState) bool {
 	l := layoutFor(state)
-	if state.HistoricalAwayDate != "" || !l.wide {
+	if !l.wide {
 		return false
 	}
 	_, rest := dailyChrome(theme, state, l)

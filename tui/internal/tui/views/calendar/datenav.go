@@ -23,9 +23,24 @@ func DateNav(
 	weekStart sharedtypes.WeekStart,
 	room int,
 ) string {
+	return DateNavWithStatus(theme, rawDate, prefix, settings, weekStart, room, "")
+}
+
+// DateNavWithStatus keeps a date's status visible before optional week and key hints.
+func DateNavWithStatus(
+	theme types.Theme,
+	rawDate, prefix string,
+	settings *api.CoreSettings,
+	weekStart sharedtypes.WeekStart,
+	room int,
+	status string,
+) string {
 	// The date reads in bold; keys are bare cyan letters so they do not compete with it.
 	bold := lipgloss.NewStyle().Bold(true)
 	date := bold.Render(helperpkg.FormatDisplayDate(rawDate, settings))
+	if status != "" {
+		date += theme.StyleDim.Render(" · " + status)
+	}
 	dated := date
 	if parsed, ok := ParseDate(rawDate); ok && !DisplayPatternIncludesWeek(settings) {
 		dated = date + theme.StyleDim.Render(fmt.Sprintf(" · W%02d", WeekNumber(parsed, weekStart)))

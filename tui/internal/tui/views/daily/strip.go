@@ -10,5 +10,9 @@ import (
 // flanked by the date-navigation keys. Within room it drops the key words first, then the
 // keys, then the week, so the date always shows.
 func SubTabMeta(theme types.Theme, state types.ContentState, room int) string {
-	return viewcalendar.DateNav(theme, viewruntime.ShownDate(state), "", state.Settings, state.WeekStart, room)
+	status := ""
+	if date := viewruntime.ShownDate(state); date != "" && date == state.HistoricalAwayDate {
+		status = "Away day"
+	}
+	return viewcalendar.DateNavWithStatus(theme, viewruntime.ShownDate(state), "", state.Settings, state.WeekStart, room, status)
 }

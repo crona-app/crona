@@ -17,6 +17,12 @@ import (
 // renderDetail is the detail pane: the Day summary, or with the pane focused the selection's
 // details, titled with what it shows.
 func renderDetail(theme types.Theme, state types.ContentState, width, height int) string {
+	if state.HistoricalAwayDate != "" {
+		if state.DailyDetailFocus && !state.DailyDetailSummary {
+			return blankRegion(width, height)
+		}
+		return awaySection(theme, dayTitle(state), width, height, false)
+	}
 	title, lines := detailBody(theme, state, max(1, width-2))
 	// Unfocused, the lists' action lines already offer enter, so the title carries no key.
 	meta := viewchrome.KeyHint(theme, "S", "expand")

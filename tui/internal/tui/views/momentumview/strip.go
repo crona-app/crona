@@ -9,12 +9,16 @@ import (
 
 // StripRows sums the momentums: counts over streaks, column groups dropped right-first.
 func StripRows(theme types.Theme, state types.ContentState, width int) []string {
-	return viewchrome.WithWindowHint(
+	rows := viewchrome.WithWindowHint(
 		theme,
 		state.MomentumWindowDays,
 		width,
 		func(width int) []string { return stripRows(theme, state, width) },
 	)
+	if strip := viewchrome.AwayDayStrip(theme, state.MomentumDate, state.Settings, width); strip != "" && len(rows) > 1 {
+		rows[1] = strip
+	}
+	return rows
 }
 
 func stripRows(theme types.Theme, state types.ContentState, width int) []string {

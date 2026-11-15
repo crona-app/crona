@@ -373,8 +373,8 @@ func TestDailyDateRowLeavesDayKeyOff(t *testing.T) {
 	}
 	away := datedShellState(uistate.ViewDaily, 120, 36)
 	away.ContentState.HistoricalAwayDate = "2026-05-27"
-	if line := plainLines(Render(away))[1]; strings.Contains(line, "[S]") {
-		t.Fatalf("expected no [S] on a historical away date, got %q", line)
+	if line := plainLines(Render(away))[1]; !strings.Contains(line, "2026-05-27 · Away day") {
+		t.Fatalf("expected historical away metadata beside the date, got %q", line)
 	}
 }
 
@@ -419,5 +419,19 @@ func TestNarrowPillShowsAWindowOfViewsAroundTheOpenOne(t *testing.T) {
 	if !strings.Contains(line, "5 System │ …  ") || !strings.Contains(line, "Config") ||
 		!strings.Contains(line, "Reports") || !strings.Contains(line, "  …") {
 		t.Fatalf("expected a window of views around Config with … on both sides, got %q", line)
+	}
+}
+
+func TestHistoricalAwayDoesNotChangeUnrelatedViews(t *testing.T) {
+	for _, view := range []uistate.View{
+		uistate.ViewDefault, uistate.ViewHabitList, uistate.ViewSessionHistory,
+		uistate.ViewHabitHistory, uistate.ViewCheckInHistory, uistate.ViewSettings, uistate.ViewOps,
+	} {
+		state := shellStateForTest(view, 120, 36)
+		normal := Render(state)
+		state.ContentState.HistoricalAwayDate = "2026-05-27"
+		if away := Render(state); away != normal {
+			t.Fatalf("historical away metadata changed %s", view)
+		}
 	}
 }

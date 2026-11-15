@@ -113,7 +113,7 @@ func detailLines(
 		stacked = append([]string{theme.StylePaneTitle.Render(bucketTitle) + "  " + bucketMeta},
 			ContributorLines(theme, state.MomentumBucketDetail, width)...)
 	}
-	return DetailLines(theme, card, width, height, state.MomentumBucket, stacked)
+	return detailLinesWithAway(theme, card, width, height, state.MomentumBucket, stacked, awayDateSet(state.Settings))
 }
 
 // detailSection is the momentum's details pane, titled with its name and its edit keys.

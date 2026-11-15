@@ -6,7 +6,11 @@ import (
 	"time"
 
 	sharedtypes "crona.work/shared/types"
+	viewchrome "crona.work/tui/internal/tui/views/chrome"
 	types "crona.work/tui/internal/tui/views/types"
+
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 const (
@@ -33,6 +37,7 @@ func calendarLines(
 	width, height int,
 	enabled bool,
 	today string, // the selected bucket's key
+	away map[string]bool,
 ) []string {
 	weeks := calendarWeeks(series)
 	if len(weeks) == 0 || height < 3 {
@@ -71,7 +76,7 @@ func calendarLines(
 			line := theme.StyleDim.Render(padRight(label, calendarLabelWidth))
 			for _, point := range week.days {
 				mark := point != nil && point.BucketKey == today && row == cellHeight/2
-				line += calendarCell(theme, point, cellWidth, enabled, mark) + " "
+				line += calendarCell(theme, point, cellWidth, enabled, mark, point != nil && away[point.BucketKey]) + " "
 			}
 			lines = append(lines, strings.TrimRight(line, " "))
 		}
@@ -104,7 +109,7 @@ func calendarCell(
 	theme types.Theme,
 	point *sharedtypes.MomentumSeriesPoint,
 	width int,
-	enabled, mark bool,
+	enabled, mark, away bool,
 ) string {
 	if point == nil {
 		return strings.Repeat(" ", width)
@@ -117,12 +122,20 @@ func calendarCell(
 	case status != "met":
 		glyph = "░"
 	}
-	if !mark {
-		return style.Render(strings.Repeat(glyph, width))
+	text := style.Render(strings.Repeat(glyph, width))
+	if mark {
+		half := (width - 1) / 2
+		text = style.Render(strings.Repeat(glyph, half)) + theme.StyleNormal.Bold(true).Render("•") + style.Render(strings.Repeat(glyph, width-1-half))
 	}
-	half := (width - 1) / 2
-	return style.Render(strings.Repeat(glyph, half)) + theme.StyleNormal.Bold(true).Render("•") +
-		style.Render(strings.Repeat(glyph, width-1-half))
+	if away {
+		// Keep the remaining status glyphs and the selection dot visible beside A.
+		text = lipgloss.NewStyle().Foreground(theme.ColorGreen).Bold(true).Render("A") + ansi.Cut(text, 1, width)
+		if mark && width == 2 {
+			text = theme.StyleNormal.Bold(true).Render("A•")
+		}
+		text = viewchrome.AwayBand(text)
+	}
+	return text
 }
 
 // calendarWeeks groups the series by ISO week, oldest first.
