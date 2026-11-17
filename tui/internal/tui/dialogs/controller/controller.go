@@ -150,6 +150,8 @@ func Close(state State) State {
 	state.StreamID = 0
 	state.StreamName = ""
 	state.RepoIndex = 0
+	state.ConfirmedNewRepo = ""
+	state.ConfirmedNewStream = ""
 	state.StreamIndex = 0
 	state.Parent = ""
 	state.DateMonthValue = ""
@@ -331,6 +333,25 @@ func Update(
 ) (State, *Action, string) {
 	if ctx.CurrentDate == "" {
 		ctx.CurrentDate = currentDate
+	}
+	if !state.CaptureEditing {
+		if next, action, status, handled := updateContextPicker(state, ctx, msg); handled {
+			return next, action, status
+		}
+	}
+	if msg.String() == "ctrl+s" {
+		probe := state
+		for focus := 0; focus < len(state.Inputs)+2; focus++ {
+			probe.FocusIdx = focus
+			if err := validateFocusedDuration(probe); err != nil {
+				return SyncDialogFocus(probe), nil, err.Error()
+			}
+		}
+	}
+	if msg.String() == "tab" || msg.String() == "shift+tab" || msg.String() == "enter" || msg.String() == "up" || msg.String() == "down" {
+		if err := validateFocusedDuration(state); err != nil {
+			return state, nil, err.Error()
+		}
 	}
 	if state.CaptureEditing && state.Kind == "create_issue_default" {
 		return updateCaptureRowEditor(state, ctx, currentDate, msg)
@@ -1113,6 +1134,9 @@ func submitPomodoroStart(state State) (State, *Action, string) {
 	if values.TotalSeconds <= 0 {
 		return state, nil, "Total duration must be positive"
 	}
+	if err := sharedtypes.ValidateDurationSeconds("Timer total", values.TotalSeconds, sharedtypes.MaxDailyDurationSeconds, true); err != nil {
+		return state, nil, err.Error()
+	}
 	req := timerStartRequest(state)
 	req.HardLimitKind = sharedtypes.TimerHardLimitKindPomodoro
 	req.HardLimitTotalSeconds = intPtr(values.TotalSeconds)
@@ -1687,6 +1711,9 @@ func updateCountdownExtend(state State, msg tea.KeyMsg) (State, *Action, string)
 		seconds, err := ParseDurationInput(state.Inputs[0].Value(), true, "Additional time")
 		if err != nil {
 			return state, nil, err.Error()
+		}
+		if state.HardLimitTotalSeconds > sharedtypes.MaxDailyDurationSeconds-seconds {
+			return state, nil, "Timer total after extension must not exceed 24h"
 		}
 		return Close(state), &Action{
 			Kind: "extend_hard_limit",

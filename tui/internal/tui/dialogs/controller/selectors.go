@@ -30,7 +30,7 @@ func DefaultRepoOptions(inputs []textinput.Model, repos []api.Repo) []SelectorOp
 			SelectorOption{ID: strconv.FormatInt(repo.ID, 10), Label: repo.Name},
 		)
 	}
-	if raw := strings.TrimSpace(inputs[0].Value()); raw != "" {
+	if raw := strings.TrimSpace(inputs[0].Value()); raw != "" && !selectorExactMatch(options, raw) {
 		options = append(options, SelectorOption{ID: "__new__", Label: "Create New Repo: " + raw})
 	}
 	return options
@@ -92,7 +92,7 @@ func DefaultStreamOptions(
 		seen[streamKey] = true
 		options = append(options, SelectorOption{ID: streamKey, Label: stream.Name})
 	}
-	if raw := strings.TrimSpace(inputs[1].Value()); raw != "" {
+	if raw := strings.TrimSpace(inputs[1].Value()); raw != "" && !selectorExactMatch(options, raw) {
 		options = append(options, SelectorOption{ID: "__new__", Label: "Create New Stream: " + raw})
 	}
 	return options
@@ -106,7 +106,11 @@ func CheckoutStreamOptions(
 	streams []api.Stream,
 	context *api.ActiveContext,
 ) []SelectorOption {
-	return DefaultStreamOptions(inputs, repoIndex, repos, allIssues, streams, context)
+	options := DefaultStreamOptions(inputs, repoIndex, repos, allIssues, streams, context)
+	if _, ok := selectedOption(DefaultRepoOptions(inputs, repos), repoIndex); ok && (strings.TrimSpace(inputs[1].Value()) == "" || strings.Contains("all streams", normalizeSelectorName(inputs[1].Value()))) {
+		options = append([]SelectorOption{{ID: "__repo__", Label: "All streams"}}, options...)
+	}
+	return options
 }
 
 func CheckoutDialogLabels(
@@ -169,6 +173,9 @@ func CheckoutDialogSelection(
 		)
 		option, ok := selectedOption(streamOptions, streamIndex)
 		if !ok {
+			return repoID, repoName, nil, ""
+		}
+		if option.ID == "__repo__" {
 			return repoID, repoName, nil, ""
 		}
 		if option.ID == "__new__" {
@@ -292,14 +299,14 @@ func DefaultIssueDialogLabels(
 	}
 	// A negative index means nothing is chosen yet, as for an unresolved import row.
 	if repoIndex < 0 {
-		return "←/→ to choose a repo", "Select a repo first"
+		return "Type to find a repo", "Select a repo first"
 	}
 	repoLabel := repoOptions[min(repoIndex, len(repoOptions)-1)].Label
 	if len(streamOptions) == 0 {
 		return repoLabel, "Type to search or create"
 	}
 	if streamIndex < 0 {
-		return repoLabel, "←/→ to choose a stream"
+		return repoLabel, "Type to find a stream"
 	}
 	return repoLabel, streamOptions[min(streamIndex, len(streamOptions)-1)].Label
 }
@@ -465,4 +472,18 @@ func optionsForNewStream(raw string) []SelectorOption {
 
 func normalizeSelectorName(value string) string {
 	return strings.ToLower(strings.Join(strings.Fields(value), " "))
+}
+
+func selectorExactMatch(options []SelectorOption, raw string) bool {
+	for _, option := range options {
+		if normalizeSelectorName(option.Label) == normalizeSelectorName(raw) {
+			return true
+		}
+	}
+	return false
+}
+
+// MomentumPickerOptions exposes the filtered choices used by the context wizard.
+func MomentumPickerOptions(state State) ([]SelectorOption, []SelectorOption) {
+	return momentumRepoOptions(state), momentumStreamOptions(state)
 }

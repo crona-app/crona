@@ -12,21 +12,21 @@ func TestCheckoutChrome(t *testing.T) {
 	state.RepoSelectorLabel, state.StreamSelectorLabel = "OSS", "cli"
 	text := ansi.Strip(renderRepoStreamDialog(testTheme(), state))
 	if !strings.Contains(text, "╭─ Checkout Context") || strings.Contains(text, "[ > ") ||
-		!strings.Contains(text, "‹ OSS ›") {
+		!strings.Contains(text, "▶ OSS") {
 		t.Fatalf("expected the chrome with repo options, got\n%s", text)
 	}
 	streamLine := false
 	for _, line := range strings.Split(text, "\n") {
 		streamLine = streamLine ||
-			(strings.Contains(line, "Stream") && strings.Contains(line, "‹ cli ›"))
+			(strings.Contains(line, "Stream") && strings.Contains(line, "cli"))
 	}
 	if !streamLine {
 		t.Fatalf("expected a collapsed stream picker, got\n%s", text)
 	}
 	state.Width = 60
 	narrow := ansi.Strip(renderRepoStreamDialog(testTheme(), state))
-	for _, hint := range []string{"enter set context", "c clear", "tab move", "esc cancel"} {
-		if strings.Contains(narrow, "↑/↓") {
+	for _, hint := range []string{"enter choose / apply", "ctrl+x clear", "tab move", "esc cancel"} {
+		if strings.Contains(narrow, "←/→") {
 			t.Fatalf("footer still advertises ↑/↓:\n%s", narrow)
 		}
 		if !strings.Contains(narrow, hint) {

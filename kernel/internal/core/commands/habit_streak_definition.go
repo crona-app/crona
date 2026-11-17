@@ -22,6 +22,11 @@ func CreateHabitStreakDefinition(
 	c *core.Context,
 	def sharedtypes.HabitStreakDefinition,
 ) (sharedtypes.HabitStreakDefinition, error) {
+	if sharedtypes.NormalizeMomentumTargetKind(def.TargetKind) == sharedtypes.MomentumTargetKindContext {
+		if err := sharedtypes.ValidateDurationSeconds("Required work", def.RequiredCount, sharedtypes.MomentumDurationLimit(def.Period), true); err != nil {
+			return sharedtypes.HabitStreakDefinition{}, err
+		}
+	}
 	def = sharedtypes.NormalizeHabitStreakDefinition(def)
 	if strings.TrimSpace(def.Name) == "" {
 		return sharedtypes.HabitStreakDefinition{}, errors.New("habit streak name cannot be empty")
@@ -44,6 +49,11 @@ func UpdateHabitStreakDefinition(
 	c *core.Context,
 	def sharedtypes.HabitStreakDefinition,
 ) (*sharedtypes.HabitStreakDefinition, error) {
+	if sharedtypes.NormalizeMomentumTargetKind(def.TargetKind) == sharedtypes.MomentumTargetKindContext {
+		if err := sharedtypes.ValidateDurationSeconds("Required work", def.RequiredCount, sharedtypes.MomentumDurationLimit(def.Period), true); err != nil {
+			return nil, err
+		}
+	}
 	def = sharedtypes.NormalizeHabitStreakDefinition(def)
 	if strings.TrimSpace(def.ID) == "" {
 		return nil, errors.New("habit streak id is required")

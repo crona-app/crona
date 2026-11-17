@@ -265,6 +265,26 @@ func (t *TimerService) start(
 	issueID *int64,
 	input *shareddto.TimerStartRequest,
 ) (sharedtypes.TimerState, error) {
+	if input != nil {
+		for _, duration := range []*int{input.HardLimitTotalSeconds, input.HardLimitWorkSeconds, input.HardLimitBreakSeconds, input.HardLimitLongBreakSeconds} {
+			if duration != nil {
+				if err := sharedtypes.ValidateDurationSeconds("timer duration", *duration, sharedtypes.MaxDailyDurationSeconds, false); err != nil {
+					return sharedtypes.TimerState{}, err
+				}
+			}
+		}
+	}
+	settings, err := t.ctx.CoreSettings.Get(ctx, t.ctx.UserID)
+	if err != nil {
+		return sharedtypes.TimerState{}, err
+	}
+	if settings != nil {
+		for _, minutes := range []int{settings.WorkDurationMinutes, settings.ShortBreakMinutes, settings.LongBreakMinutes} {
+			if err := sharedtypes.ValidateDailyMinutes("Timer setting", minutes); err != nil {
+				return sharedtypes.TimerState{}, err
+			}
+		}
+	}
 	if err := runtimepkg.ClearTimerRuntimeState(); err != nil {
 		return sharedtypes.TimerState{}, err
 	}
@@ -836,6 +856,16 @@ func (t *TimerService) extendConfigured(
 	ctx context.Context,
 	input shareddto.TimerExtendRequest,
 ) (sharedtypes.TimerState, error) {
+	for _, duration := range []*int{input.HardLimitTotalSeconds, input.HardLimitWorkSeconds, input.HardLimitBreakSeconds, input.HardLimitLongBreakSeconds} {
+		if duration != nil {
+			if err := sharedtypes.ValidateDurationSeconds("timer duration", *duration, sharedtypes.MaxDailyDurationSeconds, false); err != nil {
+				return sharedtypes.TimerState{}, err
+			}
+		}
+	}
+	if input.AdditionalSessions > sharedtypes.MaxDailyDurationSeconds || input.AdditionalSeconds < 0 {
+		return sharedtypes.TimerState{}, errors.New("invalid timer extension")
+	}
 	if input.AdditionalSessions <= 0 {
 		return sharedtypes.TimerState{}, errors.New("sessions to add must be positive")
 	}
@@ -884,6 +914,9 @@ func (t *TimerService) extendConfigured(
 	}
 	additionalSeconds := input.AdditionalSeconds
 	if additionalSeconds <= 0 {
+		if totalPerSession > sharedtypes.MaxDailyDurationSeconds/input.AdditionalSessions {
+			return sharedtypes.TimerState{}, errors.New("timer extension must not exceed 24h")
+		}
 		additionalSeconds = totalPerSession * input.AdditionalSessions
 	}
 	runtimeState.HardLimitWorkSeconds = workSeconds
@@ -902,6 +935,10 @@ func (t *TimerService) extendHardLimit(
 	if runtimeState == nil || !runtimeState.HasHardLimit() {
 		return sharedtypes.TimerState{}, errors.New("no hard-limit session is active")
 	}
+	if additionalSeconds <= 0 || additionalSeconds > sharedtypes.MaxDailyDurationSeconds || runtimeState.HardLimitTotalSeconds > sharedtypes.MaxDailyDurationSeconds-additionalSeconds {
+		return sharedtypes.TimerState{}, errors.New("timer total after extension must not exceed 24h")
+	}
+
 	wasExpired := runtimeState.HardLimitExpired
 	activeSegment, err := t.ctx.SessionSegments.GetActive(
 		ctx,

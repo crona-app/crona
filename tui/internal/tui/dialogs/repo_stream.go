@@ -103,7 +103,7 @@ func renderHabitForm(theme Theme, state controllerpkg.State, create bool) string
 		Primary: plainHint(dialogSubmitHint(state, submit)),
 		Hints: func(focus int) []string {
 			if create && focus <= 1 {
-				return []string{"tab next", "type filter", "←/→ choose"}
+				return []string{"tab next", "type filter", "↑/↓ choose"}
 			}
 			if hints := cadenceHints(state, focus); hints != nil {
 				return hints

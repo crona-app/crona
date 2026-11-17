@@ -134,6 +134,9 @@ func commitHabitStreakDetails(state State) (State, *Action, string) {
 			state.ErrorMessage = err.Error()
 			return state, nil, ""
 		}
+		if err := sharedtypes.ValidateDurationSeconds("Required work", required, sharedtypes.MomentumDurationLimit(state.HabitStreakDraft.Period), true); err != nil {
+			return state, nil, err.Error()
+		}
 		state.HabitStreakDraft.RequiredCount = required
 	} else {
 		required, err := ParsePositiveIntInput(state.Inputs[1].Value(), true, "Required completions")
@@ -178,6 +181,30 @@ func updateMomentumContextTargets(state State, msg tea.KeyMsg) (State, *Action, 
 	state = syncMomentumStepFocus(state)
 	if state.FocusIdx == int(contextTargetFocusRepo) ||
 		state.FocusIdx == int(contextTargetFocusStream) {
+		if msg.String() == "enter" {
+			if state.FocusIdx == int(contextTargetFocusRepo) {
+				state.FocusIdx = int(contextTargetFocusStream)
+			} else {
+				state = handleMomentumContextActivation(state)
+				state.FocusIdx = int(contextTargetFocusSelected)
+			}
+			return syncMomentumStepFocus(state), nil, ""
+		}
+		if msg.String() == "enter" || msg.String() == "tab" {
+			if state.FocusIdx == 0 {
+				if _, ok := selectedOption(momentumRepoOptions(state), max(0, state.RepoIndex)); !ok {
+					return state, nil, "Pick a repo"
+				}
+				state.RepoIndex = max(0, state.RepoIndex)
+				state.FocusIdx = 1
+			} else {
+				if msg.String() == "enter" {
+					state = handleMomentumContextActivation(state)
+				}
+				state.FocusIdx = 2
+			}
+			return syncMomentumStepFocus(clearDialogError(state)), nil, ""
+		}
 		if isMomentumContextTextInputKey(msg) {
 			return updateMomentumContextTextInput(state, msg)
 		}
@@ -523,7 +550,7 @@ func selectedMomentumStreamOption(options []SelectorOption, index int) (Selector
 
 func isMomentumContextTextInputKey(msg tea.KeyMsg) bool {
 	switch msg.Type {
-	case tea.KeyRunes, tea.KeySpace, tea.KeyBackspace, tea.KeyDelete:
+	case tea.KeyRunes, tea.KeySpace, tea.KeyBackspace, tea.KeyDelete, tea.KeyLeft, tea.KeyRight, tea.KeyHome, tea.KeyEnd:
 		return true
 	default:
 		return false
@@ -568,7 +595,7 @@ func syncHabitStreakThresholdInput(state State) State {
 
 func isMomentumThresholdTextInputKey(msg tea.KeyMsg) bool {
 	switch msg.Type {
-	case tea.KeyRunes, tea.KeySpace, tea.KeyBackspace, tea.KeyDelete:
+	case tea.KeyRunes, tea.KeySpace, tea.KeyBackspace, tea.KeyDelete, tea.KeyLeft, tea.KeyRight, tea.KeyHome, tea.KeyEnd:
 		return true
 	default:
 		return false

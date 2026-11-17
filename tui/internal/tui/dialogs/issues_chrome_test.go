@@ -51,7 +51,7 @@ func TestNewIssueChrome(t *testing.T) {
 
 func TestNewIssuePickersAtBottom(t *testing.T) {
 	text := issueText(issueState("create_issue_default", 0, 120, 40))
-	estimate, repo := strings.Index(text, "Estimate"), strings.Index(text, "‹ OSS ›")
+	estimate, repo := strings.Index(text, "Estimate"), strings.Index(text, "▶ OSS")
 	if estimate < 0 || repo < estimate {
 		t.Fatalf("expected the repo picker below Estimate, got\n%s", text)
 	}

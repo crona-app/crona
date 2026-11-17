@@ -270,13 +270,13 @@ func TestSessionHistoryUsesTheDateDisplayPattern(t *testing.T) {
 	if got := state.Inputs[1].Value(); got != "05/11/2026 11:30" {
 		t.Fatalf("an end on another day should use the display pattern, got %q", got)
 	}
-	for _, typed := range []string{"03/11/2026 09:15", "2026-11-03 09:15"} {
+	for _, typed := range []string{"04/11/2026 12:15", "2026-11-04 12:15"} {
 		state.Inputs[0].SetValue(typed)
 		request, err := sessionHistoryUpdateRequest(state)
 		if err != nil {
 			t.Fatalf("%q: %v", typed, err)
 		}
-		if got, _ := time.Parse(time.RFC3339Nano, request.StartTime); !got.Equal(time.Date(2026, 11, 3, 9, 15, 0, 0, time.Local)) {
+		if got, _ := time.Parse(time.RFC3339Nano, request.StartTime); !got.Equal(time.Date(2026, 11, 4, 12, 15, 0, 0, time.Local)) {
 			t.Fatalf("%q parsed to %s", typed, got)
 		}
 	}

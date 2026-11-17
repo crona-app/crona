@@ -246,7 +246,7 @@ func renderPomodoro(theme Theme, state controllerpkg.State) string {
 		primary: plainHint(
 			dialogSubmitHint(state, "start"),
 		),
-		hints: []string{"←/→ choose", "↑/↓ move"},
+		hints: []string{"←/→ choose", "↑/↓ move", "durations: 25m / 1h30m · max 24h total"},
 		esc:   "esc back",
 		wide:  true,
 	}

@@ -9,7 +9,6 @@ import (
 func TestFormFocusIgnoresUpDown(t *testing.T) {
 	openers := map[string]func() State{
 		"create_issue_default": func() State { return OpenCreateIssueDefault(State{}) },
-		"checkout_context":     func() State { return OpenCheckoutContext(State{}) },
 		"create_repo":          func() State { return OpenCreateRepo(State{}) },
 		"create_habit":         func() State { return OpenCreateHabit(State{}) },
 		"edit_issue":           func() State { return OpenEditIssue(State{}, 1, 2, "Fix", nil, nil, nil) },

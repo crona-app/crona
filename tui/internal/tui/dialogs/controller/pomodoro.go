@@ -229,6 +229,9 @@ func pomodoroExtendRequestFromState(state State) (*shareddto.TimerExtendRequest,
 	if additionalSeconds <= 0 {
 		return nil, fmt.Errorf("added duration must be positive")
 	}
+	if additionalSeconds > sharedtypes.MaxDailyDurationSeconds || state.HardLimitTotalSeconds > sharedtypes.MaxDailyDurationSeconds-additionalSeconds {
+		return nil, fmt.Errorf("timer total after extension must not exceed 24h")
+	}
 	totalPerSession := config.FocusSeconds + config.BreakSeconds
 	if totalPerSession <= 0 {
 		totalPerSession = config.FocusSeconds
@@ -310,6 +313,10 @@ func pomodoroExtendConfigFromState(state State, validate bool) (pomodoroValues, 
 	if sessions <= 0 {
 		return values, 0, fmt.Errorf("cycles must be positive")
 	}
+	if sessions > sharedtypes.MaxDailyDurationSeconds || values.FocusSeconds > sharedtypes.MaxDailyDurationSeconds/sessions {
+		return values, 0, fmt.Errorf("timer total must not exceed 24h")
+	}
+
 	return values, sessions, nil
 }
 
@@ -404,6 +411,9 @@ func pomodoroValuesFromState(state State, validate bool) (pomodoroValues, error)
 		values.CyclesBeforeLongBreak = 0
 	}
 
+	if values.Cycles > sharedtypes.MaxDailyDurationSeconds || values.FocusSeconds > sharedtypes.MaxDailyDurationSeconds || values.BreakSeconds > sharedtypes.MaxDailyDurationSeconds || values.LongBreakSeconds > sharedtypes.MaxDailyDurationSeconds {
+		return values, fmt.Errorf("timer duration must not exceed 24h")
+	}
 	if values.Cycles > 0 && values.FocusSeconds > 0 {
 		values.TotalSeconds = values.Cycles * (values.FocusSeconds + values.BreakSeconds)
 		if values.LongBreakSeconds > 0 && values.CyclesBeforeLongBreak > 0 {
@@ -411,5 +421,8 @@ func pomodoroValuesFromState(state State, validate bool) (pomodoroValues, error)
 		}
 	}
 
+	if values.TotalSeconds > sharedtypes.MaxDailyDurationSeconds {
+		return values, fmt.Errorf("timer total must not exceed 24h")
+	}
 	return values, nil
 }

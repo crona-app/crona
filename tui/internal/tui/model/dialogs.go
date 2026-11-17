@@ -791,6 +791,8 @@ func (m Model) dialogState() dialogstate.State {
 		RepoItemIDs:               m.dialogRepoItemIDs,
 		StreamID:                  m.dialogStreamID,
 		StreamName:                m.dialogStreamName,
+		ConfirmedNewRepo:          m.dialogConfirmedNewRepo,
+		ConfirmedNewStream:        m.dialogConfirmedNewStream,
 		RepoIndex:                 m.dialogRepoIndex,
 		StreamIndex:               m.dialogStreamIndex,
 		Parent:                    m.dialogParent,
@@ -956,6 +958,8 @@ func (m Model) withDialogState(state dialogstate.State) Model {
 	m.dialogRepoItemIDs = state.RepoItemIDs
 	m.dialogStreamID = state.StreamID
 	m.dialogStreamName = state.StreamName
+	m.dialogConfirmedNewRepo = state.ConfirmedNewRepo
+	m.dialogConfirmedNewStream = state.ConfirmedNewStream
 	m.dialogRepoIndex = state.RepoIndex
 	m.dialogStreamIndex = state.StreamIndex
 	m.dialogParent = state.Parent

@@ -143,7 +143,7 @@ func TestCheckoutContextArrowCyclesBlankSelections(t *testing.T) {
 		state,
 		ctx,
 		"2026-04-10",
-		tea.KeyMsg{Type: tea.KeyRight},
+		tea.KeyMsg{Type: tea.KeyDown},
 	)
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
@@ -167,7 +167,7 @@ func TestCheckoutContextArrowCyclesBlankSelections(t *testing.T) {
 	if repoLabel != "Work" {
 		t.Fatalf("expected highlighted repo label, got %q", repoLabel)
 	}
-	if streamLabel != "Select a stream" {
+	if streamLabel != "All streams" {
 		t.Fatalf("expected empty stream placeholder, got %q", streamLabel)
 	}
 
@@ -183,11 +183,12 @@ func TestCheckoutContextArrowCyclesBlankSelections(t *testing.T) {
 	if action != nil {
 		t.Fatalf("expected tab to stay in dialog, got %+v", action)
 	}
+	next.StreamIndex = -1
 	next, action, status = dialogs.Update(
 		next,
 		ctx,
 		"2026-04-10",
-		tea.KeyMsg{Type: tea.KeyRight},
+		tea.KeyMsg{Type: tea.KeyDown},
 	)
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
@@ -195,7 +196,11 @@ func TestCheckoutContextArrowCyclesBlankSelections(t *testing.T) {
 	if action != nil {
 		t.Fatalf("expected stream cycling to stay in dialog, got %+v", action)
 	}
-	if next.StreamIndex != 0 {
+	next, action, status = dialogs.Update(next, ctx, "2026-04-10", tea.KeyMsg{Type: tea.KeyDown})
+	if status != "" || action != nil {
+		t.Fatalf("stream choice: %v %q", action, status)
+	}
+	if next.StreamIndex != 1 {
 		t.Fatalf(
 			"expected right from blank stream to select first option, got %d",
 			next.StreamIndex,
@@ -227,6 +232,13 @@ func TestCheckoutContextArrowCyclesBlankSelections(t *testing.T) {
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
 	}
+	if action != nil {
+		t.Fatalf("picker submitted before Apply: %+v", action)
+	}
+	next, action, status = dialogs.Update(next, ctx, "2026-04-10", tea.KeyMsg{Type: tea.KeyEnter})
+	if status != "" {
+		t.Fatalf("apply: %s", status)
+	}
 	if next.Kind != "" {
 		t.Fatalf("expected dialog to close after enter, got %q", next.Kind)
 	}
@@ -249,7 +261,7 @@ func TestCheckoutContextLeftCyclesBlankRepoSelection(t *testing.T) {
 		state,
 		ctx,
 		"2026-04-10",
-		tea.KeyMsg{Type: tea.KeyLeft},
+		tea.KeyMsg{Type: tea.KeyUp},
 	)
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
@@ -272,7 +284,7 @@ func TestCheckoutContextLeftCyclesBlankRepoSelection(t *testing.T) {
 	if repoLabel != "Personal" {
 		t.Fatalf("expected highlighted repo label, got %q", repoLabel)
 	}
-	if streamLabel != "Select a stream" {
+	if streamLabel != "All streams" {
 		t.Fatalf("expected empty stream placeholder, got %q", streamLabel)
 	}
 
@@ -284,6 +296,14 @@ func TestCheckoutContextLeftCyclesBlankRepoSelection(t *testing.T) {
 	)
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
+	}
+	next.FocusIdx = 2
+	if action != nil {
+		t.Fatalf("picker submitted before Apply: %+v", action)
+	}
+	next, action, status = dialogs.Update(next, ctx, "2026-04-10", tea.KeyMsg{Type: tea.KeyEnter})
+	if status != "" {
+		t.Fatalf("apply: %s", status)
 	}
 	if next.Kind != "" {
 		t.Fatalf("expected dialog to close after enter, got %q", next.Kind)

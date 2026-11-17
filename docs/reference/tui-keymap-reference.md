@@ -50,6 +50,13 @@ After opening view jump with `v`, press a view mnemonic directly. For example, `
 - `F6`: Seed mock wellbeing and focus data (development builds only)
 - `F7`: Clear the local database (development builds only)
 
+## Duration fields and context pickers
+
+- Sleep and screen time accept up to 24 hours per day. Bare sleep values mean hours; bare minute-field values mean minutes. Use explicit units such as `7h30m` or `450m` to avoid ambiguity. Inputs show their interpreted value and limit; invalid values remain editable and block saving.
+- Single timers and manually logged sessions, including breaks, are limited to 24 hours. Daily habit durations and targets use the same ceiling. Momentum work targets allow 24h per day, 168h per week, or 744h per month. Issue estimates can span multiple days.
+- Repo and stream fields immediately show a searchable list. Type to filter, use `↑` / `↓` to highlight a choice, and press Enter or Tab to confirm and advance. Left/right moves the text cursor. Select the explicit Create row to add a new name; an exact existing name never offers a duplicate Create action.
+- Checkout has a final **Set context** action after choosing a repo and stream. **All streams** selects the repo alone; `ctrl+x` clears the checked-out context.
+
 ## Common Work Bindings
 
 These apply to items in most planning tables or lists:

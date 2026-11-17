@@ -118,8 +118,10 @@ func CreateHabit(ctx context.Context, c *core.Context, input struct {
 	if err != nil {
 		return sharedtypes.Habit{}, err
 	}
-	if input.TargetMinutes != nil && *input.TargetMinutes < 0 {
-		return sharedtypes.Habit{}, errors.New("targetMinutes must be >= 0")
+	if input.TargetMinutes != nil {
+		if err := sharedtypes.ValidateDailyMinutes("Habit target", *input.TargetMinutes); err != nil {
+			return sharedtypes.Habit{}, err
+		}
 	}
 	nextID, err := c.Habits.NextID(ctx)
 	if err != nil {
@@ -179,9 +181,10 @@ func UpdateHabit(ctx context.Context, c *core.Context, habitID int64, updates st
 	if updates.Description.Set {
 		updates.Description.Value = normalizeOptionalString(updates.Description.Value)
 	}
-	if updates.TargetMinutes.Set && updates.TargetMinutes.Value != nil &&
-		*updates.TargetMinutes.Value < 0 {
-		return nil, errors.New("targetMinutes must be >= 0")
+	if updates.TargetMinutes.Set && updates.TargetMinutes.Value != nil {
+		if err := sharedtypes.ValidateDailyMinutes("Habit target", *updates.TargetMinutes.Value); err != nil {
+			return nil, err
+		}
 	}
 	if updates.ScheduleType != nil || updates.WeekdaysSet {
 		current, err := c.Habits.GetByID(ctx, habitID, c.UserID)
@@ -290,8 +293,10 @@ func CompleteHabit(
 		return nil, errors.New("date must be YYYY-MM-DD")
 	}
 	status = sharedtypes.NormalizeHabitCompletionStatus(status)
-	if durationMinutes != nil && *durationMinutes < 0 {
-		return nil, errors.New("durationMinutes must be >= 0")
+	if durationMinutes != nil {
+		if err := sharedtypes.ValidateDailyMinutes("Habit duration", *durationMinutes); err != nil {
+			return nil, err
+		}
 	}
 	habit, err := c.Habits.GetByID(ctx, habitID, c.UserID)
 	if err != nil {

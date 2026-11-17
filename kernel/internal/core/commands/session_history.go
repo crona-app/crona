@@ -36,6 +36,15 @@ func UpdateSessionHistory(
 	if err != nil || !end.After(start) {
 		return shareddto.OKResponse{}, errors.New("end time must be after start time")
 	}
+	originalStart, _ := time.Parse(time.RFC3339Nano, session.StartTime)
+	originalEnd := time.Time{}
+	if session.EndTime != nil {
+		originalEnd, _ = time.Parse(time.RFC3339Nano, *session.EndTime)
+	}
+	if end.Sub(start) > 24*time.Hour && (!start.Equal(originalStart) || !end.Equal(originalEnd)) {
+		return shareddto.OKResponse{}, errors.New("session duration must not exceed 24h")
+	}
+
 	segments := slices.Clone(input.Segments)
 	slices.SortFunc(segments, func(a, b sharedtypes.SessionSegment) int {
 		startA, errA := time.Parse(time.RFC3339Nano, a.StartTime)

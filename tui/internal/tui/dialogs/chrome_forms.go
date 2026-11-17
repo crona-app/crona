@@ -143,21 +143,21 @@ func renderIssueCreate(theme Theme, state controllerpkg.State) string {
 	})
 }
 
-// repoPickerRow and streamPickerRow are the one-row Repo/Stream pickers on Inputs[0]/[1].
+// repoPickerRow and streamPickerRow show searchable choices for Inputs[0]/[1].
 func repoPickerRow(theme Theme, state controllerpkg.State, column, full, focus int) FormRow {
-	return FormRow{Lines: Picker(theme, PickerSpec{
+	return FormRow{Lines: SearchPicker(theme, PickerSpec{
 		Label: "Repo", Column: column, Focused: state.FocusIdx == focus, Input: bareInput(state.Inputs[0], full, "type to filter"),
 		Current: state.RepoSelectorLabel, Options: state.RepoOptionLabels, Selected: state.RepoIndex,
 		Placeholder: state.RepoSelectorLabel,
-	}), Focus: map[int]int{focus: 0}}
+	}, full+column+3), Focus: map[int]int{focus: 3}}
 }
 
 func streamPickerRow(theme Theme, state controllerpkg.State, column, full, focus int) FormRow {
-	return FormRow{Lines: Picker(theme, PickerSpec{
+	return FormRow{Lines: SearchPicker(theme, PickerSpec{
 		Label: "Stream", Column: column, Focused: state.FocusIdx == focus, Input: bareInput(state.Inputs[1], full, "type to filter"),
 		Current: state.StreamSelectorLabel, Options: state.StreamOptionLabels, Selected: state.StreamIndex,
 		Placeholder: state.StreamSelectorLabel,
-	}), Focus: map[int]int{focus: 0}}
+	}, full+column+3), Focus: map[int]int{focus: 3}}
 }
 
 // repoStreamContext is `repo › stream` when both are known.
@@ -221,24 +221,28 @@ func renderCheckoutContext(theme Theme, state controllerpkg.State) string {
 	inner := FrameInner(state.Width, []string{strings.Repeat(" ", 56)})
 	column := len("Stream")
 	full := inner - column - 3
-	body := Picker(theme, PickerSpec{
+	body := SearchPicker(theme, PickerSpec{
 		Label: "Repo", Column: column, Focused: state.FocusIdx == 0, Input: bareInput(state.Inputs[0], full, "type to filter"),
 		Current: state.RepoSelectorLabel, Options: state.RepoOptionLabels, Selected: state.RepoIndex,
 		Placeholder: state.RepoSelectorLabel,
-	})
-	focus := 0
+	}, inner)
+	focus := 3
 	if state.FocusIdx == 1 {
-		focus = len(body)
+		focus = len(body) + 3
 	}
-	body = append(body, Picker(theme, PickerSpec{
+	body = append(body, SearchPicker(theme, PickerSpec{
 		Label: "Stream", Column: column, Focused: state.FocusIdx == 1, Input: bareInput(state.Inputs[1], full, "type to filter"),
 		Current: state.StreamSelectorLabel, Options: state.StreamOptionLabels, Selected: state.StreamIndex,
 		Placeholder: state.StreamSelectorLabel,
-	})...)
+	}, inner)...)
+	body = append(body, "", theme.StyleHeader.Render("[enter] Set context"))
+	if state.FocusIdx == 2 {
+		focus = len(body) - 1
+	}
 	footer := Footer(
 		theme,
-		"enter set context",
-		[]string{"c clear", "tab move", "type filter", "←/→ choose"},
+		"enter choose / apply",
+		[]string{"ctrl+x clear", "tab move", "type filter", "↑/↓ choose"},
 		inner,
 	)
 	return Frame(theme, FrameSpec{

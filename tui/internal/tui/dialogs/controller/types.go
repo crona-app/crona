@@ -45,6 +45,8 @@ type SessionHistoryTime struct {
 }
 
 type State struct {
+	ConfirmedNewRepo         string
+	ConfirmedNewStream       string
 	Kind                     string
 	Width                    int
 	Height                   int

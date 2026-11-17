@@ -259,6 +259,9 @@ func sessionHistoryUpdateRequest(state State) (*shareddto.UpdateSessionHistoryRe
 	if err != nil || !end.After(start) {
 		return nil, errors.New("session end must be after its start")
 	}
+	if end.Sub(start) > 24*time.Hour && (!start.Equal(state.SessionHistoryBounds[0].At) || !end.Equal(state.SessionHistoryBounds[1].At)) {
+		return nil, errors.New("session duration must not exceed 24h")
+	}
 	segments := make([]sharedtypes.SessionSegment, 0, len(state.SessionHistorySegments))
 	for i, row := range state.SessionHistorySegments {
 		segmentStart, err := resolveSessionHistoryTime(row.StartTime.Value(), row.OriginalStart, start, state.SessionHistoryDatePattern)
@@ -520,6 +523,9 @@ func updateManualSession(state State, msg tea.KeyMsg) (State, *Action, string) {
 			)
 			if err != nil {
 				return state, nil, err.Error()
+			}
+			if workSeconds > sharedtypes.MaxDailyDurationSeconds-breakSeconds {
+				return state, nil, "work and breaks together must not exceed 24h"
 			}
 			startTime, err := ParseClockInput(state.Inputs[4].Value())
 			if err != nil {

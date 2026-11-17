@@ -212,6 +212,10 @@ func TestMomentumContextTargetsAllowRepoWideSelection(t *testing.T) {
 	if action != nil {
 		t.Fatalf("expected no action, got %+v", action)
 	}
+	next, action, status = Update(next, UpdateContext{}, "2026-05-26", tea.KeyMsg{Type: tea.KeyEnter})
+	if action != nil || status != "" {
+		t.Fatalf("context choice: %v %q", action, status)
+	}
 	if len(next.HabitStreakDraft.Contexts) != 1 {
 		t.Fatalf("expected one selected context, got %+v", next.HabitStreakDraft.Contexts)
 	}
@@ -586,7 +590,7 @@ func TestMomentumDialogLabelsHandleClearedSearchWithoutPanic(t *testing.T) {
 	}
 }
 
-func TestMomentumContextTargetsCycleRepoAndStreamHorizontally(t *testing.T) {
+func TestMomentumContextTargetsCycleRepoAndStreamVertically(t *testing.T) {
 	repos := []api.Repo{
 		{ID: 7, Name: "Work"},
 		{ID: 8, Name: "Personal"},
@@ -620,7 +624,7 @@ func TestMomentumContextTargetsCycleRepoAndStreamHorizontally(t *testing.T) {
 		state,
 		UpdateContext{},
 		"2026-05-26",
-		tea.KeyMsg{Type: tea.KeyRight},
+		tea.KeyMsg{Type: tea.KeyDown},
 	)
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
@@ -629,7 +633,7 @@ func TestMomentumContextTargetsCycleRepoAndStreamHorizontally(t *testing.T) {
 		t.Fatalf("expected no action, got %+v", action)
 	}
 	if next.RepoIndex != 1 {
-		t.Fatalf("expected repo selection to cycle horizontally, got %d", next.RepoIndex)
+		t.Fatalf("expected repo selection to cycle vertically, got %d", next.RepoIndex)
 	}
 
 	streamState := state
@@ -639,7 +643,7 @@ func TestMomentumContextTargetsCycleRepoAndStreamHorizontally(t *testing.T) {
 		streamState,
 		UpdateContext{},
 		"2026-05-26",
-		tea.KeyMsg{Type: tea.KeyRight},
+		tea.KeyMsg{Type: tea.KeyDown},
 	)
 	if status != "" {
 		t.Fatalf("unexpected status %q", status)
@@ -648,6 +652,6 @@ func TestMomentumContextTargetsCycleRepoAndStreamHorizontally(t *testing.T) {
 		t.Fatalf("expected no action, got %+v", action)
 	}
 	if streamState.StreamIndex != 1 {
-		t.Fatalf("expected stream selection to cycle horizontally, got %d", streamState.StreamIndex)
+		t.Fatalf("expected stream selection to cycle vertically, got %d", streamState.StreamIndex)
 	}
 }

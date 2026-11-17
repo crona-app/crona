@@ -289,6 +289,9 @@ func LogManualSession(
 		return nil, errors.New("break duration cannot be negative")
 	}
 
+	if input.WorkDurationSeconds > sharedtypes.MaxDailyDurationSeconds || input.BreakDurationSeconds > sharedtypes.MaxDailyDurationSeconds-input.WorkDurationSeconds {
+		return nil, errors.New("work and breaks together must not exceed 24h")
+	}
 	startTime, endTime, err := resolveManualSessionWindow(input)
 	if err != nil {
 		return nil, err

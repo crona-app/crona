@@ -1,12 +1,14 @@
 package controller
 
 import (
-	shareddto "crona.work/shared/dto"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	shareddto "crona.work/shared/dto"
+	sharedtypes "crona.work/shared/types"
 
 	"github.com/charmbracelet/bubbles/textinput"
 )
@@ -83,6 +85,9 @@ func ParseDurationInput(raw string, required bool, label string) (int, error) {
 	if err != nil {
 		return 0, fmt.Errorf("%s must be like 90, 90m, 1h30m, or 1.5h", label)
 	}
+	if err := validateRawDurationLimit(raw, sharedtypes.MaxDailyDurationSeconds/60, label); err != nil {
+		return 0, err
+	}
 	seconds := minutes * 60
 	if seconds < 0 {
 		return 0, fmt.Errorf("%s must be non-negative", label)
@@ -101,24 +106,24 @@ func ParseDurationSecondsInput(raw string, required bool, label string) (int, er
 		}
 		return 0, nil
 	}
-	if seconds, err := strconv.Atoi(raw); err == nil {
-		if seconds < 0 {
-			return 0, fmt.Errorf("%s must be non-negative", label)
+	var seconds float64
+	if minutes, err := strconv.ParseFloat(raw, 64); err == nil {
+		seconds = minutes * 60
+	} else {
+		d, err := time.ParseDuration(raw)
+		if err != nil {
+			return 0, fmt.Errorf("%s must be like 90m, 1h30m, or 1h34m23s", label)
 		}
-		return seconds * 60, nil
+		seconds = d.Seconds()
 	}
-	d, err := time.ParseDuration(raw)
-	if err != nil {
-		return 0, fmt.Errorf("%s must be like 90, 90m, 1h30m, or 1h34m23s", label)
+	if math.IsNaN(seconds) || math.IsInf(seconds, 0) || seconds < 0 || seconds > float64(sharedtypes.MomentumDurationLimit(sharedtypes.HabitStreakPeriodMonth)) {
+		return 0, fmt.Errorf("%s must be between 0 and 744h", label)
 	}
-	seconds := int(math.Round(d.Seconds()))
-	if seconds < 0 {
-		return 0, fmt.Errorf("%s must be non-negative", label)
-	}
-	if required && seconds == 0 {
+	value := int(math.Round(seconds))
+	if required && value == 0 {
 		return 0, fmt.Errorf("%s must be positive", label)
 	}
-	return seconds, nil
+	return value, nil
 }
 
 func ParseClockInput(raw string) (*string, error) {
@@ -136,6 +141,11 @@ func ParseOptionalDurationMinutes(raw string, label string) (*int, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return nil, nil
+	}
+	if label != "Estimate" {
+		if err := validateRawDurationLimit(raw, sharedtypes.MaxDailyDurationMinutes, label); err != nil {
+			return nil, err
+		}
 	}
 	value, err := parseFlexibleDurationMinutes(raw)
 	if err != nil {
@@ -173,6 +183,9 @@ func ParseOptionalDurationHours(raw string, label string) (*float64, error) {
 	value, err := parseFlexibleDurationHours(raw)
 	if err != nil {
 		return nil, fmt.Errorf("%s must be like 7.5h, 7h30m, or 450m", strings.ToLower(label))
+	}
+	if err := sharedtypes.ValidateSleepHours(value); err != nil {
+		return nil, err
 	}
 	return &value, nil
 }
@@ -217,31 +230,48 @@ func FormatDurationSecondsInput(seconds int) string {
 	}
 }
 
-func parseFlexibleDurationMinutes(raw string) (int, error) {
+func durationMinutesValue(raw string) (float64, error) {
 	raw = strings.TrimSpace(strings.ToLower(raw))
 	if raw == "" {
 		return 0, nil
 	}
-	if minutes, err := strconv.Atoi(raw); err == nil {
-		if minutes < 0 {
-			return 0, fmt.Errorf("duration must be non-negative")
-		}
-		return minutes, nil
-	}
-	if decimalHours, ok, err := parseBareHours(raw); err != nil {
+	var minutes float64
+	if value, err := strconv.Atoi(raw); err == nil {
+		minutes = float64(value)
+	} else if hours, ok, err := parseBareHours(raw); err != nil {
 		return 0, err
 	} else if ok {
-		return int(math.Round(decimalHours * 60)), nil
+		minutes = hours * 60
+	} else {
+		d, err := time.ParseDuration(raw)
+		if err != nil {
+			return 0, err
+		}
+		minutes = d.Minutes()
 	}
-	d, err := time.ParseDuration(raw)
+	if math.IsNaN(minutes) || math.IsInf(minutes, 0) || minutes < 0 || minutes >= float64(math.MaxInt/60) {
+		return 0, fmt.Errorf("duration must be finite, non-negative, and within supported range")
+	}
+	return minutes, nil
+}
+
+func validateRawDurationLimit(raw string, maxMinutes int, label string) error {
+	minutes, err := durationMinutesValue(raw)
+	if err != nil {
+		return fmt.Errorf("%s must be a valid duration like 90m or 1h30m", label)
+	}
+	if minutes > float64(maxMinutes) {
+		return fmt.Errorf("%s must be between 0 and %dh", label, maxMinutes/60)
+	}
+	return nil
+}
+
+func parseFlexibleDurationMinutes(raw string) (int, error) {
+	minutes, err := durationMinutesValue(raw)
 	if err != nil {
 		return 0, err
 	}
-	minutes := int(math.Round(d.Minutes()))
-	if minutes < 0 {
-		return 0, fmt.Errorf("duration must be non-negative")
-	}
-	return minutes, nil
+	return int(math.Round(minutes)), nil
 }
 
 func parseFlexibleDurationHours(raw string) (float64, error) {

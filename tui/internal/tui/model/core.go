@@ -265,6 +265,8 @@ type Model struct {
 	dialogRepoItemIDs                    []int64
 	dialogStreamID                       int64
 	dialogStreamName                     string
+	dialogConfirmedNewRepo               string
+	dialogConfirmedNewStream             string
 	dialogRepoIndex                      int
 	dialogStreamIndex                    int
 	dialogParent                         string

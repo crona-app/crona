@@ -43,14 +43,18 @@ func UpsertDailyCheckIn(
 	if input.Energy < 1 || input.Energy > 5 {
 		return nil, errors.New("energy must be between 1 and 5")
 	}
-	if input.SleepHours != nil && *input.SleepHours < 0 {
-		return nil, errors.New("sleepHours must be >= 0")
+	if input.SleepHours != nil {
+		if err := sharedtypes.ValidateSleepHours(*input.SleepHours); err != nil {
+			return nil, err
+		}
 	}
 	if input.SleepScore != nil && (*input.SleepScore < 0 || *input.SleepScore > 100) {
 		return nil, errors.New("sleepScore must be between 0 and 100")
 	}
-	if input.ScreenTimeMinutes != nil && *input.ScreenTimeMinutes < 0 {
-		return nil, errors.New("screenTimeMinutes must be >= 0")
+	if input.ScreenTimeMinutes != nil {
+		if err := sharedtypes.ValidateDailyMinutes("Screen time", *input.ScreenTimeMinutes); err != nil {
+			return nil, err
+		}
 	}
 
 	now := c.Now()

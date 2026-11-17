@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"slices"
 	"strconv"
 	"strings"
@@ -640,6 +641,17 @@ func coreSettingsValueFromColumn(key sharedtypes.CoreSettingsKey, value any) any
 }
 
 func coreSettingsDBValue(key sharedtypes.CoreSettingsKey, value any) (any, error) {
+	switch key {
+	case sharedtypes.CoreSettingsKeyWorkDurationMinutes, sharedtypes.CoreSettingsKeyShortBreakMinutes, sharedtypes.CoreSettingsKeyLongBreakMinutes:
+		if number, ok := value.(float64); ok && (math.IsNaN(number) || math.IsInf(number, 0) || number != math.Trunc(number) || number < 0 || number > float64(sharedtypes.MaxDailyDurationMinutes)) {
+			return nil, errors.New("timer setting must be whole minutes between 0 and 1440")
+		}
+		minutes := settingInt(value, -1)
+		if err := sharedtypes.ValidateDailyMinutes("Timer setting", minutes); err != nil {
+			return nil, err
+		}
+		return minutes, nil
+	}
 	switch key {
 	case sharedtypes.CoreSettingsKeyUpdateChannel:
 		return string(

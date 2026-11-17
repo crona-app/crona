@@ -34,13 +34,16 @@ func renderHabitStreakDialog(theme Theme, state controllerpkg.State) string {
 		case state.Momentum.FilterFocused:
 			d.hints = []string{"type to search", "enter list", "esc clear"}
 		case momentumContextMode(state):
-			d.hints = []string{"type filter", "←/→ cycle", "enter add/remove", "tab next"}
+			d.hints = []string{"type filter", "↑/↓ choose", "enter choose/add", "tab next"}
 		default:
 			d.hints = []string{"space pick", "/ search", "a all shown", "c none shown", "tab match"}
 		}
 	} else {
 		d.body, d.focus = momentumDetailsStep(theme, state, body, true)
 		d.primary, d.hints = submit, []string{"tab next", "shift+tab back"}
+		if sharedtypes.NormalizeMomentumTargetKind(state.HabitStreakDraft.TargetKind) == sharedtypes.MomentumTargetKindContext {
+			d.hints = append(d.hints, fmt.Sprintf("required work: max %dh", sharedtypes.MomentumDurationLimit(state.HabitStreakDraft.Period)/3600))
+		}
 	}
 	if state.Momentum.ConfirmDiscard {
 		d.body = append(d.body, "", theme.StyleError.Render("Discard changes?"))
@@ -86,16 +89,25 @@ func momentumTargetsStep(theme Theme, state controllerpkg.State, body []string) 
 		matchFocus = 3
 		repo := state.MomentumRepoInput
 		stream := state.MomentumStreamInput
-		body = append(body,
-			Picker(theme, PickerSpec{Label: "Repo", Column: column, Focused: listFocused && state.FocusIdx == 0,
-				Input: bareInput(repo, full, "type to filter"), Placeholder: state.RepoSelectorLabel})[0],
-			Picker(theme, PickerSpec{Label: "Stream", Column: column, Focused: listFocused && state.FocusIdx == 1,
-				Input: bareInput(stream, full, "any stream"), Placeholder: state.StreamSelectorLabel})[0],
-			"", theme.StyleDim.Render("Picked contexts"),
-		)
-		if listFocused && state.FocusIdx < 2 {
-			focus = len(body) - 4 + state.FocusIdx
+
+		repoOptions, streamOptions := controllerpkg.MomentumPickerOptions(state)
+		optionNames := func(options []controllerpkg.SelectorOption) []string {
+			result := []string{}
+			for _, option := range options {
+				result = append(result, option.Label)
+			}
+			return result
 		}
+		if listFocused && state.FocusIdx == 0 {
+			focus = len(body) + 3
+		}
+		body = append(body, SearchPicker(theme, PickerSpec{Label: "Repo", Column: column, Focused: listFocused && state.FocusIdx == 0, Input: bareInput(repo, full, "type to filter"), Current: state.RepoSelectorLabel, Options: optionNames(repoOptions), Selected: state.RepoIndex}, formInner(state.Width))...)
+		if listFocused && state.FocusIdx == 1 {
+			focus = len(body) + 3
+		}
+		body = append(body, SearchPicker(theme, PickerSpec{Label: "Stream", Column: column, Focused: listFocused && state.FocusIdx == 1, Input: bareInput(stream, full, "type to filter"), Current: state.StreamSelectorLabel, Options: optionNames(streamOptions), Selected: state.StreamIndex + 1}, formInner(state.Width))...)
+		body = append(body, "", theme.StyleDim.Render("Picked contexts"))
+
 		if len(state.HabitStreakDraft.Contexts) == 0 {
 			body = append(body, theme.StyleDim.Render("  None yet: pick a repo, then enter"))
 		}

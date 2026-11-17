@@ -93,7 +93,22 @@ func formFooter(
 func renderForm(theme Theme, state controllerpkg.State, spec FormSpec) string {
 	inner := formInner(state.Width)
 	body, focus := formBody(spec.Rows, state.FocusIdx)
-	footer := formFooter(theme, spec.Primary, spec.Hints, spec.Esc, state.FocusIdx, spec.FocusCount, inner)
+	if (state.Kind == "create_issue_default" || state.Kind == "create_habit") && state.FocusIdx > 1 {
+		body = append(body, make([]string, 7)...)
+	}
+	hints := func(focus int) []string {
+		lines := []string{}
+		if spec.Hints != nil {
+			lines = append(lines, spec.Hints(focus)...)
+		}
+		probe := state
+		probe.FocusIdx = focus
+		if hint := controllerpkg.DurationFieldHint(probe); hint != "" {
+			lines = append(lines, hint)
+		}
+		return lines
+	}
+	footer := formFooter(theme, spec.Primary, hints, spec.Esc, state.FocusIdx, spec.FocusCount, inner)
 	return Frame(theme, FrameSpec{
 		Title: spec.Title, Context: spec.Context, Border: spec.Border, Body: body,
 		Footer: withError(
