@@ -9,7 +9,7 @@ Here is what a normal workday looks like in Crona: see the day, choose the next 
 
 ## Beta interface preview
 
-These screenshots show the tabbed interface in v1.10.0-beta.1. The existing screenshots below document the earlier interface.
+These screenshots show the tabbed interface in v1.10.0-beta.9. The existing screenshots below document the earlier interface.
 
 ### Today
 
@@ -36,6 +36,22 @@ These screenshots show the tabbed interface in v1.10.0-beta.1. The existing scre
 ![Beta active Pomodoro focus session showing the countdown, phase bar, cycle dots, and issue details](/screenshots/beta/beta-active-session-focus.png)
 
 ![Beta Pomodoro short break showing the countdown, phase bar, cycle dots, and issue details](/screenshots/beta/beta-active-session-break.png)
+
+### Check-ins history
+
+![Beta Log Check-ins tab listing wellbeing check-ins by date with a detail pane](/screenshots/beta/beta-checkins-history.png)
+
+### Searchable pickers and context
+
+![Beta New Issue dialog with a searchable repo list and an explicit Create row](/screenshots/beta/beta-searchable-picker.png)
+
+![Beta Checkout Context dialog listing streams with All streams and a Set context action](/screenshots/beta/beta-checkout-context.png)
+
+### Duration guardrails
+
+![Beta Edit Check-In dialog showing the interpreted sleep value for a bare number](/screenshots/beta/beta-duration-interpreted.png)
+
+![Beta Edit Check-In dialog rejecting a sleep value above 24 hours](/screenshots/beta/beta-duration-guardrail.png)
 
 ## 1. Summary: get your bearings
 

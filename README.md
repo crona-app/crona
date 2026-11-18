@@ -29,7 +29,7 @@ The repository is a Go monorepo with four main modules:
 
 ### Beta UI preview
 
-These captures show the v1.10.0-beta.1 interface.
+These captures show the v1.10.0-beta.9 interface.
 
 ![Beta Today dashboard showing the task and habit panes with task details](docs/screenshots/beta/beta-today-dashboard.png)
 
@@ -44,6 +44,16 @@ These captures show the v1.10.0-beta.1 interface.
 ![Beta active Pomodoro focus session showing the countdown, phase bar, cycle dots, and issue details](docs/screenshots/beta/beta-active-session-focus.png)
 
 ![Beta Pomodoro short break showing the countdown, phase bar, cycle dots, and issue details](docs/screenshots/beta/beta-active-session-break.png)
+
+![Beta Log Check-ins tab listing wellbeing check-ins by date with a detail pane](docs/screenshots/beta/beta-checkins-history.png)
+
+![Beta New Issue dialog with a searchable repo list and an explicit Create row](docs/screenshots/beta/beta-searchable-picker.png)
+
+![Beta Checkout Context dialog listing streams with All streams and a Set context action](docs/screenshots/beta/beta-checkout-context.png)
+
+![Beta Edit Check-In dialog showing the interpreted sleep value for a bare number](docs/screenshots/beta/beta-duration-interpreted.png)
+
+![Beta Edit Check-In dialog rejecting a sleep value above 24 hours](docs/screenshots/beta/beta-duration-guardrail.png)
 
 ### Existing screenshots
 
