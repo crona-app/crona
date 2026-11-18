@@ -7,6 +7,24 @@ hosted: false
 
 All notable changes to **Crona** are documented here.
 
+## [1.10.0-beta.9] - 2026-11-18
+
+Crona v1.10.0-beta.9 adds guardrails for duration inputs and searchable repo and stream pickers. The local IPC protocol stays at `1.7`.
+
+### Duration guardrails
+
+- Sleep and screen time accept up to 24 hours per day. Bare sleep values mean hours and bare minute-field values mean minutes; explicit units such as `7h30m` or `450m` avoid ambiguity.
+- Duration inputs show their interpreted value and limit. Invalid values stay editable and block saving.
+- Single timers and manually logged sessions, including breaks, are limited to 24 hours. Daily habit durations and targets use the same ceiling.
+- Momentum work targets allow up to 24h per day, 168h per week, or 744h per month. Issue estimates can still span multiple days.
+- The daemon enforces the same limits, so out-of-range values are rejected regardless of client.
+
+### Searchable context pickers
+
+- Repo and stream fields immediately show a searchable list. Type to filter, use `↑` / `↓` to choose, and press Enter or Tab to confirm and advance. Left/right moves the text cursor.
+- Select the explicit Create row to add a new name; an exact existing name never offers a duplicate Create action.
+- Checkout ends with a **Set context** action after choosing a repo and stream. **All streams** selects the repo alone, and `ctrl+x` clears the checked-out context.
+
 ## [1.10.0-beta.8] - 2026-11-15
 
 Crona v1.10.0-beta.8 streamlines browsing tasks and habits, adds check-in history, and improves Daily and Insights. The local IPC protocol stays at `1.7`.
