@@ -161,11 +161,16 @@ func (k *testKernel) call(t *testing.T, method string, params any, out any) {
 
 func (k *testKernel) callError(t *testing.T, method string, params any) string {
 	t.Helper()
+	return k.callErrorResponse(t, method, params).Message
+}
+
+func (k *testKernel) callErrorResponse(t *testing.T, method string, params any) *protocol.Error {
+	t.Helper()
 	resp := k.callResponse(t, method, params)
 	if resp.Error == nil {
 		t.Fatalf("%s unexpectedly succeeded", method)
 	}
-	return resp.Error.Message
+	return resp.Error
 }
 
 func (k *testKernel) callResponse(t *testing.T, method string, params any) protocol.Response {

@@ -340,9 +340,10 @@ func (t *TimerService) start(
 		)
 	}
 	if !adhoc && !sharedtypes.CanStartFocus(issue.Status) {
-		return sharedtypes.TimerState{}, errors.New(
-			"focus sessions cannot be started for the current issue status",
-		)
+		return sharedtypes.TimerState{}, &FocusStatusError{
+			IssueID: issue.ID,
+			Status:  string(issue.Status),
+		}
 	}
 	if input != nil && input.HardLimitKind == sharedtypes.TimerHardLimitKindCountdown {
 		if input.HardLimitTotalSeconds == nil || *input.HardLimitTotalSeconds <= 0 {

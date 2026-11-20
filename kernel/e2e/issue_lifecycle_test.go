@@ -3,6 +3,8 @@
 package e2e
 
 import (
+	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 
@@ -26,9 +28,25 @@ func TestFocusStartRequiresEligibleIssueStatusAndSessionEndDoesNotCompleteIssue(
 		"issueId":  issue.ID,
 	}, &ctx)
 
-	errMessage := kernel.callError(t, protocol.MethodTimerStart, shareddto.TimerStartRequest{})
-	if !strings.Contains(errMessage, "focus sessions cannot be started") {
-		t.Fatalf("expected focus eligibility error, got %q", errMessage)
+	focusDenied := kernel.callErrorResponse(t, protocol.MethodTimerStart, shareddto.TimerStartRequest{})
+	if focusDenied.Code != protocol.CodeFocusStatusInvalid {
+		t.Fatalf("expected code %q, got %q", protocol.CodeFocusStatusInvalid, focusDenied.Code)
+	}
+	if !strings.Contains(focusDenied.Message, "focus sessions cannot be started") {
+		t.Fatalf("expected focus eligibility error, got %q", focusDenied.Message)
+	}
+	var focusDeniedData struct {
+		Status    string   `json:"status"`
+		Focusable []string `json:"focusable"`
+	}
+	if err := json.Unmarshal(focusDenied.Data, &focusDeniedData); err != nil {
+		t.Fatalf("decode focus error data: %v", err)
+	}
+	if focusDeniedData.Status != string(sharedtypes.IssueStatusBacklog) {
+		t.Fatalf("expected backlog status, got %q", focusDeniedData.Status)
+	}
+	if !slices.Contains(focusDeniedData.Focusable, string(sharedtypes.IssueStatusPlanned)) {
+		t.Fatalf("expected planned in focusable statuses, got %v", focusDeniedData.Focusable)
 	}
 
 	changeIssueStatus(t, kernel, issue.ID, sharedtypes.IssueStatusPlanned)
@@ -39,7 +57,7 @@ func TestFocusStartRequiresEligibleIssueStatusAndSessionEndDoesNotCompleteIssue(
 		t.Fatalf("expected running timer, got %+v", timer)
 	}
 
-	errMessage = kernel.callError(t, protocol.MethodIssueChangeStatus, shareddto.ChangeIssueStatusRequest{
+	errMessage := kernel.callError(t, protocol.MethodIssueChangeStatus, shareddto.ChangeIssueStatusRequest{
 		ID:     issue.ID,
 		Status: sharedtypes.IssueStatusDone,
 	})
@@ -89,9 +107,18 @@ func TestFocusStartRequiresEligibleIssueStatusAndSessionEndDoesNotCompleteIssue(
 	}
 
 	changeIssueStatus(t, kernel, issue.ID, sharedtypes.IssueStatusDone)
-	errMessage = kernel.callError(t, protocol.MethodTimerStart, shareddto.TimerStartRequest{})
-	if !strings.Contains(errMessage, "focus sessions cannot be started") {
-		t.Fatalf("expected done issue focus denial, got %q", errMessage)
+	doneDenied := kernel.callErrorResponse(t, protocol.MethodTimerStart, shareddto.TimerStartRequest{})
+	if doneDenied.Code != protocol.CodeFocusStatusInvalid {
+		t.Fatalf("expected code %q for a done issue, got %q", protocol.CodeFocusStatusInvalid, doneDenied.Code)
+	}
+	var doneDeniedData struct {
+		Status string `json:"status"`
+	}
+	if err := json.Unmarshal(doneDenied.Data, &doneDeniedData); err != nil {
+		t.Fatalf("decode done focus error data: %v", err)
+	}
+	if doneDeniedData.Status != string(sharedtypes.IssueStatusDone) {
+		t.Fatalf("expected done status, got %q", doneDeniedData.Status)
 	}
 
 	issue2 := createIssue(t, kernel, stream.ID, "Blocked lifecycle issue", nil)

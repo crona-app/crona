@@ -307,7 +307,7 @@ func LogManualSession(
 		return nil, errors.New("issue not found")
 	}
 	if !sharedtypes.CanStartFocus(issue.Status) {
-		return nil, errors.New("focus sessions cannot be started for the current issue status")
+		return nil, &FocusStatusError{IssueID: issue.ID, Status: string(issue.Status)}
 	}
 	if nextStatus := sharedtypes.AutoStatusOnFocusStart(issue.Status); nextStatus != sharedtypes.NormalizeIssueStatus(
 		issue.Status,
