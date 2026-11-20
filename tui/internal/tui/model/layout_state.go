@@ -11,6 +11,7 @@ import (
 	helperpkg "crona.work/tui/internal/tui/helpers"
 	layoutpkg "crona.work/tui/internal/tui/layout"
 	selectionpkg "crona.work/tui/internal/tui/selection"
+	uistate "crona.work/tui/internal/tui/state"
 	"crona.work/tui/internal/tui/views/itemdetail"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
 	viewtypes "crona.work/tui/internal/tui/views/types"
@@ -26,6 +27,16 @@ func (m Model) viewContentState(
 	sessionIssueID := helperpkg.SessionHistoryScopeIssueID(m.timer)
 	sessionIssue := activeIssue
 	dailyIssues := selectionpkg.DailyScopedIssues(snapshot)
+	dailyTaskCounts := map[string]int{
+		"overdue":  len(selectionpkg.DailySectionIssues(snapshot, uistate.DailyTaskSectionOverdue)),
+		"upcoming": len(selectionpkg.DailySectionIssues(snapshot, uistate.DailyTaskSectionUpcoming)),
+	}
+	dailyBacklogCount := 0
+	for _, issue := range snapshot.AllIssues {
+		if sharedtypes.NormalizeIssueStatus(issue.Status) == sharedtypes.IssueStatusBacklog {
+			dailyBacklogCount++
+		}
+	}
 	defaultIssues := selectionpkg.DefaultScopedIssues(snapshot)
 	dueHabits := selectionpkg.FilteredDueHabits(snapshot)
 	if m.view == ViewHabitList {
@@ -100,10 +111,13 @@ func (m Model) viewContentState(
 			"tags":           m.filters[PaneTags],
 			"alerts":         m.filters[PaneAlerts],
 		},
-		Repos:       m.repos,
-		Streams:     m.streams,
-		Issues:      m.issues,
-		DailyIssues: dailyIssues,
+		Repos:             m.repos,
+		Streams:           m.streams,
+		Issues:            m.issues,
+		DailyIssues:       dailyIssues,
+		DailyTaskCounts:   dailyTaskCounts,
+		DailyBacklogCount: dailyBacklogCount,
+		DailyHasIssues:    len(snapshot.AllIssues) > 0,
 		DailyPlannedIssues: selectionpkg.DailySectionIssues(
 			snapshot,
 			DailyTaskSectionPlanned,

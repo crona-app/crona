@@ -36,7 +36,7 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 	meta := fmt.Sprintf("%d  [←/→]", total)
 	lines := dailyTaskHeader(theme, state, width)
 	if len(issues) == 0 || total == 0 {
-		lines = append(lines, theme.StyleDim.Render(dailyTaskEmptyMessage(state.DailyTaskSection)))
+		lines = append(lines, dailyEmptyTaskLines(theme, state, width)...)
 		return dailySection(theme, "Tasks", viewhelpers.FilterMeta(meta, state.Filters["issues"]), active, width, height, lines)
 	}
 	lines = renderCompactDailyIssueList(
@@ -302,6 +302,38 @@ func dailyTaskEmptyMessage(section string) string {
 	default:
 		return "No planned tasks for this date"
 	}
+}
+
+func dailyEmptyTaskLines(theme types.Theme, state types.ContentState, width int) []string {
+	if strings.TrimSpace(state.Filters["issues"]) != "" {
+		return []string{theme.StyleDim.Render("No tasks match the filter")}
+	}
+	message := dailyTaskEmptyMessage(state.DailyTaskSection)
+	if !state.DailyHasIssues {
+		message = "No issues yet"
+	}
+	lines := []string{theme.StyleDim.Render(message)}
+	counts := []string{}
+	if state.DailyBacklogCount > 0 {
+		counts = append(counts, fmt.Sprintf("%d backlog", state.DailyBacklogCount))
+	}
+	for _, section := range []string{"overdue", "upcoming"} {
+		if count := state.DailyTaskCounts[section]; count > 0 {
+			counts = append(counts, fmt.Sprintf("%d %s", count, section))
+		}
+	}
+	if len(counts) > 0 {
+		line := strings.Join(counts, " · ")
+		lines = append(lines, theme.StyleDim.Render(ansi.Truncate(line, width-2, "…")))
+		hint := viewchrome.KeyHint(theme, "2", "browse all issues to plan")
+		lines = append(lines, viewchrome.FitHints([]string{hint}, width-2))
+	} else if !state.DailyHasIssues {
+		lines = append(lines, viewchrome.FitHints([]string{
+			viewchrome.KeyHint(theme, "a", "create one"),
+			viewchrome.KeyHint(theme, "I", "paste a list"),
+		}, width-2))
+	}
+	return lines
 }
 
 // dailyPinnedCount is how many leading tasks on Planned are open pinned ones; the model

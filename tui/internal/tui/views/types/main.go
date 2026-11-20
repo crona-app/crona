@@ -81,10 +81,13 @@ type ContentState struct {
 	RestModeDetail      string
 	HistoricalAwayDate  string
 
-	Repos       []api.Repo
-	Streams     []api.Stream
-	Issues      []api.Issue
-	DailyIssues []api.Issue
+	Repos             []api.Repo
+	Streams           []api.Stream
+	Issues            []api.Issue
+	DailyIssues       []api.Issue
+	DailyBacklogCount int
+	DailyTaskCounts   map[string]int
+	DailyHasIssues    bool
 	// DailyPlannedIssues is the Planned section whatever tab is shown; the strip counts it.
 	DailyPlannedIssues []api.Issue
 	// DailyDetailFocus expands the selected item (enter) or summary (S/tab).
