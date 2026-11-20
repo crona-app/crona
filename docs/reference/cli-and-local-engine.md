@@ -51,6 +51,9 @@ Interact with active focus sessions:
 - `crona timer resume`: Resumes the suspended timer.
 - `crona timer end`: Terminates the session and prompts for the commit summary.
 
+Focus sessions require an issue in **Planned**, **Ready**, or **In Progress** status.
+The CLI reports the current status when an issue cannot be focused.
+
 ## Adding Issues
 
 `crona issue add` turns `- ` lines into issues in one step. Each line can carry annotations: `#repo/stream` or `#name` (prefix match), `~45m` estimate, `@friday` or `@2026-10-30` plan date, and `+tag`. Trailing phrases such as `for 45 min`, `tomorrow`, `next friday` or `in 3 days` also set the estimate and plan date. Indented lines under a `- ` line become its description.

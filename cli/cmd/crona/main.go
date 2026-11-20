@@ -20,6 +20,7 @@ import (
 	tagcmd "crona.work/cli/internal/command/tag"
 	updatecmd "crona.work/cli/internal/command/update"
 	flagspkg "crona.work/cli/internal/flags"
+	outputpkg "crona.work/cli/internal/output"
 	runtimepkg "crona.work/cli/internal/runtime"
 	"crona.work/shared/config"
 	sharedposthog "crona.work/shared/posthog"
@@ -90,7 +91,7 @@ func main() {
 			})
 			_ = telemetry.Flush()
 		}
-		fail(err.Error())
+		fail(outputpkg.ErrorMessage(err))
 	}
 }
 

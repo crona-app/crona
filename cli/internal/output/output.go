@@ -3,12 +3,23 @@ package output
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
 
+	"crona.work/shared/protocol"
 	sharedtypes "crona.work/shared/types"
 )
+
+// ErrorMessage returns a user-facing error without the RPC transport code.
+func ErrorMessage(err error) string {
+	var rpcErr *protocol.RPCError
+	if errors.As(err, &rpcErr) && rpcErr != nil {
+		return rpcErr.Message
+	}
+	return err.Error()
+}
 
 func PrintJSON(w io.Writer, value any) error {
 	body, err := json.MarshalIndent(value, "", "  ")
