@@ -449,6 +449,18 @@ func (m Model) handleInputStartFocusFromSelection() (tea.Model, tea.Cmd) {
 	if !ok {
 		return m, nil
 	}
+	if !sharedtypes.CanStartFocus(target.status) {
+		recoveryStatus, ok := sharedtypes.FocusRecoveryStatus(target.status)
+		if !ok {
+			return m, m.setStatus("This issue status cannot start a focus session", true)
+		}
+		return m.withDialogState(m.dialogSnapshot().OpenFocusBlocked(
+			target.issueID,
+			target.title,
+			string(target.status),
+			string(recoveryStatus),
+		)), nil
+	}
 	return m.openStartTimerDialog(
 		target.repoID,
 		target.streamID,

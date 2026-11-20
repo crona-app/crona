@@ -102,6 +102,7 @@ type State struct {
 	StatusLabel         string
 	StatusRequired      bool
 	IssueStatus         string
+	RecoveryStatus      string
 	CheckInDate         string
 	RepoName            string
 	RepoItems           []string

@@ -41,6 +41,8 @@ func renderUtilityDialog(theme Theme, state controllerpkg.State) string {
 		return renderDetailView(theme, state)
 	case "view_jump":
 		return renderViewJump(theme, state)
+	case "focus_blocked":
+		return renderFocusBlocked(theme, state)
 	case "beta_support":
 		return renderMenuList(theme, state)
 	case "complete_habit":

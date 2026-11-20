@@ -606,6 +606,33 @@ func OpenTimerStartType(
 	return state
 }
 
+func OpenFocusBlocked(
+	state State,
+	issueID int64,
+	title, status, recoveryStatus string,
+) State {
+	state = Close(state)
+	state.Kind = "focus_blocked"
+	state.ViewTitle = "Can't focus yet"
+	state.ViewName = title
+	state.IssueID = issueID
+	state.IssueStatus = status
+	state.RecoveryStatus = recoveryStatus
+	recoveryLabel := recoveryStatus
+	if recoveryStatus == "in_progress" {
+		recoveryLabel = "In Progress"
+	} else {
+		recoveryLabel = strings.ToUpper(recoveryStatus[:1]) + recoveryStatus[1:]
+	}
+	state.ChoiceItems = []string{
+		"Mark " + recoveryLabel + " and start",
+		"Cancel",
+	}
+	state.ChoiceValues = []string{"recover", "cancel"}
+	state.ChoiceCursor = 0
+	return state
+}
+
 func OpenAdhocTimerStartType(state State) State {
 	state = OpenTimerStartType(state, 0, 0, 0, "Quick timer", nil, 0)
 	state.AdhocTimer = true

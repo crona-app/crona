@@ -413,6 +413,13 @@ func (s Snapshot) OpenTimerStartType(
 	)
 }
 
+func (s Snapshot) OpenFocusBlocked(
+	issueID int64,
+	title, status, recoveryStatus string,
+) State {
+	return OpenFocusBlocked(s.Dialog, issueID, title, status, recoveryStatus)
+}
+
 func (s Snapshot) OpenAdhocTimerStartType() State {
 	return OpenAdhocTimerStartType(s.Dialog)
 }

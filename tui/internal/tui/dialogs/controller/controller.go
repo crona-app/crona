@@ -434,6 +434,8 @@ func Update(
 		return updateAdhocNewIssue(state, msg)
 	case "timer_start_type":
 		return updateTimerStartType(state, msg)
+	case "focus_blocked":
+		return updateFocusBlocked(state, msg)
 	case "pomodoro_start":
 		return updatePomodoroStart(state, msg)
 	case "timer_countdown_start":

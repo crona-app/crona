@@ -85,6 +85,13 @@ func (m Model) dialogActionCmd(action dialogstate.Action) tea.Cmd {
 
 func (m Model) handleDialogAction(next Model, action dialogstate.Action) (Model, tea.Cmd) {
 	switch action.Kind {
+	case "prepare_focus_status":
+		next.pendingFocusIssueID = action.IssueID
+		return next, commands.PrepareIssueForFocus(
+			next.client,
+			action.IssueID,
+			action.Status,
+		)
 	case "open_adhoc_conversion":
 		issue, ok := next.issueMetaByID(action.IssueID)
 		if !ok || issue == nil || !issue.Adhoc {
@@ -213,6 +220,7 @@ type issueActionTarget struct {
 	title           string
 	estimateMinutes *int
 	workedSeconds   int
+	status          sharedtypes.IssueStatus
 }
 
 func (m Model) selectedIssueActionTarget() (*issueActionTarget, bool) {
@@ -234,6 +242,7 @@ func (m Model) selectedIssueActionTarget() (*issueActionTarget, bool) {
 			title:           meta.Title,
 			estimateMinutes: meta.EstimateMinutes,
 			workedSeconds:   meta.WorkedSeconds,
+			status:          meta.Status,
 		}, true
 	}
 	if m.pane != PaneIssues {
@@ -258,6 +267,7 @@ func (m Model) selectedIssueActionTarget() (*issueActionTarget, bool) {
 			title:           meta.Title,
 			estimateMinutes: meta.EstimateMinutes,
 			workedSeconds:   meta.WorkedSeconds,
+			status:          issue.Status,
 		}, true
 	case ViewDefault:
 		rawIdx := selectionpkg.FilteredIndexAtCursor(snapshot, PaneIssues)
@@ -273,6 +283,7 @@ func (m Model) selectedIssueActionTarget() (*issueActionTarget, bool) {
 			title:           issue.Title,
 			estimateMinutes: issue.EstimateMinutes,
 			workedSeconds:   issue.WorkedSeconds,
+			status:          issue.Status,
 		}, true
 	default:
 		if m.context == nil || m.context.RepoID == nil {
@@ -292,6 +303,7 @@ func (m Model) selectedIssueActionTarget() (*issueActionTarget, bool) {
 				title:           meta.Title,
 				estimateMinutes: meta.EstimateMinutes,
 				workedSeconds:   max(issue.WorkedSeconds, meta.WorkedSeconds),
+				status:          issue.Status,
 			}, true
 		}
 		return &issueActionTarget{
@@ -301,6 +313,7 @@ func (m Model) selectedIssueActionTarget() (*issueActionTarget, bool) {
 			title:           issue.Title,
 			estimateMinutes: estimateMinutes,
 			workedSeconds:   issue.WorkedSeconds,
+			status:          issue.Status,
 		}, true
 	}
 }

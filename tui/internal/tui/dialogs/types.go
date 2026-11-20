@@ -90,6 +90,7 @@ func Render(theme Theme, state controllerpkg.State) string {
 		"support_bundle_result",
 		"complete_habit",
 		"view_jump",
+		"focus_blocked",
 		"beta_support",
 		"edit_tags",
 		"edit_filter",

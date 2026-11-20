@@ -344,6 +344,32 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.summarySnapshot.CalendarScores[score.Date] = score
 		}
 		return m, nil
+	case commands.IssueReadyForFocusMsg:
+		if msg.IssueID != m.pendingFocusIssueID || msg.IssueID == 0 {
+			return m, nil
+		}
+		m.pendingFocusIssueID = 0
+		if msg.Err != nil {
+			return m, m.setStatus("Could not prepare issue for focus: "+msg.Err.Error(), true)
+		}
+		target, ok := m.issueMetaByID(msg.IssueID)
+		if !ok || target == nil {
+			return m, m.setStatus("Issue is no longer available", true)
+		}
+		m = m.openStartTimerDialog(
+			target.RepoID,
+			target.StreamID,
+			msg.IssueID,
+			target.Title,
+			target.EstimateMinutes,
+			target.WorkedSeconds,
+		)
+		return m, tea.Batch(
+			commands.LoadAllIssues(m.client),
+			commands.LoadIssues(m.client, target.StreamID),
+			commands.LoadDailySummary(m.client, m.currentDate()),
+			commands.LoadDailyPlan(m.client, m.currentDate()),
+		)
 	}
 	state, cmd, handled := dispatchpkg.HandleMessage(
 		m.dispatchMessageState(),
