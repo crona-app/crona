@@ -797,6 +797,7 @@ func (m Model) dialogState() dialogstate.State {
 		NewIssueTitle:             m.dialogNewIssueTitle,
 		HabitID:                   m.dialogHabitID,
 		IssueStatus:               m.dialogIssueStatus,
+		RecoveryStatus:            m.dialogRecoveryStatus,
 		CheckInDate:               m.dialogCheckInDate,
 		RepoID:                    m.dialogRepoID,
 		RepoName:                  m.dialogRepoName,
@@ -964,6 +965,7 @@ func (m Model) withDialogState(state dialogstate.State) Model {
 	m.dialogNewIssueTitle = state.NewIssueTitle
 	m.dialogHabitID = state.HabitID
 	m.dialogIssueStatus = state.IssueStatus
+	m.dialogRecoveryStatus = state.RecoveryStatus
 	m.dialogCheckInDate = state.CheckInDate
 	m.dialogRepoID = state.RepoID
 	m.dialogRepoName = state.RepoName

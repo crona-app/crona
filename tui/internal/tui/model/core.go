@@ -259,6 +259,7 @@ type Model struct {
 	dialogNewIssueTitle                  string
 	dialogHabitID                        int64
 	dialogIssueStatus                    string
+	dialogRecoveryStatus                 string
 	dialogCheckInDate                    string
 	dialogRepoID                         int64
 	dialogRepoName                       string

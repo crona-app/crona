@@ -35,4 +35,7 @@ func TestFocusOnBacklogOpensGuardDialogWithoutStarting(t *testing.T) {
 	if next.dialogState().IssueID != issue.ID {
 		t.Fatalf("issue id = %d, want %d", next.dialogState().IssueID, issue.ID)
 	}
+	if next.dialogSnapshot().Dialog.RecoveryStatus != "ready" {
+		t.Fatalf("recovery status = %q, want ready", next.dialogSnapshot().Dialog.RecoveryStatus)
+	}
 }
