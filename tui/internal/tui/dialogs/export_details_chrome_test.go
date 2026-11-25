@@ -44,7 +44,7 @@ func TestExportDialogs(t *testing.T) {
 				state: listState("export_report_category"),
 				title: "Export Report",
 			},
-			[]string{"▶ Daily", "enter choose category"},
+			[]string{"▶ Daily", "enter choose"},
 		},
 		{
 			formCase{

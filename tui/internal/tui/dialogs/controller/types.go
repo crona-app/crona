@@ -180,6 +180,7 @@ type State struct {
 	ExportPresetOutput             sharedtypes.ExportOutputMode
 	ExportIncludePDF               bool
 	ExportCategory                 string
+	ExportBack                     *State
 	ExportStart                    string
 	ExportEnd                      string
 	PromptGlyphMode                sharedtypes.PromptGlyphMode

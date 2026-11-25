@@ -139,3 +139,22 @@ func TestExportPathSaveFailureKeepsEnteredPath(t *testing.T) {
 		}
 	}
 }
+
+func TestCompletedExportShowsFullPath(t *testing.T) {
+	m := NewDailyRenderModel(60, 20)
+	state := m.dialogState()
+	state.Kind = "export_report_category"
+	m = m.withDialogState(state)
+	state.Processing = true
+	path := "/tmp/crona-export-test/reports/2026/weekly-summary-2026-11-25.md"
+	pending, cmd := m.submitForm(m.withDialogState(state), dialogstate.Action{Kind: "export_report"}, func() tea.Msg {
+		return commands.DailyReportGeneratedMsg{Result: &api.DailyReportResult{
+			Label: "Weekly summary", OutputMode: "file", FilePath: &path,
+		}}
+	})
+	completed, _ := pending.(Model).update(cmd())
+	result := completed.(Model).dialogState()
+	if result.ViewTitle != "Export Complete" || result.ViewBody != path {
+		t.Fatalf("expected an export receipt with the complete path, got %q, %q", result.ViewTitle, result.ViewBody)
+	}
+}

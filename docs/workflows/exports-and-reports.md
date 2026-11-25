@@ -60,6 +60,15 @@ Report assets are user-editable. In the **Config** view, you can access and open
 
 ## A typical export
 
+Press `E` from Today to open Export Report for the selected date.
+Choose a daily or weekly output and press Enter to export with your active
+template. Press `s` to pick a different style for that export. Choose
+**Summary**, **Project Reports**, or **Data Exports** for ranges, scoped
+reports, CSV, or ICS. Escape returns to the previous choice.
+
+File exports show the saved path when they finish. Clipboard exports confirm
+the copy in the status line.
+
 - Summary dashboards can target a selected day, calendar week, calendar month, last 7 days, last 30 days, or a custom inclusive range.
 - Markdown outputs can be written to the reports directory or copied directly to the clipboard.
 - Repo, stream, and issue-rollup exports prompt for their target, rather than requiring you to change the active context first.

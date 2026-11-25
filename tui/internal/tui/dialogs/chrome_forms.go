@@ -224,7 +224,8 @@ func splitHints(hint string) (string, []string) {
 // for a short screen can never hide it.
 func withError(theme Theme, state controllerpkg.State, footer []string) []string {
 	if state.Processing {
-		return []string{theme.StyleDim.Render("Saving…  esc close (save continues)")}
+		label := fallback(state.ProcessingLabel, "Saving…")
+		return footerWithEsc(theme, label, nil, "esc close (continues)", formInner(state.Width))
 	}
 
 	if strings.TrimSpace(state.ErrorMessage) == "" {

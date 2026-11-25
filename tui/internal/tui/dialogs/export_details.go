@@ -32,12 +32,24 @@ func renderExportChoice(theme Theme, state controllerpkg.State) string {
 			"",
 		)
 	case "export_report_category":
-		d.title, d.primary = "Export Report", "enter choose category"
-	case "export_preset", "export_summary_output":
+		d.title, d.primary = "Export Report", "enter choose"
+		if controllerpkg.IsCommonExportSelected(state) {
+			d.primary = "enter export"
+			d.hints = append(d.hints, "s choose style")
+		}
+	case "export_preset":
 		d.title, d.primary = "Choose Report Style", "enter use style"
+	case "export_summary_output":
+		d.title, d.primary = "Summary Output", "enter export"
+		d.hints = append(d.hints, "s choose style")
+	case "export_scope":
+		d.title, d.primary = "Choose Export Scope", "enter export"
 	default:
 		d.title, d.primary = "Calendar Export Repo", "enter export"
 		body = append(body, theme.StyleDim.Render("Select repo"))
+	}
+	if state.ExportBack != nil {
+		d.esc = "esc back"
 	}
 	d.focus = len(body) + state.ChoiceCursor
 	if state.Processing {
@@ -58,7 +70,7 @@ func renderExportChoice(theme Theme, state controllerpkg.State) string {
 		state.ChoiceCursor < len(state.ChoiceDetails) {
 		detail := state.ChoiceDetails[state.ChoiceCursor]
 		switch {
-		case state.Kind == "export_preset" || state.Kind == "export_summary_output":
+		case state.Kind == "export_preset":
 			body = append(body, "", theme.StyleDim.Render("Preview"))
 			body = append(body, strings.Split(renderViewEntityBody(theme, detail), "\n")...)
 		case strings.TrimSpace(detail) != "" && state.Kind != "export_calendar_repo" && state.Kind != "export_scope":
@@ -91,7 +103,7 @@ func renderSummaryRangeForm(theme Theme, state controllerpkg.State) string {
 	column := len("Start")
 	_, half := formColumns(inner, column)
 	return renderForm(theme, state, FormSpec{
-		Title: "Custom Summary Range", Border: theme.ColorGreen, FocusCount: 2, Primary: "enter continue",
+		Title: "Custom Summary Range", Esc: "esc back", Border: theme.ColorGreen, FocusCount: 2, Primary: "enter continue",
 		Hints: func(int) []string { return []string{"tab switch"} },
 		Rows: []FormRow{pairRow(
 			Field(

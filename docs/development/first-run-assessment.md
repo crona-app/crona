@@ -143,4 +143,28 @@ An isolated 60x20 walkthrough created an issue for the current date, opened
 keyboard help, checked the `f` and `A` pickers, and found the same issue in
 Work. Both test processes were stopped.
 
-Next: assess the export wizard length.
+## Task 5 outcome (2026-11-25)
+
+Counted Enter confirmations after opening Export Report. Daily PDF, weekly
+Markdown, and daily clipboard previously required three confirmations
+(category, report, style). Each now takes one after highlighting the output.
+The active template handles the default export. Press `s` to choose another
+style. With PDF available and the cursor starting at the first row, total
+keypresses after opening Export fell from 4 to 1 for daily PDF, 8 to 5 for
+weekly Markdown, and 7 to 4 for the daily clipboard. Repo, stream, and issue
+reports retain three confirmations for category, report, and scope. The repo
+path takes four extra Down presses to reach Project Reports. Summary and
+Data Exports remain on the first menu.
+
+Escape returns to the prior selection. Tests cover reopening a repo scope
+and returning from Summary style and output to the entered custom range.
+File exports show the full path in a completion dialog. Clipboard exports
+show a status confirmation.
+
+An isolated 60x20 walkthrough generated a daily PDF, weekly Markdown, and a
+repo-scoped Markdown file. It also copied a daily report to an isolated
+clipboard substitute and verified that Back restored the selected weekly
+report after visiting its styles. Verified the files and stopped both test
+processes.
+
+Next: column ratios and empty-space use.

@@ -173,6 +173,7 @@ func Close(state State) State {
 	state.SettingKey = ""
 	state.DayBoundarySchedule = sharedtypes.DayBoundarySchedule{}
 	state.CheckInDate = ""
+	state.ExportBack = nil
 	state.ExportStart = ""
 	state.ExportEnd = ""
 	state.ViewTitle = ""
@@ -474,10 +475,8 @@ func Update(
 		return updateEditIssue(state, currentDate, msg)
 	case "create_checkin", "edit_checkin":
 		return updateCheckIn(state, msg)
-	case "export_report":
+	case "export_report", "export_report_category":
 		return updateExportDaily(state, msg)
-	case "export_report_category":
-		return updateExportCategory(state, msg)
 	case "export_preset":
 		return updateExportPreset(state, msg)
 	case "export_summary_period":

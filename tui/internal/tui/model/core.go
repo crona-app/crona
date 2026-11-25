@@ -322,6 +322,7 @@ type Model struct {
 	dialogExportPresetOutput             sharedtypes.ExportOutputMode
 	dialogExportIncludePDF               bool
 	dialogExportCategory                 string
+	dialogExportBack                     *dialogstate.State
 	dialogExportStart                    string
 	dialogExportEnd                      string
 	dialogPromptGlyphMode                sharedtypes.PromptGlyphMode

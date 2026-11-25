@@ -45,7 +45,10 @@ func (m Model) submitForm(next Model, action dialogstate.Action, cmd tea.Cmd) (t
 	state := m.dialogState()
 	state.ErrorMessage = ""
 	state.Processing = true
-	state.ProcessingLabel = "Saving…"
+	state.ProcessingLabel = successDialog.ProcessingLabel
+	if state.ProcessingLabel == "" {
+		state.ProcessingLabel = "Saving…"
+	}
 	next = next.withDialogState(state)
 	next.formSubmission = &formSubmission{id: id, kind: state.Kind}
 	return next, func() tea.Msg {

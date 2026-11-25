@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -47,10 +48,13 @@ func OpenExportDaily(
 		state.StreamID = *checkedStreamID
 	}
 	state.IssueID = checkedIssueID
-	items, values, details := exportReportCategories()
-	state.ChoiceItems = items
-	state.ChoiceValues = values
-	state.ChoiceDetails = details
+	state.ChoiceItems, state.ChoiceDetails = exportReportChoices("narrative", includePDF)
+	state.ChoiceItems = append(state.ChoiceItems, "Summary", "Project Reports", "Data Exports")
+	state.ChoiceDetails = append(state.ChoiceDetails,
+		"Choose a date range and output format.",
+		"Export a repo, stream, or issue report.",
+		"Export session CSV or calendar ICS files.",
+	)
 	state.RepoItems = make([]string, 0, len(repos))
 	state.RepoItemIDs = make([]int64, 0, len(repos))
 	selectedRepoIdx := 0
@@ -75,8 +79,48 @@ func OpenExportDaily(
 	return state
 }
 
+func pushExportPage(state State) State {
+	previous := state
+	previous.ErrorMessage = ""
+	state.ExportBack = &previous
+	return state
+}
+
+func popExportPage(state State) State {
+	if state.ExportBack == nil {
+		return Close(state)
+	}
+	previous := *state.ExportBack
+	previous.Width, previous.Height = state.Width, state.Height
+	switch state.Kind {
+	case "export_scope":
+		if state.ChoiceCursor >= 0 && state.ChoiceCursor < len(state.ChoiceValues) {
+			if id, err := strconv.ParseInt(state.ChoiceValues[state.ChoiceCursor], 10, 64); err == nil {
+				switch state.ExportPresetKind {
+				case sharedtypes.ExportReportKindRepo:
+					previous.RepoID = id
+				case sharedtypes.ExportReportKindStream:
+					previous.StreamID = id
+				case sharedtypes.ExportReportKindIssueRollup:
+					previous.IssueID = id
+				}
+			}
+		}
+	case "export_calendar_repo":
+		previous.RepoIndex = state.ChoiceCursor
+	case "export_summary_range":
+		if len(state.Inputs) == 2 {
+			previous.ExportStart = state.Inputs[0].Value()
+			previous.ExportEnd = state.Inputs[1].Value()
+		}
+	}
+	return previous
+}
+
 func OpenExportScope(state State, kind sharedtypes.ExportReportKind) State {
+	state = pushExportPage(state)
 	state.Kind = "export_scope"
+	state.ChoiceDetails = nil
 	state.ExportPresetKind = kind
 	state.ChoiceItems = nil
 	state.ChoiceValues = nil
@@ -111,25 +155,6 @@ func OpenExportScope(state State, kind sharedtypes.ExportReportKind) State {
 		}
 	}
 	return state
-}
-
-func exportReportCategories() ([]string, []string, []string) {
-	return []string{
-			"Summary",
-			"Narrative Reports",
-			"Project Reports",
-			"Data Exports",
-		}, []string{
-			"summary",
-			"narrative",
-			"project",
-			"data",
-		}, []string{
-			"View-only daily and range summaries as Markdown, PDF, or copied Markdown.",
-			"Daily and weekly summaries, including Markdown, PDF, and clipboard output.",
-			"Repo, stream, and issue rollup reports for focused project review.",
-			"CSV session dumps and calendar exports for external tools and automations.",
-		}
 }
 
 func exportReportChoices(category string, includePDF bool) ([]string, []string) {
@@ -194,14 +219,21 @@ func exportReportChoices(category string, includePDF bool) ([]string, []string) 
 }
 
 func OpenSummaryOutput(state State, period string) State {
+	state = pushExportPage(state)
 	if period == "Custom range" {
 		start := textinput.New()
 		start.Placeholder = "YYYY-MM-DD"
 		start.SetValue(state.CheckInDate)
+		if state.ExportStart != "" {
+			start.SetValue(state.ExportStart)
+		}
 		start.Focus()
 		end := textinput.New()
 		end.Placeholder = "YYYY-MM-DD"
 		end.SetValue(state.CheckInDate)
+		if state.ExportEnd != "" {
+			end.SetValue(state.ExportEnd)
+		}
 		state.Kind = "export_summary_range"
 		state.Inputs = []textinput.Model{start, end}
 		state.FocusIdx = 0
@@ -228,7 +260,12 @@ func OpenSummaryOutput(state State, period string) State {
 		state.ExportStart = anchor.AddDate(0, 0, -29).Format(time.DateOnly)
 		state.ExportEnd = anchor.Format(time.DateOnly)
 	}
+	return openExportSummaryOutput(state)
+}
+
+func openExportSummaryOutput(state State) State {
 	state.Kind = "export_summary_output"
+	state.Inputs = nil
 	state.ChoiceItems = []string{"Write Markdown file", "Copy Markdown"}
 	state.ChoiceDetails = []string{
 		"Save the dashboard as Markdown.",
@@ -250,6 +287,7 @@ func OpenExportPreset(
 	format sharedtypes.ExportFormat,
 	outputMode sharedtypes.ExportOutputMode,
 ) State {
+	state = pushExportPage(state)
 	state.Parent = "export_report"
 	state.Kind = "export_preset"
 	state.ExportPresetKind = reportKind
@@ -299,6 +337,7 @@ func OpenExportPreset(
 }
 
 func OpenExportReportChoices(state State, category string) State {
+	state = pushExportPage(state)
 	state.Kind = "export_report"
 	if category == "summary" {
 		state.Kind = "export_summary_period"
@@ -315,7 +354,9 @@ func OpenExportCalendarRepo(state State) State {
 	if len(state.RepoItems) == 0 {
 		return state
 	}
+	state = pushExportPage(state)
 	state.Kind = "export_calendar_repo"
+	state.ChoiceDetails = nil
 	state.Parent = "export_report"
 	state.ChoiceItems = append([]string(nil), state.RepoItems...)
 	if state.RepoIndex < 0 || state.RepoIndex >= len(state.ChoiceItems) {

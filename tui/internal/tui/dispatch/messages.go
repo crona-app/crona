@@ -647,7 +647,8 @@ func HandleMessage(
 		), true
 	case commands.DailyReportGeneratedMsg:
 		state.ExportAssets = &msg.Result.Assets
-		if isExportDialog(state.Dialog) && state.DialogProcessing {
+		activeExport := isExportDialog(state.Dialog) && state.DialogProcessing
+		if activeExport {
 			state.Dialog = ""
 			state.DialogChoiceItems = nil
 			state.DialogChoiceCursor = 0
@@ -658,6 +659,9 @@ func HandleMessage(
 			label := msg.Result.Label
 			if strings.TrimSpace(label) == "" {
 				label = "Report"
+			}
+			if activeExport {
+				deps.OpenViewEntityDialog(&state, "Export Complete", label, "", *msg.Result.FilePath)
 			}
 			return state, tea.Batch(
 				deps.SetStatus(&state, label+" written to "+*msg.Result.FilePath, false),
@@ -893,7 +897,7 @@ func applyLogicalDate(state *MessageState, date, previousDate string, deps Messa
 
 func isExportDialog(kind string) bool {
 	switch kind {
-	case "export_report", "export_preset", "export_calendar_repo":
+	case "export_report", "export_report_category", "export_summary_output", "export_preset", "export_scope", "export_calendar_repo":
 		return true
 	default:
 		return false

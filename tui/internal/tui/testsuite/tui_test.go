@@ -370,7 +370,7 @@ func TestExportDialogListsPhase3ReportChoices(t *testing.T) {
 	}
 	joined := strings.Join(state.ChoiceItems, "\n")
 	for _, want := range []string{
-		"Narrative Reports",
+		"Daily report: write PDF file",
 		"Project Reports",
 		"Data Exports",
 	} {
@@ -531,15 +531,6 @@ func TestLastSevenDaySummaryKeepsRangeThroughExportAction(t *testing.T) {
 		t.Fatalf("unexpected seven-day range: %s to %s", state.ExportStart, state.ExportEnd)
 	}
 	state.ChoiceCursor = 0 // Markdown when PDF is unavailable.
-	state, _, _ = dialogs.Update(
-		state, dialogs.UpdateContext{}, "2026-03-19", tea.KeyMsg{Type: tea.KeyEnter},
-	)
-	if state.ExportPresetKind != sharedtypes.ExportReportKindSummaryRange {
-		t.Fatalf("expected dedicated range report kind, got %q", state.ExportPresetKind)
-	}
-	state.ChoiceItems = []string{"Dashboard"}
-	state.ChoiceValues = []string{"balanced"}
-	state.ChoiceCursor = 0
 	_, action, status := dialogs.Update(
 		state, dialogs.UpdateContext{}, "2026-03-19", tea.KeyMsg{Type: tea.KeyEnter},
 	)
