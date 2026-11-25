@@ -31,14 +31,14 @@ func issueCreateHint(state controllerpkg.State) string {
 	if state.CaptureEditing {
 		static = "[ctrl+s] save row"
 	}
-	context := "[tab] next   [esc] cancel"
+	context := "[tab] next   [shift+tab] back   [esc] cancel"
 	if state.AdhocTimer || state.CaptureEditing {
-		context = "[tab] next   [esc] back"
+		context = "[tab] next   [shift+tab] back   [esc] back"
 	}
 	if state.Kind == "create_issue_default" {
 		switch state.FocusIdx {
 		case 0, 1:
-			context = "[type] filter   [↑/↓] choose   [tab] move   " + context
+			context = "[type] filter   [↑/↓] choose   [enter] select   " + context
 		case 3:
 			context = "[enter] newline   " + context
 		case 5:

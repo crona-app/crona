@@ -29,7 +29,8 @@ func renderCheckInForm(theme Theme, state controllerpkg.State, displayDate strin
 	}
 	return renderForm(theme, state, FormSpec{
 		Title: title, Context: displayDate, Border: border, FocusCount: 6,
-		Primary: plainHint(dialogSubmitHint(state, "save")), Hints: tabNextHints,
+		Primary: plainHint(dialogSubmitHint(state, "save")),
+		Hints:   func(int) []string { return []string{"tab next", "shift+tab back"} },
 		Rows: []FormRow{
 			pairRow(field("Mood", 0, half, "1-5"), field("Energy", 1, half, "1-5"), 0, 1, inner),
 			pairRow(

@@ -99,5 +99,28 @@ cancelled, `A` opened Start Timer, and Escape returned to the empty Today view.
 The walkthrough stopped its TUI and daemon. Automated coverage checks filtered,
 protected, timer-running, and paused help states.
 
-Next: the form save and submit hint pass. Export simplification and wider
-layout changes retain their own walkthroughs.
+## Task 3 outcome (2026-11-25)
+
+Verified issue creation, timer setup, check-in, Privacy & Diagnostics, and
+Start of Day at 60x20 and 120x36 with isolated runtime data and telemetry
+disabled. The issue form now advertises reverse tabbing and Enter to select
+a repo or stream. Short terminals keep the filter and selected option visible.
+Check-in shows reverse tabbing. Countdown labels Escape as Back, and Pomodoro
+shows Tab and Shift+Tab for field navigation and Ctrl+S to start or extend.
+Start of Day shows the reset shortcut on weekday rows and keeps the discard
+prompt visible on short terminals. The privacy wizard names the selected
+save or cancel action.
+
+In both walkthroughs, Ctrl+S flagged an invalid issue estimate and invalid
+check-in energy. Correcting those fields saved the issue and persisted mood 4
+and energy 3. Escape returned from Countdown to the timer picker. Ctrl+S
+started Countdown. Enter saved the privacy choices from Review. In Start of
+Day, Escape opened the discard prompt, a second Escape kept the edit, and
+Ctrl+S saved 10:00. Both test runtimes were stopped.
+
+Follow-up finding: pressing `w` after saving a check-in reopened a blank
+New Check-In form during both walkthroughs. The saved values were present in
+the local database. Check-in reload behavior needs a separate investigation.
+
+Next: vocabulary consistency. Export simplification and wider layout changes
+retain their own walkthroughs.

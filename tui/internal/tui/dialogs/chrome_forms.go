@@ -129,7 +129,7 @@ func renderIssueCreate(theme Theme, state controllerpkg.State) string {
 	}
 	primary, _ := splitHints(issueCreateHint(state))
 	esc := ""
-	if state.CaptureEditing {
+	if state.CaptureEditing || state.AdhocTimer {
 		esc = "esc back"
 	}
 	return renderForm(theme, state, FormSpec{
@@ -146,19 +146,31 @@ func renderIssueCreate(theme Theme, state controllerpkg.State) string {
 
 // repoPickerRow and streamPickerRow show searchable choices for Inputs[0]/[1].
 func repoPickerRow(theme Theme, state controllerpkg.State, column, full, focus int) FormRow {
-	return FormRow{Lines: SearchPicker(theme, PickerSpec{
+	return formPickerRow(theme, state, focus, full+column+3, PickerSpec{
 		Label: "Repo", Column: column, Focused: state.FocusIdx == focus, Input: bareInput(state.Inputs[0], full, "type to filter"),
 		Current: state.RepoSelectorLabel, Options: state.RepoOptionLabels, Selected: state.RepoIndex,
 		Placeholder: state.RepoSelectorLabel,
-	}, full+column+3), Focus: map[int]int{focus: 3}}
+	})
 }
 
 func streamPickerRow(theme Theme, state controllerpkg.State, column, full, focus int) FormRow {
-	return FormRow{Lines: SearchPicker(theme, PickerSpec{
+	return formPickerRow(theme, state, focus, full+column+3, PickerSpec{
 		Label: "Stream", Column: column, Focused: state.FocusIdx == focus, Input: bareInput(state.Inputs[1], full, "type to filter"),
 		Current: state.StreamSelectorLabel, Options: state.StreamOptionLabels, Selected: state.StreamIndex,
 		Placeholder: state.StreamSelectorLabel,
-	}, full+column+3), Focus: map[int]int{focus: 3}}
+	})
+}
+
+func formPickerRow(theme Theme, state controllerpkg.State, focus, width int, spec PickerSpec) FormRow {
+	focusLine := 3
+	if state.Height > 0 && state.Height <= 24 {
+		spec.OptionRows = 2
+		focusLine = 1
+	}
+	return FormRow{
+		Lines: SearchPicker(theme, spec, width),
+		Focus: map[int]int{focus: focusLine},
+	}
 }
 
 // repoStreamContext is `repo › stream` when both are known.

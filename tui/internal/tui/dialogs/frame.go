@@ -254,6 +254,7 @@ type PickerSpec struct {
 	Input       string
 	Current     string
 	Options     []string
+	OptionRows  int
 	Selected    int
 	Placeholder string
 }

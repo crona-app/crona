@@ -237,6 +237,13 @@ func renderPomodoro(theme Theme, state controllerpkg.State) string {
 	} else {
 		add("Long after", bareInput(state.Inputs[4], 3, "4")+theme.StyleDim.Render(" cycles"), vm.LongBreakCyclesActive)
 	}
+	hints := []string{"tab next", "shift+tab back"}
+	if (vm.FocusRowActive && !vm.FocusCustomActive) ||
+		(vm.BreakRowActive && !vm.BreakCustomActive) ||
+		(vm.LongBreakRowActive && !vm.LongBreakCustomActive) {
+		hints = append(hints, "←/→ choose")
+	}
+	hints = append(hints, "durations: 25m / 1h30m · max 24h total")
 	d := listDialog{
 		title:   "Pomodoro Session",
 		context: state.ViewName,
@@ -246,12 +253,12 @@ func renderPomodoro(theme Theme, state controllerpkg.State) string {
 		primary: plainHint(
 			dialogSubmitHint(state, "start"),
 		),
-		hints: []string{"←/→ choose", "↑/↓ move", "durations: 25m / 1h30m · max 24h total"},
+		hints: hints,
 		esc:   "esc back",
 		wide:  true,
 	}
 	if extend {
-		d.title, d.context, d.border, d.primary = "Extend Pomodoro Session", "", "", "enter extend"
+		d.title, d.context, d.border, d.primary = "Extend Pomodoro Session", "", "", plainHint(dialogSubmitHint(state, "extend"))
 	}
 	return renderListDialog(theme, state, d)
 }
@@ -276,7 +283,7 @@ func renderCountdownForm(theme Theme, state controllerpkg.State) string {
 		context = ""
 	}
 	return renderForm(theme, state, FormSpec{
-		Title: title, Context: context, Border: border, Rows: rows, FocusCount: 1,
+		Title: title, Context: context, Border: border, Rows: rows, FocusCount: 1, Esc: "esc back",
 		Primary: plainHint(dialogSubmitHint(state, primary)),
 	})
 }

@@ -65,7 +65,7 @@ func TestSettingsDialogs(t *testing.T) {
 				title:   "Start of Day",
 				context: "Asia/Kolkata",
 			},
-			[]string{"Enabled", "● on", "Default", "Mo", "07:30   custom", "Su", "ctrl+s save", "r use default"},
+			[]string{"Enabled", "● on", "Default", "Mo", "07:30   custom", "Su", "ctrl+s save", "type HH:mm"},
 		},
 		{
 			formCase{
@@ -83,7 +83,7 @@ func TestSettingsDialogs(t *testing.T) {
 				title:   "Privacy & Diagnostics",
 				context: "3/3 Review",
 			},
-			[]string{"Usage signals", "Save and Restart Now", "enter choose"},
+			[]string{"Usage signals", "Save and Restart Now", "enter save"},
 		},
 	}
 	for _, tc := range cases {

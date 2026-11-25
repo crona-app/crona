@@ -243,17 +243,23 @@ func renderDayBoundaryDialog(theme Theme, state controllerpkg.State) string {
 		body = append(body, line)
 	}
 	body = append(body, "", theme.StyleDim.Render(help))
-	hints := []string{"↑/↓ row", "type a time", "r use default"}
-	if focused(controllerpkg.DayBoundaryRowEnabled) {
-		hints = []string{"↑/↓ row", "space toggle"}
+	hints := []string{"tab next", "shift+tab back"}
+	switch {
+	case focused(controllerpkg.DayBoundaryRowEnabled):
+		hints = append(hints, "space toggle")
+	case focused(controllerpkg.DayBoundaryRowDefault):
+		hints = append(hints, "type HH:mm")
+	default:
+		hints = append(hints, "type HH:mm", "r use default")
 	}
 	d := listDialog{
 		wide: true, title: title, context: fallbackTimezone(state.DayBoundaryTimezone),
 		focus: focus, body: body, primary: "ctrl+s save", hints: hints,
 	}
 	if state.ConfirmDiscard {
+		d.focus = len(d.body) + 1
 		d.body = append(d.body, "", theme.StyleError.Render("Discard changes?"))
-		d.primary, d.hints, d.esc = "y discard", nil, "n keep editing"
+		d.primary, d.hints, d.esc = "y discard", nil, "esc keep editing"
 	}
 	return renderListDialog(theme, state, d)
 }
@@ -287,7 +293,8 @@ func renderTelemetrySettingsDialog(theme Theme, state controllerpkg.State) strin
 				[]string{checkbox(state.TelemetryUsage, "Share usage signals")},
 				0,
 			)...)
-		d.primary, d.hints = "space toggle", []string{"tab next"}
+		d.focus = len(body) - 1
+		d.primary, d.hints = "tab next", []string{"space toggle"}
 	case 1:
 		body = append(
 			body,
@@ -302,7 +309,8 @@ func renderTelemetrySettingsDialog(theme Theme, state controllerpkg.State) strin
 		body = append(
 			body,
 			selectList(theme, []string{checkbox(state.TelemetryErrors, "Share diagnostics")}, 0)...)
-		d.primary, d.hints = "space toggle", []string{"tab next", "shift+tab back"}
+		d.focus = len(body) - 1
+		d.primary, d.hints = "tab next", []string{"space toggle", "shift+tab back"}
 	default:
 		column := len("Usage signals")
 		body = append(body,
@@ -321,7 +329,9 @@ func renderTelemetrySettingsDialog(theme Theme, state controllerpkg.State) strin
 				[]string{"Save", "Save and Restart Now", "Cancel"},
 				state.ChoiceCursor,
 			)...)
-		d.primary, d.hints = "enter choose", []string{"↑/↓ move", "shift+tab back"}
+		submit := []string{"enter save", "enter save and restart", "enter cancel"}
+		d.primary = submit[min(max(0, state.ChoiceCursor), len(submit)-1)]
+		d.hints = []string{"↑/↓ move", "shift+tab back"}
 	}
 	d.body = body
 	return renderListDialog(theme, state, d)

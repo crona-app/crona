@@ -13,8 +13,12 @@ func SearchPicker(theme Theme, spec PickerSpec, width int) []string {
 	}
 	rows := []string{Field(theme, spec.Label, spec.Column, spec.Input, true)}
 	selected := min(max(0, spec.Selected), max(0, len(spec.Options)-1))
-	start := min(max(0, selected-2), max(0, len(spec.Options)-5))
-	for i := range 5 {
+	optionRows := spec.OptionRows
+	if optionRows <= 0 {
+		optionRows = 5
+	}
+	start := min(max(0, selected-optionRows/2), max(0, len(spec.Options)-optionRows))
+	for i := range optionRows {
 		at := start + i
 		text := ""
 		if at < len(spec.Options) {

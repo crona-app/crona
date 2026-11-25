@@ -98,7 +98,7 @@ func TestTimerLifecycleDialogs(t *testing.T) {
 				),
 				title: "Extend Pomodoro Session",
 			},
-			[]string{"Focus", "enter extend"},
+			[]string{"Focus", "ctrl+s extend"},
 		},
 		{
 			formCase{
