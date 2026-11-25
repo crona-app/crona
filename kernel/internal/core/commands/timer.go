@@ -951,9 +951,9 @@ func (t *TimerService) extendHardLimit(
 		return sharedtypes.TimerState{}, err
 	}
 	segmentToStart := sharedtypes.SessionSegmentWork
-	if activeSegment != nil {
+	if !wasExpired && activeSegment != nil {
 		segmentToStart = activeSegment.SegmentType
-	} else if runtimeState.HasPreparedSegment() {
+	} else if !wasExpired && runtimeState.HasPreparedSegment() {
 		segmentToStart = *runtimeState.PreparedSegmentType
 	}
 	if _, err := t.ctx.SessionSegments.StartSegment(
@@ -966,6 +966,9 @@ func (t *TimerService) extendHardLimit(
 		return sharedtypes.TimerState{}, err
 	}
 	runtimeState.PreparedSegmentType = nil
+	if wasExpired {
+		runtimeState.CurrentSegmentDeferralSeconds = 0
+	}
 	runtimeState.HardLimitTotalSeconds += additionalSeconds
 	if runtimeState.HardLimitKind == sharedtypes.TimerHardLimitKindCountdown {
 		if wasExpired {
@@ -1018,7 +1021,7 @@ func (t *TimerService) hardLimitExtensionSecondsForSessions(
 	currentSegment := sharedtypes.SessionSegmentWork
 	if activeSegment != nil {
 		currentSegment = activeSegment.SegmentType
-	} else if runtimeState != nil && runtimeState.HasPreparedSegment() {
+	} else if runtimeState != nil && !runtimeState.HardLimitExpired && runtimeState.HasPreparedSegment() {
 		currentSegment = *runtimeState.PreparedSegmentType
 	}
 	completedWorkCycles, err := t.ctx.SessionSegments.CountWorkSegments(ctx, sessionID)

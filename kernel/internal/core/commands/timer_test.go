@@ -489,7 +489,7 @@ func TestTimerHardLimitSchedulesWorkBoundaryFromFocusDuration(t *testing.T) {
 	}
 }
 
-func TestTimerAdvanceExpiresAfterFinalPomodoroBreak(t *testing.T) {
+func TestTimerExtensionAfterFinalPomodoroBreakStartsWork(t *testing.T) {
 	ctx := context.Background()
 	now := "2026-05-24T10:00:00Z"
 	coreCtx, service, issue := newTimerTestContext(t, func() string { return now })
@@ -543,6 +543,27 @@ func TestTimerAdvanceExpiresAfterFinalPomodoroBreak(t *testing.T) {
 	}
 	if !stateAfterFinalAdvance.HardLimitExpired || stateAfterFinalAdvance.State != "expired" {
 		t.Fatalf("expected final break advance to expire session, got %+v", stateAfterFinalAdvance)
+	}
+
+	extended, err := service.ExtendConfigured(ctx, shareddto.TimerExtendRequest{
+		AdditionalSessions:    1,
+		HardLimitTotalSeconds: new(7 * 60),
+		HardLimitWorkSeconds:  new(5 * 60),
+		HardLimitBreakSeconds: new(2 * 60),
+	})
+	if err != nil {
+		t.Fatalf("extend expired Pomodoro: %v", err)
+	}
+	if extended.State != "running" || extended.SegmentType == nil || *extended.SegmentType != sharedtypes.SessionSegmentWork {
+		t.Fatalf("ExtendConfigured after final break = %+v, want running work segment", extended)
+	}
+	next, err := service.Advance(ctx)
+	if err != nil {
+		t.Fatalf("advance extended Pomodoro: %v", err)
+	}
+	if next.SegmentType == nil || *next.SegmentType != sharedtypes.SessionSegmentShortBreak ||
+		next.HardLimitRemainingSeconds != 2*60 {
+		t.Fatalf("Advance after extended work = %+v, want a two-minute short break", next)
 	}
 }
 
