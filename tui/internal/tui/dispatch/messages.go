@@ -90,6 +90,7 @@ type MessageState struct {
 	// PendingEvents holds data events waiting for the next flush, one per type.
 	PendingEvents           []api.KernelEvent
 	EventFlushScheduled     bool
+	ErrorNotice             string
 	StatusMsg               string
 	StatusSeq               int
 	StatusErr               bool
@@ -410,7 +411,7 @@ func HandleMessage(
 		state.SessionDetail = nil
 		state.SessionDetailY = 0
 		logger.Errorf("session detail failed: %v", msg.Err)
-		return state, deps.SetStatus(&state, "Error: "+msg.Err.Error(), true), true
+		return state, deps.SetStatus(&state, "Error: "+helperpkg.ErrorMessage(msg.Err), true), true
 	case commands.OpsLoadedMsg:
 		state.Ops = msg.Ops
 		if deps.ClampFiltered != nil {
@@ -639,19 +640,10 @@ func HandleMessage(
 		}
 		return state, tea.Batch(cmds...), true
 	case commands.ErrMsg:
-		if state.Dialog != "" {
-			if isExportDialog(state.Dialog) && state.DialogProcessing {
-				state.DialogProcessing = false
-				state.DialogProcessingLabel = ""
-			}
-			state.DialogErrorMessage = "Error: " + msg.Err.Error()
-			logger.Errorf("update error: %v", msg.Err)
-			return state, deps.ReportHandledError(msg.Err, msg.Operation), true
-		}
 		logger.Errorf("update error: %v", msg.Err)
 		return state, tea.Batch(
 			deps.ReportHandledError(msg.Err, msg.Operation),
-			deps.SetStatus(&state, "Error: "+msg.Err.Error(), true),
+			deps.SetStatus(&state, "Error: "+helperpkg.ErrorMessage(msg.Err), true),
 		), true
 	case commands.DailyReportGeneratedMsg:
 		state.ExportAssets = &msg.Result.Assets

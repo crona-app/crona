@@ -95,6 +95,7 @@ func (m Model) layoutState() layoutpkg.State {
 		SessionContextY:     m.sessionContextY,
 		SessionContextLines: helperpkg.SessionContextContentLines(activeIssue),
 		StatusMsg:           m.statusMsg,
+		ErrorNotice:         m.errorNotice,
 		StatusErr:           m.statusErr,
 		GlobalActions:       viewchrome.DedupeActionKeys(chromeState.GlobalActions, paneActions),
 		PaneActions:         paneActions,

@@ -8,9 +8,11 @@ import (
 	"crona.work/tui/internal/tui/commands"
 	"crona.work/tui/internal/tui/dialogs"
 	dialogstate "crona.work/tui/internal/tui/dialogs/controller"
+	helperpkg "crona.work/tui/internal/tui/helpers"
 	layoutpkg "crona.work/tui/internal/tui/layout"
 	"crona.work/tui/internal/tui/views/checkins"
 	viewruntime "crona.work/tui/internal/tui/views/runtime"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -49,7 +51,7 @@ func (m Model) applyCheckInHistory(msg commands.CheckInHistoryLoadedMsg) Model {
 	}
 	m.checkInHistoryLoading = false
 	if msg.Err != nil {
-		m.checkInHistoryError = msg.Err.Error()
+		m.checkInHistoryError = helperpkg.ErrorMessage(msg.Err)
 		return m
 	}
 	selectedDate := ""

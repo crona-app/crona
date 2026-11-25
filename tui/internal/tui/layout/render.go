@@ -47,6 +47,7 @@ type State struct {
 	SessionContextOpen  bool
 	SessionContextY     int
 	SessionContextLines []string
+	ErrorNotice         string
 	StatusMsg           string
 	StatusErr           bool
 	PaneActions         []string
@@ -71,7 +72,7 @@ func DialogTheme() dialogs.Theme {
 	}
 }
 
-func Render(state State) string {
+func renderFrame(state State) string {
 	if state.Width == 0 {
 		logger.Infof(
 			"layout.Render loading: width=0 height=%d view=%q pane=%q dialog_open=%t dialog_kind=%q",
@@ -83,19 +84,6 @@ func Render(state State) string {
 		)
 		return "Loading..."
 	}
-	if state.Width < MinWidth || state.Height < MinHeight {
-		logger.Infof(
-			"layout.Render minimum-size: width=%d height=%d view=%q pane=%q dialog_open=%t dialog_kind=%q",
-			state.Width,
-			state.Height,
-			state.View,
-			state.Pane,
-			state.DialogOpen,
-			state.DialogState.Kind,
-		)
-		return renderMinimumSizeWarning(state.Width, state.Height)
-	}
-
 	if state.DialogOpen {
 		dialogStr := dialogs.Render(DialogTheme(), state.DialogState)
 		logger.Infof(

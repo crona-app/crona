@@ -262,7 +262,7 @@ func CompleteOnboarding(
 			}
 			return KernelRestartedMsg{}
 		}
-		return LoadSettings(c)()
+		return tea.Batch(LoadSettings(c))()
 	}
 }
 
@@ -302,7 +302,7 @@ func CreateRepoOnly(c *api.Client, name string, description *string) tea.Cmd {
 			logger.Errorf("CreateRepo: %v", err)
 			return ErrMsg{Err: err}
 		}
-		return LoadRepos(c)()
+		return tea.Batch(LoadRepos(c))()
 	}
 }
 

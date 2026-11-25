@@ -52,5 +52,26 @@ actual result, terminal dimensions, and a capture when layout matters. Keep
 confirmed defects separate from design preferences. Implement each coherent
 pass separately, with focused checks and a live keyboard walkthrough.
 
-Start with error visibility, then help accuracy. Export simplification and
-layout redesign should wait for evidence from their specific walkthroughs.
+## Task 1 outcome (2026-11-25)
+
+Implemented persistent, dismissible shell error notices, inline correlated save
+errors, retained form inputs, and duplicate-submit protection. Background failures
+no longer replace a form's validation. Late results preserve the currently open
+dialog. RPC codes remain in diagnostics; connection failures explain recovery and
+lost replies warn that a change may already have been saved.
+
+Verification: unit tests, lint, focused model/layout/dialog-runtime/helper tests,
+and narrow/wide rendered frames. An isolated TUI/daemon walkthrough completed
+onboarding, entered an issue and new repo/stream, then temporarily moved only the
+test socket. The save failed inline with the values retained. Escape dismissed
+the separate background notice without closing the form. After restoring the
+socket, Ctrl+S saved the same issue; Today showed one Backlog item. Both test
+processes were stopped. No live user data was changed.
+
+The walkthrough also exposed an existing separate issue: at 60x20, onboarding
+content extends beyond the viewport. Track this as a High-priority first-run
+layout finding; reproduce all onboarding pages at the minimum supported size
+before redesigning that screen. It is outside the error-notice change.
+
+Next: help accuracy, including the minimum-size onboarding finding. Export
+simplification and wider layout redesign should wait for their own walkthroughs.

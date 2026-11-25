@@ -238,11 +238,9 @@ func (m Model) inputDeps() inputpkg.Deps {
 			return (&next).listLen(pane)
 		},
 		LoadExportAssets: func() tea.Cmd { return commands.LoadExportAssets(m.client) },
-		SetStatus: func(state *inputpkg.State, message string, isErr bool) tea.Cmd {
-			next := m.applyInputState(*state)
-			cmd := next.setStatus(message, isErr)
-			*state = next.inputState()
-			return cmd
+		SetStatus: func(_ *inputpkg.State, message string, isErr bool) tea.Cmd {
+			return func() tea.Msg { return statusMessage{message: message, isError: isErr} }
+
 		},
 		LoadDailySummary:    func(date string) tea.Cmd { return commands.LoadDailySummary(m.client, date) },
 		LoadSummarySnapshot: func(date string) tea.Cmd { return commands.LoadSummarySnapshot(m.client, date) },

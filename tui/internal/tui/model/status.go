@@ -11,14 +11,16 @@ import (
 )
 
 const (
-	statusInfoDuration  = 3 * time.Second
-	statusErrorDuration = 5 * time.Second
+	statusInfoDuration = 3 * time.Second
 )
 
 func (m *Model) withStatus(message string, isError bool) Model {
 	m.statusSeq++
 	m.statusMsg = message
 	m.statusErr = isError
+	if isError {
+		m.errorNotice = message
+	}
 	logStatusError(message, isError)
 	return *m
 }
@@ -27,10 +29,13 @@ func (m *Model) setStatus(message string, isError bool) tea.Cmd {
 	m.statusSeq++
 	m.statusMsg = message
 	m.statusErr = isError
+	if isError {
+		m.errorNotice = message
+	}
 	logStatusError(message, isError)
 	duration := statusInfoDuration
 	if isError {
-		duration = statusErrorDuration
+		return nil
 	}
 	return commands.ClearStatusAfter(m.statusSeq, duration)
 }
@@ -44,4 +49,10 @@ func logStatusError(message string, isError bool) {
 		return
 	}
 	logger.Error("UI error: " + message)
+}
+
+// statusMessage carries feedback from input adapters back into the model.
+type statusMessage struct {
+	message string
+	isError bool
 }

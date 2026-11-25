@@ -79,11 +79,9 @@ func (m Model) overlayDeps() overlaypkg.Deps {
 			*state = next.overlayState()
 		},
 		SessionCommit: helperpkg.SessionCommit,
-		SetStatus: func(state *overlaypkg.State, message string, isErr bool) tea.Cmd {
-			next := m.applyOverlayState(*state)
-			cmd := next.setStatus(message, isErr)
-			*state = next.overlayState()
-			return cmd
+		SetStatus: func(_ *overlaypkg.State, message string, isErr bool) tea.Cmd {
+			return func() tea.Msg { return statusMessage{message: message, isError: isErr} }
+
 		},
 		AbandonSelectedIssue: func(state *overlaypkg.State) tea.Cmd {
 			next := m.applyOverlayState(*state)

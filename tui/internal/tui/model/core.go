@@ -366,10 +366,13 @@ type Model struct {
 	dialogCaptureSuggestions             []dialogstate.CaptureSuggestion
 	dialogCaptureSuggestCursor           int
 
-	// status / error flash
-	statusMsg string
-	statusSeq int
-	statusErr bool
+	// Transient status and persistent error notice.
+	formSubmission    *formSubmission
+	formSubmissionSeq uint64
+	errorNotice       string
+	statusMsg         string
+	statusSeq         int
+	statusErr         bool
 
 	// overlay help
 	helpOpen           bool

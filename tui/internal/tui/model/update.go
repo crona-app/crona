@@ -38,7 +38,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 	if result, ok := msg.(commands.CheckInHistoryMutationMsg); ok {
 		if result.Err != nil {
-			return m.withStatus(result.Err.Error(), true), nil
+			return m.withStatus(helperpkg.ErrorMessage(result.Err), true), nil
 		}
 		m.checkInHistoryStale = true
 		load := m.syncCheckInHistory(false)
@@ -152,6 +152,23 @@ func (m *Model) syncDetailSessions() tea.Cmd {
 }
 
 func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if result, ok := msg.(formSubmissionResult); ok {
+		return m.applyFormSubmission(result)
+	}
+	if status, ok := msg.(statusMessage); ok {
+		cmd := m.setStatus(status.message, status.isError)
+		return m, cmd
+	}
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "esc" && m.errorNotice != "" {
+		m.errorNotice = ""
+		if m.statusErr {
+			m.statusMsg = ""
+			m.statusErr = false
+			m.statusSeq++
+		}
+		return m, nil
+	}
+
 	if next, cmd, ok := m.handleSessionPreview(msg); ok {
 		return next, cmd
 	}
@@ -350,7 +367,7 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.pendingFocusIssueID = 0
 		if msg.Err != nil {
-			return m, m.setStatus("Could not prepare issue for focus: "+msg.Err.Error(), true)
+			return m, m.setStatus("Could not prepare issue for focus: "+helperpkg.ErrorMessage(msg.Err), true)
 		}
 		target, ok := m.issueMetaByID(msg.IssueID)
 		if !ok || target == nil {
@@ -435,6 +452,14 @@ func batchCmds(cmds ...tea.Cmd) tea.Cmd {
 }
 
 func (m Model) updateDialog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	if m.formSubmission != nil {
+		if msg.String() == "esc" {
+			m.formSubmission = nil
+			return m.withDialogState(dialogstate.Close(m.dialogState())), nil
+		}
+		return m, nil
+	}
+
 	if next, cmd, handled := m.handleCheckInHistoryKey(msg); handled {
 		return next, cmd
 	}
@@ -452,7 +477,8 @@ func (m Model) updateDialog(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	if action == nil {
 		return next, nil
 	}
-	return next.handleDialogAction(next, *action)
+	handled, cmd := next.handleDialogAction(next, *action)
+	return m.submitForm(handled, *action, cmd)
 }
 
 func (m Model) dispatchMessageState() dispatchpkg.MessageState {
@@ -529,6 +555,7 @@ func (m Model) dispatchMessageState() dispatchpkg.MessageState {
 		PendingEvents:           m.pendingEvents,
 		EventFlushScheduled:     m.eventFlushScheduled,
 		StatusMsg:               m.statusMsg,
+		ErrorNotice:             m.errorNotice,
 		StatusSeq:               m.statusSeq,
 		StatusErr:               m.statusErr,
 		Dialog:                  m.dialog,
@@ -625,6 +652,7 @@ func (m Model) applyDispatchMessageState(state dispatchpkg.MessageState) Model {
 	m.timerTickSeq = state.TimerTickSeq
 	m.pendingEvents = state.PendingEvents
 	m.eventFlushScheduled = state.EventFlushScheduled
+	m.errorNotice = state.ErrorNotice
 	m.statusMsg = state.StatusMsg
 	m.statusSeq = state.StatusSeq
 	m.statusErr = state.StatusErr

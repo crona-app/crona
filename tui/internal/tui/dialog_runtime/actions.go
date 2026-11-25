@@ -549,7 +549,7 @@ func patchRestProtectionCmd(action dialogstate.Action, state State, deps Deps) t
 	if state.Context != nil && state.Context.StreamID != nil {
 		streamID = *state.Context.StreamID
 	}
-	return tea.Batch(
+	return runFormMutations(
 		deps.PatchSetting(
 			sharedtypes.CoreSettingsKeyFrozenStreakKinds,
 			action.StreakKinds,
@@ -587,5 +587,5 @@ func thenSetTags(deps Deps, target string, id int64, tags *[]string, cmd tea.Cmd
 	if tags == nil || deps.SetItemTags == nil {
 		return cmd
 	}
-	return tea.Sequence(cmd, deps.SetItemTags(target, id, *tags))
+	return runFormMutations(cmd, deps.SetItemTags(target, id, *tags))
 }

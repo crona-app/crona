@@ -6,6 +6,7 @@ import (
 	controllerpkg "crona.work/tui/internal/tui/dialogs/controller"
 
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // renderIssueCreate draws New Issue (and its ad hoc variants) with the dialog chrome.
@@ -210,10 +211,22 @@ func splitHints(hint string) (string, []string) {
 // withError puts the dialog's validation error above its footer, where cutting the body
 // for a short screen can never hide it.
 func withError(theme Theme, state controllerpkg.State, footer []string) []string {
+	if state.Processing {
+		return []string{theme.StyleDim.Render("Saving…  esc close (save continues)")}
+	}
+
 	if strings.TrimSpace(state.ErrorMessage) == "" {
 		return footer
 	}
-	return append([]string{theme.StyleError.Render(state.ErrorMessage), ""}, footer...)
+	width := max(20, formInner(state.Width))
+	text := strings.Join(strings.Fields(ansi.Strip(state.ErrorMessage)), " ")
+	lines := strings.Split(ansi.Wrap(text, width, ""), "\n")
+	limit := max(1, min(3, state.Height/5))
+	if len(lines) > limit {
+		lines = lines[:limit]
+		lines[limit-1] = ansi.Truncate(lines[limit-1], width-len("… details in logs"), "") + "… details in logs"
+	}
+	return append([]string{theme.StyleError.Render(strings.Join(lines, "\n")), ""}, footer...)
 }
 
 // renderCheckoutContext draws the context switcher: Repo and Stream pickers.
