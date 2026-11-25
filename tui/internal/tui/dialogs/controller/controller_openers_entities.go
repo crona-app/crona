@@ -618,7 +618,7 @@ func OpenFocusBlocked(
 	state.IssueID = issueID
 	state.IssueStatus = status
 	state.RecoveryStatus = recoveryStatus
-	recoveryLabel := recoveryStatus
+	var recoveryLabel string
 	if recoveryStatus == "in_progress" {
 		recoveryLabel = "In Progress"
 	} else {
