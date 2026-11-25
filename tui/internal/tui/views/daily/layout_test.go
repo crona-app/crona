@@ -55,7 +55,7 @@ func TestDailyNarrowIsWeekThenTasksThenHabits(t *testing.T) {
 		if !strings.HasPrefix(lines[0], "─ Week") {
 			t.Fatalf("width %d: expected the week on the first row, got %q", width, lines[0])
 		}
-		tasks, habits, week := rowOf(t, rendered, "─ Tasks"), rowOf(t, rendered, "─ Habits Due"), rowOf(t, rendered, "─ Week")
+		tasks, habits, week := rowOf(t, rendered, "─ Issues"), rowOf(t, rendered, "─ Habits Due"), rowOf(t, rendered, "─ Week")
 		if !strings.Contains(lines[habits], "[S] summary") {
 			t.Fatalf("width %d: expected the summary key on the Habits heading, got %q", width, lines[habits])
 		}
@@ -69,14 +69,14 @@ func TestDailyNarrowDetailTakesHabitsHalf(t *testing.T) {
 	state := dailyState(120, 40)
 	state.DailyDetailFocus, state.DailyDetailSummary = true, true
 	rendered := renderView(testTheme(), state)
-	if strings.Contains(ansi.Strip(rendered), "─ Habits Due") || rowOf(t, rendered, "─ Wed 27 May") <= rowOf(t, rendered, "─ Tasks") {
+	if strings.Contains(ansi.Strip(rendered), "─ Habits Due") || rowOf(t, rendered, "─ Wed 27 May") <= rowOf(t, rendered, "─ Issues") {
 		t.Fatalf("expected the Day summary in Habits' half:\n%s", ansi.Strip(rendered))
 	}
 }
 
 func TestDailyWideHasDetailPane(t *testing.T) {
 	wide := renderView(testTheme(), dailyState(160, 40))
-	if rowOf(t, wide, "─ Calendar") != rowOf(t, wide, "─ Tasks") || rowOf(t, wide, "─ Wed 27 May ") <= rowOf(t, wide, "─ Tasks") {
+	if rowOf(t, wide, "─ Calendar") != rowOf(t, wide, "─ Issues") || rowOf(t, wide, "─ Wed 27 May ") <= rowOf(t, wide, "─ Issues") {
 		t.Fatal("expected the calendar beside tasks and the detail pane under it at 160 columns")
 	}
 	if medium := ansi.Strip(renderView(testTheme(), dailyState(159, 40))); strings.Contains(
@@ -92,7 +92,7 @@ func TestDailySplitsTasksAndHabitsEvenly(t *testing.T) {
 		for _, tasks := range []int{1, 3, 30} {
 			state := manyIssues(dailyState(width, 40), tasks)
 			rendered := renderView(testTheme(), state)
-			tasksH := rowOf(t, rendered, "─ Habits Due") - rowOf(t, rendered, "─ Tasks")
+			tasksH := rowOf(t, rendered, "─ Habits Due") - rowOf(t, rendered, "─ Issues")
 			habitsH := 40 - rowOf(t, rendered, "─ Habits Due")
 			if tasksH-habitsH < 0 || tasksH-habitsH > 1 {
 				t.Fatalf(
@@ -353,7 +353,7 @@ func TestDailyWeekGoesOverTasksOnNarrowScreens(t *testing.T) {
 	state := dailyState(130, 40)
 	state.DashboardDate = "2026-05-27"
 	tall := ansi.Strip(renderView(testTheme(), state))
-	if rowOf(t, tall, "─ Week") >= rowOf(t, tall, "─ Tasks") || !strings.Contains(tall, "│ 27") || !strings.Contains(tall, "[C] month") {
+	if rowOf(t, tall, "─ Week") >= rowOf(t, tall, "─ Issues") || !strings.Contains(tall, "│ 27") || !strings.Contains(tall, "[C] month") {
 		t.Fatalf("expected the boxed week over Tasks while there is room, got\n%s", tall)
 	}
 	state.Height = 30

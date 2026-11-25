@@ -11,12 +11,13 @@ A focus session connects a timed work block to an issue. You do not start with a
 
 ## Start a session
 
-Select an issue in Planned, Ready, or In Progress and start focus. Before the timer begins, Crona shows the issue’s estimate, worked time, duration, and expected end time when available.
+Select an issue in Planned, Ready, or In Progress and press `f` in the TUI to open **Start Focus Session**. Before the timer begins, Crona shows the issue’s estimate, worked time, duration, and expected end time when available.
 
 Backlog issues need an explicit status change before focus can start. In the TUI, choose **Mark Ready and start** when prompted; from the CLI, change the issue to Ready (or Planned) first. The same rule applies to manually logged sessions.
 
 Choose the profile that fits:
 
+- **Stopwatch** runs until you end the session.
 - **Pomodoro** gives the session work and break segments.
 - **Timer** gives you one no-break countdown.
 

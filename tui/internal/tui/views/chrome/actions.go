@@ -340,7 +340,7 @@ func ContextualActions(theme Theme, state ActionsState) []string {
 			if timerIdle {
 				actions = append(
 					actions,
-					theme.StyleHeader.Render("[f]")+theme.StyleDim.Render(" start focus timer"),
+					theme.StyleHeader.Render("[f]")+theme.StyleDim.Render(" start focus session"),
 					theme.StyleHeader.Render("[A]")+theme.StyleDim.Render(" start quick timer"),
 					theme.StyleHeader.Render("[m]")+theme.StyleDim.Render(" log work"),
 					theme.StyleHeader.Render("[e]")+theme.StyleDim.Render(" edit issue"),
@@ -357,7 +357,7 @@ func ContextualActions(theme Theme, state ActionsState) []string {
 		if timerIdle {
 			actions = append(
 				actions,
-				theme.StyleHeader.Render("[f]")+theme.StyleDim.Render(" start focus timer"),
+				theme.StyleHeader.Render("[f]")+theme.StyleDim.Render(" start focus session"),
 				theme.StyleHeader.Render("[A]")+theme.StyleDim.Render(" start quick timer"),
 				theme.StyleHeader.Render("[m]")+theme.StyleDim.Render(" log work"),
 				theme.StyleHeader.Render("[e/D]")+theme.StyleDim.Render(" edit/delete"),
@@ -604,7 +604,7 @@ func compactActionLabel(key, label string) string {
 		return "due"
 	case "pin to daily", "pin":
 		return "pin"
-	case "start focus timer":
+	case "start focus session":
 		return "focus"
 	case "log work", "log completion":
 		return "log"

@@ -50,7 +50,7 @@ func previewBody(theme types.Theme, state types.ContentState, width, height int)
 	}
 	issue, ok := selectedDailyIssue(state)
 	if !ok {
-		return "Selected task", []string{theme.StyleDim.Render("No task selected")}, false
+		return "Selected issue", []string{theme.StyleDim.Render("No issue selected")}, false
 	}
 	repo, stream, _, worked := itemdetail.IssueWhere(state, issue)
 	status := itemdetail.Status(state, issue.ID, issue.Status)

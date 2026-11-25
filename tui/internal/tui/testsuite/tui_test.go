@@ -1070,7 +1070,7 @@ func TestDailyHeadersShowTotalsOnLargeScreens(t *testing.T) {
 
 	rendered := strings.Join(strings.Fields(ansi.Strip(support.RenderDaily(state))), " ") +
 		ansi.Strip(viewrenderer.DateNav(support.Theme(), state, 80))
-	for _, want := range []string{"─ Tasks", "Habits Due", "0/1", "W12"} {
+	for _, want := range []string{"─ Issues", "Habits Due", "0/1", "W12"} {
 		if !strings.Contains(rendered, want) {
 			t.Fatalf("expected Today to include %q, got %q", want, rendered)
 		}
@@ -1217,7 +1217,7 @@ func TestDailyIssuesPaneRendersOnlyActiveTaskSection(t *testing.T) {
 	planned.DailyTaskSection = "planned"
 	plannedRendered := renderModelScopedDaily(planned)
 	plannedStripped := ansi.Strip(plannedRendered)
-	for _, want := range []string{"Tasks", "Planned", "Overdue", "Upcoming", "Today task", "Pinned toda", "Pinned futu", "Pinned over"} {
+	for _, want := range []string{"Issues", "Planned", "Overdue", "Upcoming", "Today task", "Pinned toda", "Pinned futu", "Pinned over"} {
 		if !strings.Contains(plannedStripped, want) {
 			t.Fatalf("expected planned section to contain %q, got %q", want, plannedStripped)
 		}
@@ -1286,7 +1286,7 @@ func TestDailyIssuesPaneRendersOnlyActiveTaskSection(t *testing.T) {
 	overdue.DailyTaskSection = "overdue"
 	overdueRendered := renderModelScopedDaily(overdue)
 	overdueStripped := ansi.Strip(overdueRendered)
-	for _, want := range []string{"Tasks", "Planned", "Overdue", "Upcoming", "Pinned over"} {
+	for _, want := range []string{"Issues", "Planned", "Overdue", "Upcoming", "Pinned over"} {
 		if !strings.Contains(overdueStripped, want) {
 			t.Fatalf("expected overdue section to contain %q, got %q", want, overdueStripped)
 		}
@@ -1548,7 +1548,7 @@ func TestMinimumSizeThresholdRendersNormalUI(t *testing.T) {
 	if strings.Contains(rendered, "Terminal Too Small") {
 		t.Fatalf("expected normal UI at minimum size")
 	}
-	if !strings.Contains(rendered, "─ Tasks") {
+	if !strings.Contains(rendered, "─ Issues") {
 		t.Fatalf("expected daily UI at minimum size")
 	}
 	if got := lipgloss.Height(rendered); got > minHeight {
@@ -1563,7 +1563,7 @@ func TestAboveMinimumSizeRendersNormalUI(t *testing.T) {
 	if strings.Contains(rendered, "Terminal Too Small") {
 		t.Fatalf("expected normal UI above minimum size")
 	}
-	if !strings.Contains(rendered, "─ Tasks") {
+	if !strings.Contains(rendered, "─ Issues") {
 		t.Fatalf("expected daily UI above minimum size")
 	}
 }

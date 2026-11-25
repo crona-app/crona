@@ -122,5 +122,25 @@ Follow-up finding: pressing `w` after saving a check-in reopened a blank
 New Check-In form during both walkthroughs. The saved values were present in
 the local database. Check-in reload behavior needs a separate investigation.
 
-Next: vocabulary consistency. Export simplification and wider layout changes
-retain their own walkthroughs.
+## Task 4 outcome (2026-11-25)
+
+Today uses **Issues** for the same records shown under **Work → Issues**.
+The pane, create and bulk-add hints, selection preview, and empty states use
+that terminology. The empty plan identifies Backlog as a status and points
+to Work to plan issues.
+
+The planning guide distinguishes Today's **Planned** list from the
+**Planned** lifecycle status. The list reflects the selected date and
+includes open pinned issues. **Ready** remains a lifecycle status.
+**Review** summarizes work by date, and **Momentum** tracks progress toward
+goals. Both keep their names.
+
+Help uses **start focus session** for `f`, and the picker opens as **Start
+Focus Session** with the issue title. `A` still opens the quick timer picker.
+The focus guide names all three timer profiles.
+
+An isolated 60x20 walkthrough created an issue for the current date, opened
+keyboard help, checked the `f` and `A` pickers, and found the same issue in
+Work. Both test processes were stopped.
+
+Next: assess the export wizard length.

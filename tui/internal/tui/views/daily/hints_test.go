@@ -11,9 +11,9 @@ import (
 
 func TestTasksPaneOffersNewTaskLine(t *testing.T) {
 	rendered := ansi.Strip(renderIssues(testTheme(), detailState(), 80, 20))
-	if rowOf(t, rendered, "[a] new task  [A] quick timer") != rowOf(t, rendered, "Planned") {
+	if rowOf(t, rendered, "[a] new issue  [A] quick timer") != rowOf(t, rendered, "Planned") {
 		t.Fatalf(
-			"expected [a] new task and [A] quick timer beside the selector, got %q",
+			"expected [a] new issue and [A] quick timer beside the selector, got %q",
 			rendered,
 		)
 	}

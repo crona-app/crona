@@ -730,7 +730,7 @@ func (m Model) openHelpDialog() Model {
 					if stream, ok := m.scopeStream(selectedIssue.StreamID); ok && stream.System {
 						edit = "move out of " + stream.Name
 					}
-					paneActions = append(paneActions, viewchrome.KeyHint(theme, "f", "focus"), viewchrome.KeyHint(theme, "m", "log"), viewchrome.KeyHint(theme, "e", edit), viewchrome.KeyHint(theme, "D", "delete"))
+					paneActions = append(paneActions, viewchrome.KeyHint(theme, "f", "start focus session"), viewchrome.KeyHint(theme, "m", "log"), viewchrome.KeyHint(theme, "e", edit), viewchrome.KeyHint(theme, "D", "delete"))
 				}
 			}
 			if timerIdle {

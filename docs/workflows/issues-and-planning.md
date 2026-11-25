@@ -19,15 +19,9 @@ Less useful: `improve documentation`.
 
 ## Put work on the day
 
-Assign a planning date when you want an issue to appear in Daily. Crona promotes it from **Backlog** to **Planned** and keeps it with that date until you move or finish it.
+Set an issue's due date to put it on that date in Today. Assigning a date to a **Backlog** issue moves it to **Planned**. In the TUI, press `2` to open Work, select the issue, and press `d` to set the date.
 
-The Daily view brings together:
-
-- planned issues
-- pinned work
-- overdue issues
-- habits due today
-- wellbeing and planning prompts
+In Today's Issues pane, the **Planned** list shows issues dated for the selected day, with open pinned issues at the top. The list can include issues in other statuses, such as **Ready** and **In Progress**. **Overdue** and **Upcoming** show issues with earlier and later dates.
 
 ## Use the issue lifecycle
 

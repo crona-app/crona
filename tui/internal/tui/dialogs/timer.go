@@ -156,7 +156,7 @@ func renderTimerStartType(theme Theme, state controllerpkg.State) string {
 		body = append(body, "", theme.StyleDim.Render(state.ChoiceDetails[state.ChoiceCursor]))
 	}
 	return renderListDialog(theme, state, listDialog{
-		title: "Start Timer", context: state.ViewName, border: theme.ColorGreen, body: body, focus: focus,
+		title: state.ViewTitle, context: state.ViewName, border: theme.ColorGreen, body: body, focus: focus,
 		primary: "enter choose", hints: []string{"↑/↓ move"},
 	})
 }

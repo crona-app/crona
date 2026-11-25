@@ -24,7 +24,7 @@ import (
 
 func renderIssues(theme types.Theme, state types.ContentState, width, height int) string {
 	if state.HistoricalAwayDate != "" {
-		return awaySection(theme, "Tasks", width, height, true)
+		return awaySection(theme, "Issues", width, height, true)
 	}
 	active := state.Pane == "issues" && !state.DailyDetailFocus
 	cur := state.Cursors["issues"]
@@ -37,7 +37,7 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 	lines := dailyTaskHeader(theme, state, width)
 	if len(issues) == 0 || total == 0 {
 		lines = append(lines, dailyEmptyTaskLines(theme, state, width)...)
-		return dailySection(theme, "Tasks", viewhelpers.FilterMeta(meta, state.Filters["issues"]), active, width, height, lines)
+		return dailySection(theme, "Issues", viewhelpers.FilterMeta(meta, state.Filters["issues"]), active, width, height, lines)
 	}
 	lines = renderCompactDailyIssueList(
 		theme,
@@ -53,7 +53,7 @@ func renderIssues(theme types.Theme, state types.ContentState, width, height int
 		cur,
 		active,
 	)
-	return dailySection(theme, "Tasks", viewhelpers.FilterMeta(meta, state.Filters["issues"]), active, width, height, lines)
+	return dailySection(theme, "Issues", viewhelpers.FilterMeta(meta, state.Filters["issues"]), active, width, height, lines)
 }
 
 // dailyTaskHeader is the section selector with the new-task keys beside it, on one row.
@@ -296,17 +296,17 @@ func dailyTaskTitle(theme types.Theme, section string) string {
 func dailyTaskEmptyMessage(section string) string {
 	switch section {
 	case "upcoming":
-		return "Nothing due in the next 7 days"
+		return "No issues due in the next 7 days"
 	case "overdue":
-		return "No overdue tasks in this scope"
+		return "No overdue issues in this scope"
 	default:
-		return "No planned tasks for this date"
+		return "No issues planned for this date"
 	}
 }
 
 func dailyEmptyTaskLines(theme types.Theme, state types.ContentState, width int) []string {
 	if strings.TrimSpace(state.Filters["issues"]) != "" {
-		return []string{theme.StyleDim.Render("No tasks match the filter")}
+		return []string{theme.StyleDim.Render("No issues match the filter")}
 	}
 	message := dailyTaskEmptyMessage(state.DailyTaskSection)
 	if !state.DailyHasIssues {
@@ -315,7 +315,7 @@ func dailyEmptyTaskLines(theme types.Theme, state types.ContentState, width int)
 	lines := []string{theme.StyleDim.Render(message)}
 	counts := []string{}
 	if state.DailyBacklogCount > 0 {
-		counts = append(counts, fmt.Sprintf("%d backlog", state.DailyBacklogCount))
+		counts = append(counts, fmt.Sprintf("%d in Backlog", state.DailyBacklogCount))
 	}
 	for _, section := range []string{"overdue", "upcoming"} {
 		if count := state.DailyTaskCounts[section]; count > 0 {
@@ -325,12 +325,12 @@ func dailyEmptyTaskLines(theme types.Theme, state types.ContentState, width int)
 	if len(counts) > 0 {
 		line := strings.Join(counts, " · ")
 		lines = append(lines, theme.StyleDim.Render(ansi.Truncate(line, width-2, "…")))
-		hint := viewchrome.KeyHint(theme, "2", "browse all issues to plan")
+		hint := viewchrome.KeyHint(theme, "2", "plan issues in Work")
 		lines = append(lines, viewchrome.FitHints([]string{hint}, width-2))
 	} else if !state.DailyHasIssues {
 		lines = append(lines, viewchrome.FitHints([]string{
-			viewchrome.KeyHint(theme, "a", "create one"),
-			viewchrome.KeyHint(theme, "I", "paste a list"),
+			viewchrome.KeyHint(theme, "a", "new issue"),
+			viewchrome.KeyHint(theme, "I", "bulk add"),
 		}, width-2))
 	}
 	return lines

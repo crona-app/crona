@@ -27,7 +27,7 @@ func TestHistoricalAwayKeepsDailyLayout(t *testing.T) {
 					t.Fatalf("width %d focus %d: away content contains %q:\n%s", width, focus, hidden, plain)
 				}
 			}
-			headings := []string{"─ Tasks"}
+			headings := []string{"─ Issues"}
 			if width >= 160 || focus == 0 {
 				headings = append(headings, "─ Habits Due")
 			}
@@ -47,7 +47,7 @@ func TestHistoricalAwayKeepsDailyLayout(t *testing.T) {
 				t.Fatalf("width %d focus %d: height changed from %d to %d", width, focus, len(normalLines), len(awayLines))
 			}
 			if width < 160 {
-				end := rowOf(t, normal, "─ Tasks")
+				end := rowOf(t, normal, "─ Issues")
 				if strings.Join(normalLines[:end], "\n") != strings.Join(awayLines[:end], "\n") {
 					t.Fatalf("width %d: calendar changed on away date", width)
 				}

@@ -588,7 +588,10 @@ func OpenTimerStartType(
 	state = Close(state)
 	state.AdhocTimer = adhoc
 	state.Kind = "timer_start_type"
-	state.ViewTitle = "Start Timer"
+	state.ViewTitle = "Start Focus Session"
+	if adhoc {
+		state.ViewTitle = "Start Timer"
+	}
 	state.ViewName = strings.TrimSpace(issueLabel)
 	state.RepoID = repoID
 	state.StreamID = streamID
@@ -634,9 +637,8 @@ func OpenFocusBlocked(
 }
 
 func OpenAdhocTimerStartType(state State) State {
-	state = OpenTimerStartType(state, 0, 0, 0, "Quick timer", nil, 0)
 	state.AdhocTimer = true
-	return state
+	return OpenTimerStartType(state, 0, 0, 0, "Quick timer", nil, 0)
 }
 
 func OpenAdhocResolution(state State, context *api.ActiveContext) State {

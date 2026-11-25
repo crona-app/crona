@@ -67,10 +67,19 @@ func TestTimerLifecycleDialogs(t *testing.T) {
 			formCase{
 				name:    "timer_start_type",
 				state:   controllerpkg.OpenTimerStartType(base, 1, 2, 3, "Fix alerts", &est, 900),
-				title:   "Start Timer",
+				title:   "Start Focus Session",
 				context: "Fix alerts",
 			},
 			[]string{"▶", "Worked / Est", "enter choose"},
+		},
+		{
+			formCase{
+				name:    "quick_timer_start_type",
+				state:   controllerpkg.OpenAdhocTimerStartType(base),
+				title:   "Start Timer",
+				context: "Quick timer",
+			},
+			[]string{"Stopwatch", "Pomodoro", "Timer", "enter choose"},
 		},
 		{
 			formCase{
@@ -138,7 +147,7 @@ func TestTimerLifecycleDialogs(t *testing.T) {
 			}
 		}
 		if bracketKey.MatchString(strings.ReplaceAll(out, "[s] ", "")) &&
-			tc.c.name != "timer_start_type" {
+			tc.c.name != "timer_start_type" && tc.c.name != "quick_timer_start_type" {
 			t.Errorf("%s keeps bracketed keys:\n%s", tc.c.name, out)
 		}
 	}

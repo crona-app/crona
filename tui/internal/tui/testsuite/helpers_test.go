@@ -14,7 +14,7 @@ import (
 func assertTinySummary(t *testing.T, rendered string) {
 	t.Helper()
 	flat := strings.Join(strings.Fields(ansi.Strip(rendered)), " ")
-	for _, want := range []string{"─ Tasks", "─ Habits Due", "0/1", "─ Week"} {
+	for _, want := range []string{"─ Issues", "─ Habits Due", "0/1", "─ Week"} {
 		if !strings.Contains(flat, want) {
 			t.Fatalf("expected compact daily to contain %q, got %q", want, rendered)
 		}

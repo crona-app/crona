@@ -89,7 +89,7 @@ func TestPreviewExcerptAndEmptySelection(t *testing.T) {
 	state := dailyState(200, 40)
 	state.DailyIssues = nil
 	_, lines, selected := previewBody(testTheme(), state, 40, 7)
-	if selected || !strings.Contains(ansi.Strip(strings.Join(lines, "\n")), "No task selected") {
+	if selected || !strings.Contains(ansi.Strip(strings.Join(lines, "\n")), "No issue selected") {
 		t.Fatalf("expected empty preview, got %v", lines)
 	}
 	lines = previewExcerpt(testTheme(), new(strings.Repeat("long description ", 30)), 30)
