@@ -73,5 +73,31 @@ content extends beyond the viewport. Track this as a High-priority first-run
 layout finding; reproduce all onboarding pages at the minimum supported size
 before redesigning that screen. It is outside the error-notice change.
 
-Next: help accuracy, including the minimum-size onboarding finding. Export
-simplification and wider layout redesign should wait for their own walkthroughs.
+## Task 2 outcome (2026-11-25)
+
+At 60x20, an isolated fresh run starts on Welcome. Press Right three times to
+reach Workspace, Privacy, and Review. All four pages should fit within the
+frame. Before the fix, every page clipped its shared heading and progress row.
+Privacy also clipped its choices and lost the key legend. Review lost its
+completion choices and key legend. The regression test renders all four
+pages through the shell at 60x20. The onboarding renderer now wraps copy to the
+available width and uses the compact logo and spacing in short terminals.
+
+On Today with no visible issues, `?` previously listed detail and status
+actions that need a selection. It now leads with creation, quick timer when
+idle, and section navigation. A filter that leaves no results retains the
+clear-filter hint. The Work lists hide issue or habit actions when their
+selection is empty. Protected Away uses the visible view's help and hides
+bulk capture. While a timer runs or protection is enabled, help lists the
+tabs reachable by their number keys. The active-session hints no longer
+advertise status changes during a session, and a paused stopwatch shows Resume.
+
+The isolated keyboard walkthrough used telemetry disabled and captured each
+onboarding screen at 60x20. From Today, `?` opened help with creation and quick
+timer hints above the fold. Escape closed it, `a` opened New Issue, Escape
+cancelled, `A` opened Start Timer, and Escape returned to the empty Today view.
+The walkthrough stopped its TUI and daemon. Automated coverage checks filtered,
+protected, timer-running, and paused help states.
+
+Next: the form save and submit hint pass. Export simplification and wider
+layout changes retain their own walkthroughs.

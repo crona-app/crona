@@ -1,6 +1,8 @@
 package model
 
 import (
+	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -648,9 +650,11 @@ func healthTimezone(health *api.Health) string {
 func (m Model) openHelpDialog() Model {
 	theme := layoutpkg.ViewTheme()
 	chromeState := m.layoutChromeState()
+	view := m.effectiveView()
+	timerIdle := chromeState.TimerState == "" || chromeState.TimerState == "idle"
 	selectedIssue, hasSelectedIssue := m.selectedIssueRecord()
-	paneActions := viewchrome.ContextualActions(theme, viewchrome.ActionsState{
-		View:                   string(m.view),
+	actions := viewchrome.ActionsState{
+		View:                   string(view),
 		Pane:                   string(m.pane),
 		SelectedIssueAdhoc:     hasSelectedIssue && selectedIssue.Adhoc,
 		TimerState:             chromeState.TimerState,
@@ -662,8 +666,36 @@ func (m Model) openHelpDialog() Model {
 		IsBetaBuild:            m.isBetaBuild(),
 		UpdateVisible:          viewruntime.ShouldShowUpdatesView(m.updateStatus),
 		UpdateInstallAvailable: m.selfUpdateInstallAvailable(),
-	})
-	if m.view == ViewDefault || m.view == ViewHabitList {
+	}
+	if m.timer != nil {
+		actions.HardLimitActive = m.timer.HardLimitActive
+		actions.HardLimitKind = m.timer.HardLimitKind
+	}
+	paneActions := viewchrome.ContextualActions(theme, actions)
+	if view == ViewDaily && m.pane == PaneIssues {
+		paneActions = viewchrome.DedupeActionKeys(paneActions, []string{"[a]", "[A]"})
+		if !hasSelectedIssue {
+			paneActions = nil
+		} else if !selectedIssue.Adhoc {
+			paneActions = append(paneActions, viewchrome.KeyHint(theme, "+", "tags"))
+			if timerIdle {
+				paneActions = append(paneActions, viewchrome.KeyHint(theme, "D", "delete"))
+			}
+		} else if !timerIdle {
+			paneActions = viewchrome.DedupeActionKeys(paneActions, []string{"[e]"})
+		}
+		paneActions = append([]string{viewchrome.KeyHint(theme, "a", "new issue")}, paneActions...)
+		if timerIdle {
+			paneActions = append(paneActions, viewchrome.KeyHint(theme, "A", "quick timer"))
+		}
+		paneActions = append(paneActions, viewchrome.KeyHint(theme, "←/→", "planned / overdue / upcoming"))
+	}
+	if view == ViewDaily && m.pane == PaneHabits {
+		if _, ok := m.selectedDailyHabitRecord(); !ok {
+			paneActions = []string{viewchrome.KeyHint(theme, "a", "new habit")}
+		}
+	}
+	if view == ViewDefault || view == ViewHabitList {
 		paneActions = []string{
 			"Scope (tab to focus; All has create only)",
 			viewchrome.KeyHint(theme, "↑/↓", "move scope"),
@@ -674,28 +706,29 @@ func (m Model) openHelpDialog() Model {
 			viewchrome.KeyHint(theme, "a", "new repo (All)"),
 			viewchrome.KeyHint(theme, "a", "new stream (repo/stream)"),
 		}
-		timerIdle := chromeState.TimerState == "" || chromeState.TimerState == "idle"
 		if timerIdle {
 			paneActions = append(paneActions, viewchrome.KeyHint(theme, "D", "delete scope"))
 		}
-		if m.view == ViewDefault {
+		list := m.selectionSnapshot()
+		if view == ViewDefault {
+			list.Pane = PaneIssues
+			selectedIssue, hasSelectedIssue := selectionpkg.SelectedIssue(list)
 			paneActions = append(paneActions, "", "Issues (tab to focus)",
-				viewchrome.KeyHint(theme, "↑/↓", "select issue"),
 				viewchrome.KeyHint(theme, "←/→", "Open/Done"),
-				viewchrome.KeyHint(theme, "a", "new issue"),
-				viewchrome.KeyHint(theme, "enter", "open"))
+				viewchrome.KeyHint(theme, "a", "new issue"))
+			if hasSelectedIssue {
+				paneActions = append(paneActions, viewchrome.KeyHint(theme, "↑/↓", "select issue"), viewchrome.KeyHint(theme, "enter", "open"))
+			}
 			if hasSelectedIssue && selectedIssue.Adhoc {
 				if timerIdle {
 					paneActions = append(paneActions, viewchrome.KeyHint(theme, "e", "convert"))
 				}
-			} else {
+			} else if hasSelectedIssue {
 				paneActions = append(paneActions, viewchrome.KeyHint(theme, "s", "status"), viewchrome.KeyHint(theme, "d", "due"), viewchrome.KeyHint(theme, "P", "pin"))
 				if timerIdle {
 					edit := "edit"
-					if hasSelectedIssue {
-						if stream, ok := m.scopeStream(selectedIssue.StreamID); ok && stream.System {
-							edit = "move out of " + stream.Name
-						}
+					if stream, ok := m.scopeStream(selectedIssue.StreamID); ok && stream.System {
+						edit = "move out of " + stream.Name
 					}
 					paneActions = append(paneActions, viewchrome.KeyHint(theme, "f", "focus"), viewchrome.KeyHint(theme, "m", "log"), viewchrome.KeyHint(theme, "e", edit), viewchrome.KeyHint(theme, "D", "delete"))
 				}
@@ -704,33 +737,54 @@ func (m Model) openHelpDialog() Model {
 				paneActions = append(paneActions, viewchrome.KeyHint(theme, "A", "quick timer"))
 			}
 		} else {
-			paneActions = append(paneActions, "", "Habits (tab to focus)",
-				viewchrome.KeyHint(theme, "↑/↓", "select habit"), viewchrome.KeyHint(theme, "a", "new habit"),
-				viewchrome.KeyHint(theme, "enter", "open"), viewchrome.KeyHint(theme, "e", "edit"))
-			if timerIdle {
-				paneActions = append(paneActions, viewchrome.KeyHint(theme, "m", "log"), viewchrome.KeyHint(theme, "D", "delete"))
+			list.Pane = PaneHabits
+			paneActions = append(paneActions, "", "Habits (tab to focus)", viewchrome.KeyHint(theme, "a", "new habit"))
+			if _, ok := selectionpkg.SelectedHabit(list); ok {
+				paneActions = append(paneActions, viewchrome.KeyHint(theme, "↑/↓", "select habit"),
+					viewchrome.KeyHint(theme, "enter", "open"), viewchrome.KeyHint(theme, "e", "edit"))
+				if timerIdle {
+					paneActions = append(paneActions, viewchrome.KeyHint(theme, "m", "log"), viewchrome.KeyHint(theme, "D", "delete"))
+				}
 			}
 		}
 	}
+	if (view == ViewDaily || view == ViewDefault || view == ViewHabitList) &&
+		(m.pane == PaneIssues || m.pane == PaneHabits) {
+		paneActions = append(paneActions, viewchrome.KeyHint(theme, "/", "filter"))
+		if m.filters[m.pane] != "" {
+			paneActions = append(paneActions, viewchrome.KeyHint(theme, "esc", "clear filter"))
+		}
+	}
 	globalActions := viewchrome.DedupeActionKeys(chromeState.GlobalActions, paneActions)
-	if m.view == ViewDefault || m.view == ViewHabitList {
+	if view == ViewDefault || view == ViewHabitList {
 		globalActions = chromeState.GlobalActions
 	}
-	rows := []string{"Navigation"}
-	rows = append(
-		rows,
-		viewchrome.NavigationActions(
-			theme,
-			viewchrome.ActionsState{IsBetaBuild: m.isBetaBuild()},
-		)...)
-	rows = append(rows, viewchrome.DateActions(theme, string(m.view))...)
-	rows = append(rows, "", "Global")
-	rows = append(rows, globalActions...)
-	rows = append(rows, viewchrome.KeyHint(theme, "I", "add issues from - lines"))
+	var rows []string
 	if len(paneActions) > 0 {
-		rows = append(rows, "", "Current View")
+		rows = append(rows, "Current View")
 		rows = append(rows, paneActions...)
+		rows = append(rows, "")
 	}
+	rows = append(rows, "Global")
+	rows = append(rows, globalActions...)
+	if !chromeState.ProtectedMode {
+		rows = append(rows, viewchrome.KeyHint(theme, "I", "add issues from - lines"))
+	}
+	tabs := m.visibleTabs()
+	tabOrder := uistate.TabOrder()
+	if len(tabs) != len(tabOrder) {
+		var keys []string
+		for i, tab := range tabOrder {
+			if slices.Contains(tabs, tab) {
+				keys = append(keys, strconv.Itoa(i+1))
+			}
+		}
+		actions.TabKeys = strings.Join(keys, "/")
+	}
+	actions.SingleSubTab = len(m.visibleTabViews(uistate.TabForView(view))) < 2
+	rows = append(rows, "", "Navigation")
+	rows = append(rows, viewchrome.NavigationActions(theme, actions)...)
+	rows = append(rows, viewchrome.DateActions(theme, string(view))...)
 	meta := "Version " + versionpkg.Current()
 	if m.isDevMode() {
 		meta += "  · Dev"

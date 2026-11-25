@@ -8,17 +8,23 @@ import (
 	viewchrome "crona.work/tui/internal/tui/views/chrome"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func renderOnboardingScreen(theme Theme, state controllerpkg.State) string {
-	contentWidth := state.Width - 16
-
-	contentWidth = min(contentWidth, 72)
-	contentWidth = max(contentWidth, 100)
+	contentWidth := 100
+	if state.Width > 0 {
+		contentWidth = min(max(2, state.Width-4), contentWidth)
+	}
+	compact := state.Height < 30
+	logo := viewchrome.LogoLarge()
+	if compact {
+		logo = viewchrome.LogoTiny()
+	}
 
 	progress := onboardingProgress(theme, state.TelemetryStep)
 	rows := []string{
-		centerBlock(theme.StyleNormal.Render(viewchrome.LogoLarge()), contentWidth),
+		centerBlock(theme.StyleNormal.Render(logo), contentWidth),
 		"",
 		centerLine(theme.StyleHeader.Render("Let's get things set up."), contentWidth),
 		"",
@@ -61,7 +67,7 @@ func renderOnboardingScreen(theme Theme, state controllerpkg.State) string {
 			rows,
 			centerLine(theme.StyleHeader.Render("Your workspace"), contentWidth),
 			centerLine(
-				theme.StyleDim.Render("Pick the workspace Crona should use."),
+				theme.StyleDim.Render("How your work is organized."),
 				contentWidth,
 			),
 			"",
@@ -163,6 +169,15 @@ func renderOnboardingScreen(theme Theme, state controllerpkg.State) string {
 			),
 		)
 	}
+	if compact {
+		visible := rows[:0]
+		for _, row := range rows {
+			if row != "" {
+				visible = append(visible, row)
+			}
+		}
+		rows = visible
+	}
 	return lipgloss.NewStyle().Width(contentWidth).Render(strings.Join(rows, "\n"))
 }
 
@@ -184,8 +199,8 @@ func centerLine(line string, width int) string {
 	if width <= 0 {
 		return line
 	}
-	if lipgloss.Width(line) >= width {
-		return line
+	if lipgloss.Width(line) > width {
+		return centerBlock(ansi.Wrap(line, width, ""), width)
 	}
 	return strings.Repeat(" ", (width-lipgloss.Width(line))/2) + line
 }

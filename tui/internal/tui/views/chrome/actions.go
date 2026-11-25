@@ -14,6 +14,8 @@ import (
 import uistate "crona.work/tui/internal/tui/state"
 
 type ActionsState struct {
+	TabKeys                   string
+	SingleSubTab              bool
 	View                      string
 	Pane                      string
 	TimerState                string
@@ -44,9 +46,13 @@ func segmentPtr(value string) *sharedtypes.SessionSegmentType {
 
 // NavigationActions move between tabs; they live on the help sheet, not the bottom row.
 func NavigationActions(theme Theme, state ActionsState) []string {
-	actions := []string{
-		theme.StyleHeader.Render("[1-5]") + theme.StyleDim.Render(" tabs"),
-		theme.StyleHeader.Render("[[/]]") + theme.StyleDim.Render(" sub-tabs"),
+	tabKeys := state.TabKeys
+	if tabKeys == "" {
+		tabKeys = "1-5"
+	}
+	actions := []string{KeyHint(theme, tabKeys, "tabs")}
+	if !state.SingleSubTab {
+		actions = append(actions, KeyHint(theme, "[/]", "sub-tabs"))
 	}
 	if state.IsBetaBuild {
 		actions = append(
@@ -116,7 +122,7 @@ func GlobalActions(theme Theme, state ActionsState) []string {
 	if supportsGlobalCreate(state.View) && !state.SelectedIssueAdhoc {
 		actions = append(actions, theme.StyleHeader.Render("[a]")+theme.StyleDim.Render(" create"))
 	}
-	if supportsGlobalContext(state.View) && state.Pane != string(uistate.PaneScope) {
+	if !state.RestModeActive && supportsGlobalContext(state.View) && state.Pane != string(uistate.PaneScope) {
 		actions = append(
 			actions,
 			theme.StyleHeader.Render("[c]")+theme.StyleDim.Render(" context"),
@@ -166,50 +172,28 @@ func ContextualActions(theme Theme, state ActionsState) []string {
 				theme.StyleHeader.Render("[A]") + theme.StyleDim.Render(" start quick timer"),
 			}
 		}
+		actions := []string{KeyHint(theme, "x", "end session"), KeyHint(theme, "i", "context")}
+		if state.TimerState == "ready" && !state.HardLimitActive {
+			actions = append([]string{KeyHint(theme, "r", "start "+timerActionSegmentLabel(state.TimerNextSegment))}, actions...)
+		}
 		if state.HardLimitActive {
-			actions := []string{
-				theme.StyleHeader.Render("[x]") + theme.StyleDim.Render(" end session"),
-				theme.StyleHeader.Render("[i]") + theme.StyleDim.Render(" context"),
-				theme.StyleHeader.Render("[s]") + theme.StyleDim.Render(" change status"),
+			if label := helperpkg.PomodoroAdvanceActionLabel(&api.TimerState{
+				State:           state.TimerState,
+				SegmentType:     segmentPtr(state.TimerSegment),
+				NextSegmentType: segmentPtr(state.TimerNextSegment),
+				HardLimitActive: true,
+				HardLimitKind:   state.HardLimitKind,
+			}); label != "" {
+				actions = append([]string{KeyHint(theme, "z", label)}, actions...)
 			}
-			if sharedtypes.NormalizeTimerHardLimitKind(
-				state.HardLimitKind,
-			) == sharedtypes.TimerHardLimitKindPomodoro {
-				if label := helperpkg.PomodoroAdvanceActionLabel(&api.TimerState{
-					State:           state.TimerState,
-					SegmentType:     segmentPtr(state.TimerSegment),
-					NextSegmentType: segmentPtr(state.TimerNextSegment),
-					HardLimitActive: true,
-					HardLimitKind:   state.HardLimitKind,
-				}); label != "" {
-					actions = append(
-						[]string{
-							theme.StyleHeader.Render("[z]") + theme.StyleDim.Render(" "+label),
-						},
-						actions...)
-				}
-			}
-			return actions
+		} else if state.TimerState == "running" {
+			actions = append([]string{KeyHint(theme, "p", "pause")}, actions...)
+		} else if state.TimerState == "paused" {
+			actions = append([]string{KeyHint(theme, "r", "resume")}, actions...)
 		}
-		if state.TimerState == "ready" {
-			return []string{
-				theme.StyleHeader.Render(
-					"[r]",
-				) + theme.StyleDim.Render(
-					" start "+timerActionSegmentLabel(state.TimerNextSegment),
-				),
-				theme.StyleHeader.Render("[x]") + theme.StyleDim.Render(" end session"),
-				theme.StyleHeader.Render("[i]") + theme.StyleDim.Render(" context"),
-				theme.StyleHeader.Render("[s]") + theme.StyleDim.Render(" change status"),
-			}
-		}
-		return []string{
-			theme.StyleHeader.Render("[p]") + theme.StyleDim.Render(" pause"),
-			theme.StyleHeader.Render("[x]") + theme.StyleDim.Render(" end session"),
-			theme.StyleHeader.Render("[i]") + theme.StyleDim.Render(" context"),
-			theme.StyleHeader.Render("[s]") + theme.StyleDim.Render(" change status"),
-		}
+		return actions
 	}
+
 	if state.View == "session_history" {
 		return []string{
 			theme.StyleHeader.Render("[enter]") + theme.StyleDim.Render(" open details dialog"),

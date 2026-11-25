@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 
+	"crona.work/tui/internal/api"
 	"crona.work/tui/internal/tui/input"
 	layoutpkg "crona.work/tui/internal/tui/layout"
 	supportview "crona.work/tui/internal/tui/views/support"
@@ -48,7 +49,7 @@ func TestHelpSheetListsNavigationKeys(t *testing.T) {
 		filters: map[Pane]string{},
 	}
 	body := ansi.Strip(m.openHelpDialog().dialogState().ViewBody)
-	for _, want := range []string{"Navigation", "[1-5] tabs", "[[/]] sub-tabs", "[,/.] date", "[g] today", "[S] day summary", "[C] calendar"} {
+	for _, want := range []string{"Navigation", "[1-5] tabs", "[,/.] date", "[g] today", "[S] day summary", "[C] calendar"} {
 		if !strings.Contains(body, want) {
 			t.Fatalf("expected the help sheet to list %q, got %q", want, body)
 		}
@@ -145,7 +146,7 @@ func TestHelpSheetListsScopeKeys(t *testing.T) {
 		for _, pane := range []Pane{PaneScope, list} {
 			m := Model{view: view, pane: pane, cursor: map[Pane]int{}, filters: map[Pane]string{}}
 			body := ansi.Strip(m.openHelpDialog().dialogState().ViewBody)
-			for _, want := range []string{"Current View", "Scope", "[c] check out", "[a] new repo", "[a] new stream", "[enter] open", "[e] edit", "[m] log"} {
+			for _, want := range []string{"Current View", "Scope", "[c] check out", "[a] new repo", "[a] new stream", "[enter] open scope", "[e] edit scope"} {
 				if !strings.Contains(body, want) {
 					t.Errorf("openHelpDialog(%s, %s) = %q, want %q", view, pane, body, want)
 				}
@@ -238,4 +239,34 @@ func TestSystemBottomRowsGlobalsOnly(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestHelpSheetMatchesFirstRunContext(t *testing.T) {
+	m := Model{view: ViewDaily, pane: PaneIssues, filters: map[Pane]string{PaneIssues: "no match"}}
+	check := func(m Model, want, unwanted []string) {
+		t.Helper()
+		body := ansi.Strip(m.openHelpDialog().dialogState().ViewBody)
+		for _, hint := range want {
+			if !strings.Contains(body, hint) {
+				t.Errorf("missing %q in %s", hint, body)
+			}
+		}
+		for _, hint := range unwanted {
+			if strings.Contains(body, hint) {
+				t.Errorf("unexpected %q in %s", hint, body)
+			}
+		}
+	}
+	check(m, []string{"[a] new issue", "[A] quick timer", "[esc] clear filter"}, []string{"[f]", "[s]", "[enter]"})
+	m.timer = &api.TimerState{State: "running"}
+	check(m, []string{"[a] new issue"}, []string{"[A]", "[f]", "[enter]"})
+	m.view = ViewDefault
+	check(m, []string{"[a] new issue", "[esc] clear filter"}, []string{"[f]", "[s]", "[m]"})
+	m.view = ViewDaily
+	m.settings = &api.CoreSettings{AwayModeEnabled: true}
+	check(m, []string{"[W] disable away", "[1/4/5] tabs"}, []string{"[a]", "[I]", "[w]", "[C]"})
+	m.settings = nil
+	m.view = ViewSessionActive
+	m.timer = &api.TimerState{State: "paused"}
+	check(m, []string{"[r] resume", "[x] end session", "[1/4] tabs"}, []string{"[p]", "[s]"})
 }

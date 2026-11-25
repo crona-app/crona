@@ -36,7 +36,7 @@ func (m Model) layoutState() layoutpkg.State {
 	selectedIssue, hasSelectedIssue := m.selectedIssueRecord()
 	selectedIssueAdhoc := hasSelectedIssue && selectedIssue.Adhoc
 	chromeState := m.layoutChromeState()
-	paneActions := viewchrome.PaneActions(layoutpkg.ViewTheme(), viewchrome.ActionsState{
+	actions := viewchrome.ActionsState{
 		View:                   string(view),
 		Pane:                   string(m.pane),
 		SelectedIssueAdhoc:     selectedIssueAdhoc,
@@ -54,7 +54,12 @@ func (m Model) layoutState() layoutpkg.State {
 			m.currentExecutablePath,
 			kernelExecutablePath(m.kernelInfo),
 		),
-	})
+	}
+	if m.timer != nil {
+		actions.HardLimitActive = m.timer.HardLimitActive
+		actions.HardLimitKind = m.timer.HardLimitKind
+	}
+	paneActions := viewchrome.PaneActions(layoutpkg.ViewTheme(), actions)
 	switch view {
 	case ViewDaily,
 		ViewDefault,
