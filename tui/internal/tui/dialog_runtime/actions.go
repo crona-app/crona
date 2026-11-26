@@ -36,7 +36,7 @@ type Deps struct {
 	PromoteAdhocIssue              func(issueID int64, repoName, streamName, title string, description *string, estimateMinutes *int, dueDate *string, dashboardDate string) tea.Cmd
 	MoveInboxIssue                 func(issueID int64, repoName, streamName, title string, description *string, estimateMinutes *int, dueDate *string, dashboardDate string) tea.Cmd
 	CheckoutContext                func(repoID int64, repoName string, streamID int64, streamName string) tea.Cmd
-	UpsertDailyCheckIn             func(req shareddto.DailyCheckInUpsertRequest, refreshDate string) tea.Cmd
+	UpsertDailyCheckIn             func(req shareddto.DailyCheckInUpsertRequest) tea.Cmd
 	UpdateIssue                    func(issueID, streamID int64, title string, description *string, estimateMinutes *int, dueDate *string, dashboardDate string) tea.Cmd
 	SetHabitStatus                 func(habitID int64, date string, status sharedtypes.HabitCompletionStatus, estimateMinutes *int, note *string, momentumDate string, momentumWindowDays int) tea.Cmd
 	CopyDailyReport                func(date string) tea.Cmd
@@ -411,7 +411,7 @@ func checkinCmd(action dialogstate.Action, deps Deps) tea.Cmd {
 		SleepScore:        action.SleepScore,
 		ScreenTimeMinutes: action.ScreenTimeMinutes,
 		Notes:             action.Note,
-	}, action.CheckInDate)
+	})
 }
 
 func exportCmd(action dialogstate.Action, state State, deps Deps) tea.Cmd {

@@ -171,6 +171,7 @@ type Model struct {
 	momentumBucketKey        string
 	momentumBucketWant       string
 	dailyCheckIn             *api.DailyCheckIn
+	dailyCheckInWatermark    time.Time
 	metricsRange             []api.DailyMetricsDay
 	metricsRollup            *api.MetricsRollup
 	rollupMetricsRange       []api.DailyMetricsDay

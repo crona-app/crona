@@ -361,6 +361,20 @@ func (m Model) update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.summarySnapshot.CalendarScores[score.Date] = score
 		}
 		return m, nil
+	case commands.DailyCheckInLoadedMsg:
+		if msg.Date == m.currentDate() && !msg.RequestedAt.Before(m.dailyCheckInWatermark) {
+			m.dailyCheckIn = msg.CheckIn
+			m.dailyCheckInWatermark = msg.RequestedAt
+		}
+		return m, nil
+	case commands.DailyCheckInSavedMsg:
+		date := m.currentDate()
+		if msg.CheckIn != nil && msg.CheckIn.Date == date && !msg.CompletedAt.Before(m.dailyCheckInWatermark) {
+			m.dailyCheckIn = msg.CheckIn
+			m.dailyCheckInWatermark = msg.CompletedAt
+		}
+		m.checkInHistoryStale = true
+		return m, tea.Batch(commands.LoadWellbeing(m.client, date), commands.LoadSummarySnapshot(m.client, date))
 	case commands.IssueReadyForFocusMsg:
 		return m.completeFocusRecovery(msg.IssueID, false)
 	}

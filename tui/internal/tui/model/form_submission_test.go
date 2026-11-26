@@ -3,6 +3,7 @@ package model
 import (
 	"path/filepath"
 	"testing"
+	"time"
 
 	"crona.work/tui/internal/api"
 	"crona.work/tui/internal/tui/commands"
@@ -156,5 +157,79 @@ func TestCompletedExportShowsFullPath(t *testing.T) {
 	result := completed.(Model).dialogState()
 	if result.ViewTitle != "Export Complete" || result.ViewBody != path {
 		t.Fatalf("expected an export receipt with the complete path, got %q, %q", result.ViewTitle, result.ViewBody)
+	}
+}
+
+func TestSavedCheckInReopensWithPersistedValues(t *testing.T) {
+	m := NewDailyRenderModel(60, 20)
+	m.date = "2026-11-26"
+	m = m.openCheckInDialogForDate(m.date)
+	saved := &api.DailyCheckIn{Date: m.date, Mood: 4, Energy: 3, Notes: new("Persisted notes")}
+	pending, cmd := m.submitForm(
+		m.withDialogState(dialogstate.Close(m.dialogState())),
+		dialogstate.Action{Kind: "create_checkin"},
+		func() tea.Msg {
+			return commands.DailyCheckInSavedMsg{CheckIn: saved, CompletedAt: time.Date(2026, 11, 26, 12, 0, 0, 0, time.UTC)}
+		},
+	)
+	result, _ := pending.(Model).Update(cmd())
+	reopened, _ := press(result.(Model), "w")
+	state := reopened.dialogState()
+	if state.Kind != "edit_checkin" || state.Inputs[0].Value() != "4" ||
+		state.Inputs[1].Value() != "3" || state.Inputs[5].Value() != "Persisted notes" {
+		t.Fatalf("check-in did not reopen with the saved values: %q", state.Kind)
+	}
+}
+
+func TestCheckInRepliesRespectDateAndReadOrder(t *testing.T) {
+	m := NewDailyRenderModel(60, 20)
+	m.date = "2026-11-26"
+	at := time.Date(2026, 11, 26, 12, 0, 0, 0, time.UTC)
+	saved := &api.DailyCheckIn{Date: m.date, Mood: 4, Energy: 3}
+	apply := func(message tea.Msg) {
+		t.Helper()
+		next, _ := m.Update(message)
+		m = next.(Model)
+	}
+	apply(commands.DailyCheckInSavedMsg{CheckIn: saved, CompletedAt: at})
+	apply(commands.DailyCheckInLoadedMsg{Date: m.date, RequestedAt: at.Add(-time.Second)})
+	if m.dailyCheckIn != saved {
+		t.Fatal("a stale empty read erased the saved check-in")
+	}
+
+	m.date = "2026-11-25"
+	if state := m.openCheckInDialogForDate(m.date).dialogState(); state.Kind != "create_checkin" {
+		t.Fatal("a cached record from the previous date should not open in edit mode")
+	}
+	other := &api.DailyCheckIn{Date: m.date, Mood: 2, Energy: 1}
+	apply(commands.DailyCheckInLoadedMsg{Date: m.date, CheckIn: other, RequestedAt: at.Add(time.Second)})
+	apply(commands.DailyCheckInSavedMsg{CheckIn: saved, CompletedAt: at.Add(2 * time.Second)})
+	apply(commands.DailyCheckInLoadedMsg{Date: saved.Date, RequestedAt: at.Add(3 * time.Second)})
+	if m.dailyCheckIn != other {
+		t.Fatal("a response for a different date replaced the current record")
+	}
+	apply(commands.DailyCheckInLoadedMsg{Date: m.date, RequestedAt: at.Add(4 * time.Second)})
+	if m.dailyCheckIn != nil {
+		t.Fatal("a fresh empty load should clear a deleted check-in")
+	}
+}
+
+func TestFailedCheckInSaveKeepsEnteredValues(t *testing.T) {
+	m := NewDailyRenderModel(60, 20)
+	m.date = "2026-11-26"
+	m.client = api.NewClient("unix", filepath.Join(t.TempDir(), "missing.sock"))
+	form := dialogstate.OpenCreateCheckIn(m.dialogState(), m.date)
+	form.Inputs[0].SetValue("4")
+	form.Inputs[1].SetValue("3")
+	m = m.withDialogState(form)
+	pending, cmd := m.updateDialog(tea.KeyMsg{Type: tea.KeyCtrlS})
+	if cmd == nil {
+		t.Fatal("missing check-in save command")
+	}
+	result, _ := pending.(Model).Update(cmd())
+	state := result.(Model).dialogState()
+	if state.Kind != "create_checkin" || state.ErrorMessage == "" ||
+		state.Inputs[0].Value() != "4" || state.Inputs[1].Value() != "3" {
+		t.Fatalf("failed check-in save lost entered values or its inline error: %q", state.Kind)
 	}
 }

@@ -368,12 +368,13 @@ func LoadDailyPlan(c *api.Client, date string) tea.Cmd {
 
 func LoadDailyCheckIn(c *api.Client, date string) tea.Cmd {
 	return func() tea.Msg {
+		requestedAt := time.Now()
 		checkIn, err := c.GetDailyCheckIn(date)
 		if err != nil {
 			logger.Errorf("loadDailyCheckIn: %v", err)
 			return ErrMsg{Err: err}
 		}
-		return DailyCheckInLoadedMsg{CheckIn: checkIn}
+		return DailyCheckInLoadedMsg{Date: date, CheckIn: checkIn, RequestedAt: requestedAt}
 	}
 }
 

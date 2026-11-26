@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"time"
+
 	shareddto "crona.work/shared/dto"
 	"crona.work/tui/internal/api"
 )
@@ -54,7 +56,17 @@ type PaneFilterSetMsg struct {
 	Pane  string
 	Value string
 }
-type DailyCheckInLoadedMsg struct{ CheckIn *api.DailyCheckIn }
+type DailyCheckInLoadedMsg struct {
+	Date        string
+	CheckIn     *api.DailyCheckIn
+	RequestedAt time.Time
+}
+
+// DailyCheckInSavedMsg carries the daemon's persisted check-in.
+type DailyCheckInSavedMsg struct {
+	CheckIn     *api.DailyCheckIn
+	CompletedAt time.Time
+}
 type MetricsRangeLoadedMsg struct{ Days []api.DailyMetricsDay }
 type MetricsRollupLoadedMsg struct{ Rollup *api.MetricsRollup }
 type StreaksLoadedMsg struct{ Streaks *api.StreakSummary }

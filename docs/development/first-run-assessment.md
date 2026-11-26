@@ -120,7 +120,7 @@ Ctrl+S saved 10:00. Both test runtimes were stopped.
 
 Follow-up finding: pressing `w` after saving a check-in reopened a blank
 New Check-In form during both walkthroughs. The saved values were present in
-the local database. Check-in reload behavior needs a separate investigation.
+the local database. The November 26 release follow-up below resolves this.
 
 ## Task 4 outcome (2026-11-25)
 
@@ -197,3 +197,20 @@ that missed a target after activity was recorded.
 The isolated session captured empty Momentum at all three sizes. Renderer
 tests cover zero-count history, the first matching focus session, and
 populated habit and focus goals. Both test processes were stopped.
+
+## Release follow-up (2026-11-26)
+
+In a disposable 60x20 TUI, pausing the daemon held the Backlog recovery
+request open. After Escape and opening New Issue, resuming the daemon left
+the new form and its typed title intact. The original issue moved to Ready.
+A second Backlog recovery completed normally and opened the focus picker for
+that issue.
+
+Saving a check-in and pressing `w` reopened Edit Check-In with mood 4 and
+energy 3. Editing the notes, moving to the prior date, returning to Today,
+and deleting the saved check-in from Log each produced the expected form.
+The disposable database confirmed both recovered issues were Ready and the
+deleted check-in was gone. The test processes were stopped.
+
+`make ci` and the daemon IPC end-to-end suite passed. The IPC suite ran
+with access to temporary Unix sockets.

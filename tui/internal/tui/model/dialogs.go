@@ -516,7 +516,7 @@ func (m Model) openEditCheckInDialog() Model {
 
 func (m Model) openCheckInDialogForDate(date string) Model {
 	snapshot := m.dialogSnapshot()
-	if m.dailyCheckIn == nil {
+	if m.dailyCheckIn == nil || m.dailyCheckIn.Date != date {
 		return m.withDialogState(snapshot.OpenCreateCheckInForDate(date))
 	}
 	return m.withDialogState(snapshot.OpenEditCheckInForDate(date))
@@ -1246,11 +1246,11 @@ func (m Model) dialogRuntimeDeps() dialogruntime.Deps {
 		CheckoutContext: func(repoID int64, repoName string, streamID int64, streamName string) tea.Cmd {
 			return commands.CheckoutContext(m.client, repoID, repoName, streamID, streamName)
 		},
-		UpsertDailyCheckIn: func(req shareddto.DailyCheckInUpsertRequest, refreshDate string) tea.Cmd {
+		UpsertDailyCheckIn: func(req shareddto.DailyCheckInUpsertRequest) tea.Cmd {
 			if m.view == ViewCheckInHistory {
 				return commands.SaveHistoryCheckIn(m.client, req)
 			}
-			return commands.UpsertDailyCheckIn(m.client, req, refreshDate)
+			return commands.UpsertDailyCheckIn(m.client, req)
 		},
 		UpdateIssue: func(issueID, streamID int64, title string, description *string, estimateMinutes *int, dueDate *string, dashboardDate string) tea.Cmd {
 			return commands.UpdateIssue(

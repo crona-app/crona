@@ -312,9 +312,6 @@ func HandleMessage(
 			deps.ClampFiltered(&state, uistate.PaneTags)
 		}
 		return state, nil, true
-	case commands.DailyCheckInLoadedMsg:
-		state.DailyCheckIn = msg.CheckIn
-		return state, nil, true
 	case commands.MetricsRangeLoadedMsg:
 		if staleReviewDays(state, deps, msg.Days) {
 			return state, nil, true

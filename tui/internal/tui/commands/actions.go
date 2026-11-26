@@ -167,17 +167,14 @@ func DeleteMomentumDefinition(
 	}
 }
 
-func UpsertDailyCheckIn(
-	c *api.Client,
-	input shareddto.DailyCheckInUpsertRequest,
-	date string,
-) tea.Cmd {
+func UpsertDailyCheckIn(c *api.Client, input shareddto.DailyCheckInUpsertRequest) tea.Cmd {
 	return func() tea.Msg {
-		if _, err := c.UpsertDailyCheckIn(input); err != nil {
+		saved, err := c.UpsertDailyCheckIn(input)
+		if err != nil {
 			logger.Errorf("UpsertDailyCheckIn: %v", err)
 			return ErrMsg{Err: err}
 		}
-		return tea.Batch(LoadWellbeing(c, date), RequestRollupRefresh())()
+		return DailyCheckInSavedMsg{CheckIn: saved, CompletedAt: time.Now()}
 	}
 }
 
