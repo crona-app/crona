@@ -81,6 +81,32 @@ func (m Model) dialogSnapshot() dialogstate.Snapshot {
 	return dialogSnapshot
 }
 
+func (m Model) completeFocusRecovery(issueID int64, openPicker bool) (Model, tea.Cmd) {
+	refresh := []tea.Cmd{
+		commands.LoadAllIssues(m.client),
+		commands.LoadDailySummary(m.client, m.currentDate()),
+		commands.LoadDailyPlan(m.client, m.currentDate()),
+	}
+	target, found := m.issueMetaByID(issueID)
+	if found && target != nil {
+		refresh = append(refresh, commands.LoadIssues(m.client, target.StreamID))
+	}
+	if !openPicker {
+		return m, tea.Batch(refresh...)
+	}
+	protected, _, _ := viewruntime.ProtectedRestMode(m.settings, m.currentLogicalDate())
+	switch {
+	case !found || target == nil:
+		refresh = append(refresh, m.setStatus("Issue is no longer available", true))
+	case protected || (m.timer != nil && m.timer.State != "idle"):
+		refresh = append(refresh, m.setStatus("Issue status updated. Focus is unavailable right now.", false))
+	default:
+		m = m.openStartTimerDialog(target.RepoID, target.StreamID, issueID,
+			target.Title, target.EstimateMinutes, target.WorkedSeconds)
+	}
+	return m, tea.Batch(refresh...)
+}
+
 func (m Model) dialogActionCmd(action dialogstate.Action) tea.Cmd {
 	return dialogruntime.Resolve(action, m.dialogRuntimeState(), m.dialogRuntimeDeps())
 }
@@ -88,7 +114,6 @@ func (m Model) dialogActionCmd(action dialogstate.Action) tea.Cmd {
 func (m Model) handleDialogAction(next Model, action dialogstate.Action) (Model, tea.Cmd) {
 	switch action.Kind {
 	case "prepare_focus_status":
-		next.pendingFocusIssueID = action.IssueID
 		return next, commands.PrepareIssueForFocus(
 			next.client,
 			action.IssueID,

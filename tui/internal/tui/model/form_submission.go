@@ -27,7 +27,7 @@ func recoverableFormAction(kind string) bool {
 		"create_habit", "edit_habit", "create_checkin", "edit_checkin",
 		"promote_adhoc_issue", "move_inbox_issue", "patch_setting",
 		"patch_rest_protection", "patch_telemetry_settings", "complete_onboarding",
-		"start_focus_session", "extend_hard_limit", "manual_session",
+		"prepare_focus_status", "start_focus_session", "extend_hard_limit", "manual_session",
 		"edit_session_history", "create_alert_reminder", "edit_alert_reminder",
 		"create_momentum", "update_momentum", "set_tags", "rename_tag", "export_report", "set_export_reports_dir", "set_export_ics_dir":
 		return true
@@ -98,5 +98,8 @@ func (m Model) applyFormSubmission(result formSubmissionResult) (tea.Model, tea.
 		return m, m.dispatchMessageDeps().ReportHandledError(failure.Err, failure.Operation)
 	}
 	m = m.withDialogState(result.nextDialog)
+	if recovered, ok := result.message.(commands.IssueReadyForFocusMsg); ok {
+		return m.completeFocusRecovery(recovered.IssueID, true)
+	}
 	return m.Update(result.message)
 }

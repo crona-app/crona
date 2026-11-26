@@ -9,8 +9,8 @@ import (
 func PrepareIssueForFocus(c *api.Client, issueID int64, status string) tea.Cmd {
 	return func() tea.Msg {
 		if err := c.ChangeIssueStatus(issueID, status, nil); err != nil {
-			return IssueReadyForFocusMsg{IssueID: issueID, Status: status, Err: err}
+			return ErrMsg{Err: err, Operation: "prepare issue for focus"}
 		}
-		return IssueReadyForFocusMsg{IssueID: issueID, Status: status}
+		return IssueReadyForFocusMsg{IssueID: issueID}
 	}
 }

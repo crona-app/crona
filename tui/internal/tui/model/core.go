@@ -83,7 +83,6 @@ const (
 // ---------- Model ----------
 
 type Model struct {
-	pendingFocusIssueID                                              int64
 	checkInHistory                                                   []api.DailyCheckIn
 	checkInHistoryGeneration                                         uint64
 	checkInHistoryLoaded, checkInHistoryLoading, checkInHistoryStale bool

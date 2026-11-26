@@ -173,11 +173,7 @@ type FocusSessionChangedMsg struct {
 	ReloadTimer   bool
 }
 
-type IssueReadyForFocusMsg struct {
-	IssueID int64
-	Status  string
-	Err     error
-}
+type IssueReadyForFocusMsg struct{ IssueID int64 }
 
 type IssueActionMode string
 
