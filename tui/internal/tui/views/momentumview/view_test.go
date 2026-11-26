@@ -128,7 +128,7 @@ func TestRenderUsesBucketTimelineAndWideCard(t *testing.T) {
 	if !hasWidePaneLine(rendered, 130) {
 		t.Fatalf("expected a wide card layout in render, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "[←/→] bucket") {
+	if !strings.Contains(rendered, "[←/→] week") {
 		t.Fatalf("expected latest bucket summary in render, got %q", rendered)
 	}
 	if !strings.ContainsFunc(rendered, func(r rune) bool { return r >= 0x2800 && r <= 0x28FF }) {
@@ -194,7 +194,7 @@ func TestRenderUsesContextLabelAndDurationValues(t *testing.T) {
 	if !strings.Contains(rendered, "Work/app, OSS/cli") {
 		t.Fatalf("expected context target names in render, got %q", rendered)
 	}
-	if !strings.Contains(rendered, "All · 2 contexts, 2h each") {
+	if !strings.Contains(rendered, "2h focus per week in each context") {
 		t.Fatalf("expected context meta to use duration-based target text, got %q", rendered)
 	}
 	if !strings.Contains(rendered, "target 2h") {

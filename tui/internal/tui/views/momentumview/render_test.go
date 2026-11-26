@@ -43,7 +43,7 @@ func TestRenderNarrowListOnly(t *testing.T) {
 	)
 	assertFits(t, rendered, 60, 20)
 	text := plain(rendered)
-	if strings.Contains(text, "Cadence") || !strings.Contains(text, "[enter]") {
+	if strings.Contains(text, "Period") || !strings.Contains(text, "[enter]") {
 		t.Fatalf("expected the list alone with an enter hint, got\n%s", text)
 	}
 }
@@ -61,7 +61,7 @@ func TestRenderMediumAndWideShowDetail(t *testing.T) {
 		)
 		assertFits(t, rendered, size[0], size[1])
 		text := plain(rendered)
-		for _, want := range []string{"Cadence", "Target", "Streak", "Deep work"} {
+		for _, want := range []string{"Period", "Target", "Streak", "Deep work"} {
 			if !strings.Contains(text, want) {
 				t.Fatalf("%v: expected %q in\n%s", size, want, text)
 			}
@@ -94,7 +94,7 @@ func TestRenderListCreateLineAndEmpty(t *testing.T) {
 	}
 	if text := squash(plain(Render(types.Theme{}, renderState(120, 36)))); !strings.Contains(
 		text,
-		"No momentums yet [a] new momentum",
+		"No momentum goals yet",
 	) {
 		t.Fatalf("expected the empty state, got\n%s", text)
 	}
@@ -176,7 +176,7 @@ func labelledCard(name string, labels ...string) sharedtypes.MomentumCard {
 
 func TestDetailHeaderPairsSettings(t *testing.T) {
 	lines := DetailLines(types.Theme{}, momentumTestCard("Deep work", "W1"), 80, 30, 0, nil)
-	if !strings.Contains(plain(lines[0]), "Cadence") ||
+	if !strings.Contains(plain(lines[0]), "Period") ||
 		!strings.Contains(plain(lines[0]), "Habits") {
 		t.Fatalf("expected settings side by side, got %q", plain(lines[0]))
 	}
@@ -222,7 +222,7 @@ func TestWideGivesBucketsTheirOwnColumn(t *testing.T) {
 		),
 		"\n",
 	)
-	title := lineContaining(strings.Join(lines, "\n"), "Momentums")
+	title := lineContaining(strings.Join(lines, "\n"), "Momentum Goals")
 	if !strings.Contains(title, "Deep work") || !strings.Contains(title, "─ Oct 2 ") {
 		t.Fatalf("expected list, detail and the bucket's contributors side by side, got %q", title)
 	}
@@ -234,5 +234,35 @@ func TestPairedHeaderKeepsLongTargets(t *testing.T) {
 	text := plain(strings.Join(DetailLines(types.Theme{}, card, 72, 30, 0, nil), "\n"))
 	if strings.Contains(text, "…") || strings.Contains(text, "...") {
 		t.Fatalf("expected no truncated settings at 72 cells, got\n%s", text)
+	}
+}
+
+func TestMomentumExplainsEmptyAndFirstActivity(t *testing.T) {
+	for _, size := range [][2]int{{60, 20}, {120, 36}, {200, 46}} {
+		empty := plain(Render(types.Theme{}, renderState(size[0], size[1])))
+		for _, want := range []string{"No momentum goals yet", "Track focus time or habit completions.", "[a] new momentum"} {
+			if !strings.Contains(empty, want) {
+				t.Errorf("%v: empty Momentum missing %q", size, want)
+			}
+		}
+	}
+	card := momentumTestCard("Deep work")
+	card.Definition.TargetKind = sharedtypes.MomentumTargetKindContext
+	card.Definition.Period = sharedtypes.HabitStreakPeriodWeek
+	card.Definition.RequiredCount = 3600
+	card.Series = []sharedtypes.MomentumSeriesPoint{{Label: "First week", Target: 3600}}
+	text := plain(strings.Join(DetailLines(types.Theme{}, card, 80, 28, 0, nil), "\n"))
+	for _, want := range []string{"Period", "focus per week", "Log matching focus sessions to see progress."} {
+		if !strings.Contains(text, want) {
+			t.Errorf("first-use detail missing %q in %q", want, text)
+		}
+	}
+	if strings.Contains(text, "missed") {
+		t.Error("zero-history goal should show no activity")
+	}
+	card.Series[0].Count = 1800
+	active := plain(strings.Join(DetailLines(types.Theme{}, card, 80, 28, 0, nil), "\n"))
+	if !strings.Contains(active, "30m/1h") || strings.Contains(active, "Log matching focus sessions") {
+		t.Errorf("first session missing from the selected week: %q", active)
 	}
 }

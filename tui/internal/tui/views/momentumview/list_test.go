@@ -113,7 +113,7 @@ func TestStripRowsCounts(t *testing.T) {
 	state := stripState(
 		cardWith("Deep work", true, 27, 30, points(4, 4)),
 		cardWith("Reading", true, 3, 40, points(4, 3)),
-		cardWith("Gym", true, 1, 5, points(4, 0)),
+		cardWith("Gym", true, 1, 5, points(4, 1)),
 		cardWith("Piano", false, 0, 12, points(4, 4)),
 	)
 	rows := StripRows(types.Theme{}, state, 120)

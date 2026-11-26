@@ -2,6 +2,7 @@ package momentumview
 
 import (
 	"math"
+	"slices"
 	"strings"
 
 	sharedtypes "crona.work/shared/types"
@@ -39,6 +40,12 @@ func sparkline(theme types.Theme, series []sharedtypes.MomentumSeriesPoint, enab
 	return b.String()
 }
 
+func hasMomentumActivity(card sharedtypes.MomentumCard) bool {
+	return slices.ContainsFunc(card.Series, func(point sharedtypes.MomentumSeriesPoint) bool {
+		return point.Count > 0
+	})
+}
+
 // latestStatus is the status of the momentum's latest bucket, or "" with no buckets.
 func latestStatus(card sharedtypes.MomentumCard) string {
 	if !card.Definition.Enabled {
@@ -47,7 +54,11 @@ func latestStatus(card sharedtypes.MomentumCard) string {
 	if len(card.Series) == 0 {
 		return ""
 	}
-	return momentumStatusForPoint(card.Series[len(card.Series)-1], true)
+	latest := card.Series[len(card.Series)-1]
+	if !latest.Skipped && !hasMomentumActivity(card) {
+		return ""
+	}
+	return momentumStatusForPoint(latest, true)
 }
 
 // statusMarks are the one-glyph forms of bucket statuses; paused stays a word.

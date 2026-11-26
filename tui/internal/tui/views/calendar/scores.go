@@ -163,7 +163,7 @@ func AwayLabel(inner int) string {
 
 // ScoreWeek is the shown day's week on one line, each day its weekday, number and focus score
 // in the score grid's colours: "Mo 9 23  Tu 10 —". The shown day is in the cursor style.
-func ScoreWeek(theme types.Theme, selection ScoreSelection) string {
+func ScoreWeek(theme types.Theme, selection ScoreSelection, width int) string {
 	anchor, ok := parseISODate(selection.AnchorDate)
 	if !ok {
 		return ""
@@ -176,6 +176,8 @@ func ScoreWeek(theme types.Theme, selection ScoreSelection) string {
 	start := shareddatefmt.StartOfWeek(anchor, weekStart)
 	names := strings.Fields(compactWeekHeader(weekStart))
 	days := make([]string, 0, 7)
+	compact := make([]string, 0, 7)
+	dates := make([]string, 0, 7)
 	for i := range 7 {
 		date := start.AddDate(0, 0, i)
 		iso := date.Format("2006-01-02")
@@ -184,13 +186,23 @@ func ScoreWeek(theme types.Theme, selection ScoreSelection) string {
 			dayStyle = theme.StyleCursor
 		}
 		value := theme.StyleDim.Render("—")
+		compactValue := value
 		switch score, ok := selection.Scores[iso]; {
 		case slices.Contains(selection.AwayDates, iso):
-			value = lipgloss.NewStyle().Foreground(theme.ColorGreen).Render("away")
+			away := lipgloss.NewStyle().Foreground(theme.ColorGreen)
+			value, compactValue = away.Render("away"), away.Render("A")
 		case ok && score.HasData && !date.After(today):
 			value = lipgloss.NewStyle().Foreground(scoreColor(theme, score.Score)).Bold(true).Render(fmt.Sprint(score.Score))
+			compactValue = value
 		}
 		days = append(days, dayStyle.Render(fmt.Sprintf("%s %d", names[i], date.Day()))+" "+value)
+		compact = append(compact, dayStyle.Render(fmt.Sprintf("%s%d", names[i], date.Day()))+" "+compactValue)
+		dates = append(dates, dayStyle.Render(fmt.Sprint(date.Day()))+" "+compactValue)
 	}
-	return strings.Join(days, "  ")
+	for _, line := range []string{strings.Join(days, "  "), strings.Join(compact, " "), strings.Join(dates, "  ")} {
+		if lipgloss.Width(line) <= width {
+			return line
+		}
+	}
+	return strings.Join(dates, " ")
 }

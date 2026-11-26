@@ -400,3 +400,22 @@ func TestDailyScoreCalendarIsNotFaded(t *testing.T) {
 		}
 	}
 }
+
+func TestTodayKeepsWeekAndPopulatedPaneVisible(t *testing.T) {
+	for _, size := range [][2]int{{60, 17}, {120, 33}, {200, 43}} {
+		state := manyIssues(dailyState(size[0], size[1]), 30)
+		state.DueHabits = nil
+		state.Cursors["issues"] = 14
+		rendered := renderView(testTheme(), state)
+		rowOf(t, rendered, "Issue number 14")
+		rowOf(t, rendered, "[enter] details")
+		rowOf(t, rendered, "[f] focus")
+		habitsRow := rowOf(t, rendered, "─ Habits Due")
+		if remaining := size[1] - habitsRow; remaining != 3 {
+			t.Errorf("%v: empty habits used %d rows, want 3", size, remaining)
+		}
+		if size[0] == 60 {
+			rowOf(t, rendered, "Su31")
+		}
+	}
+}

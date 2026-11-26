@@ -39,8 +39,24 @@ func Render(theme types.Theme, state types.ContentState) string {
 	}
 	cards := visibleCards(state)
 	cursor := min(max(0, state.Cursors["momentum_cards"]), max(0, len(cards)-1))
+	if len(cards) == 0 {
+		message := "No momentum goals yet"
+		next := "Track focus time or habit completions."
+		if len(state.MomentumCards) > 0 {
+			message, next = "No goals match the filter", "Press Esc to clear the filter."
+		}
+		list := viewchrome.RenderSection(theme, viewchrome.Section{
+			Title: "Momentum Goals", Width: state.Width, Height: height, Focused: true,
+			Lines: []string{
+				viewchrome.KeyHint(theme, "a", "new momentum"),
+				theme.StyleDim.Render(message),
+				theme.StyleDim.Render(next),
+			},
+		})
+		return strings.Join(append(rows, list), "\n")
+	}
 	if viewhelpers.ClassFor(state.Width) == viewhelpers.WidthNarrow {
-		if len(cards) == 0 || height < viewchrome.StackMinHeight {
+		if height < viewchrome.StackMinHeight {
 			meta := viewchrome.KeyHint(theme, "enter", "details")
 			return strings.Join(append(rows, renderList(theme, cards, cursor, state.Width, height, meta)), "\n")
 		}
@@ -59,13 +75,7 @@ func Render(theme types.Theme, state types.ContentState) string {
 	if wide {
 		detailWidth -= bucketsWidth + 3
 	}
-	if len(cards) == 0 {
-		detail := viewchrome.RenderSection(
-			theme,
-			viewchrome.Section{Title: "Momentum", Width: detailWidth, Height: height},
-		)
-		return strings.Join(append(rows, viewchrome.JoinColumns(theme, height, list, detail)), "\n")
-	}
+
 	card := cards[cursor]
 	detail := detailSection(theme, state, card, detailWidth, height, !wide)
 	if !wide {
@@ -108,7 +118,7 @@ func detailLines(
 	withContributors bool,
 ) []string {
 	var stacked []string
-	if withContributors {
+	if withContributors && len(card.Series) > 0 {
 		bucketTitle, bucketMeta := contributorsTitle(theme, card, state.MomentumBucket)
 		stacked = append([]string{theme.StylePaneTitle.Render(bucketTitle) + "  " + bucketMeta},
 			ContributorLines(theme, state.MomentumBucketDetail, width)...)
@@ -151,22 +161,17 @@ func renderList(
 	meta string,
 ) string {
 	create := viewchrome.KeyHint(theme, "a", "new momentum")
-	lines := []string{}
-	if len(cards) == 0 {
-		lines = append(lines, theme.StyleDim.Render("No momentums yet")+"  "+create)
-	} else {
-		lines = append(lines, create)
-		start, end := viewchrome.ListWindow(cursor, len(cards), max(1, height-2))
-		for i := start; i < end; i++ {
-			row := listRow(theme, cards[i], max(1, width-4))
-			if i == cursor {
-				lines = append(lines, theme.StyleCursor.Render(viewchrome.SelectionCursor+" ")+row)
-			} else {
-				lines = append(lines, "  "+row)
-			}
+	lines := []string{create}
+	start, end := viewchrome.ListWindow(cursor, len(cards), max(1, height-2))
+	for i := start; i < end; i++ {
+		row := listRow(theme, cards[i], max(1, width-4))
+		if i == cursor {
+			lines = append(lines, theme.StyleCursor.Render(viewchrome.SelectionCursor+" ")+row)
+		} else {
+			lines = append(lines, "  "+row)
 		}
 	}
 	return viewchrome.RenderSection(theme, viewchrome.Section{
-		Title: "Momentums", Meta: meta, Focused: true, Width: width, Height: height, Lines: lines,
+		Title: "Momentum Goals", Meta: meta, Focused: true, Width: width, Height: height, Lines: lines,
 	})
 }

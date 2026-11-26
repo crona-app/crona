@@ -39,7 +39,14 @@ func detailLinesWithAway(
 	stacked []string,
 	away map[string]bool,
 ) []string {
-	lines := append(headerLines(theme, card, width), "")
+	lines := headerLines(theme, card, width)
+	if card.Definition.Enabled && !hasMomentumActivity(card) {
+		lines = append(lines, theme.StyleDim.Render(momentumActivityHint(card.Definition)))
+	}
+	if len(card.Series) == 0 {
+		return lines[:min(len(lines), max(0, height))]
+	}
+	lines = append(lines, "")
 	room := height - len(lines)
 	chartRows := room
 	if stacked != nil {
@@ -58,17 +65,17 @@ func detailLinesWithAway(
 func headerLines(theme types.Theme, card sharedtypes.MomentumCard, width int) []string {
 	def := card.Definition
 	status := latestStatus(card)
-	statusText := "–"
+	statusText := "Nothing counted in window"
 	if status != "" {
 		statusText = momentumStatusStyle(theme, status).Render(status)
 	}
 	left := [][2]string{
-		{"Cadence", momentumhelpers.CadenceLabel(def.Period)},
-		{"Target", momentumTargetSummary(def)},
+		{"Period", momentumhelpers.CadenceLabel(def.Period)},
 		{
 			"Streak",
 			streakLabel(card, card.Current) + " now · best " + streakLabel(card, card.Longest),
 		},
+		{"Target", momentumTargetSummary(def)},
 	}
 	right := [][2]string{
 		{momentumCardTargetLabel(def), momentumTargetSummaryNames(card)},
@@ -82,15 +89,17 @@ func headerLines(theme types.Theme, card sharedtypes.MomentumCard, width int) []
 	} else {
 		// The left column takes what its values need, up to 3/5, and the right the rest.
 		leftWidth := 0
-		for _, row := range left {
+		for _, row := range left[:len(right)] {
 			leftWidth = max(leftWidth, ansi.StringWidth(viewsummary.Row(theme, row[0], row[1], width)))
 		}
 		leftWidth = min(leftWidth, width*3/5)
 		for i, row := range left {
-			line := viewsummary.Row(theme, row[0], row[1], leftWidth)
-			if i < len(right) {
-				line += strings.Repeat(" ", max(0, leftWidth-ansi.StringWidth(line))+2) + viewsummary.Row(theme, right[i][0], right[i][1], width-leftWidth-2)
+			if i >= len(right) {
+				lines = append(lines, viewsummary.Row(theme, row[0], row[1], width))
+				continue
 			}
+			line := viewsummary.Row(theme, row[0], row[1], leftWidth)
+			line += strings.Repeat(" ", max(0, leftWidth-ansi.StringWidth(line))+2) + viewsummary.Row(theme, right[i][0], right[i][1], width-leftWidth-2)
 			lines = append(lines, line)
 		}
 	}
@@ -176,10 +185,10 @@ func bucketSummary(
 		parts = append(parts, "target "+momentumValueDisplay(shared, def))
 	}
 	if def.Enabled {
-		parts = append(parts, fmt.Sprintf("met %d of %d", met, counted))
+		parts = append(parts, fmt.Sprintf("%d/%d %ss met", met, counted, momentumBucketUnit(def.Period)))
 	}
 	if counted > 0 {
-		parts = append(parts, "avg "+momentumValueDisplay(total/counted, def))
+		parts = append(parts, "avg "+momentumValueDisplay(total/counted, def)+"/"+momentumBucketUnit(def.Period))
 	}
 	return strings.Join(parts, " · ")
 }

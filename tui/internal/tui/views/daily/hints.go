@@ -36,6 +36,9 @@ func TaskActionLine(theme types.Theme, state types.ContentState, width int) stri
 		}
 		return "  " + viewchrome.FitHints(hints, width-3)
 	}
+	if timerIdle(state) {
+		hints = append(hints, viewchrome.KeyHint(theme, "f", "focus"))
+	}
 	hints = append(hints,
 		viewchrome.KeyHint(theme, "s", "status"),
 		viewchrome.KeyHint(theme, "d", "due"),
@@ -47,7 +50,6 @@ func TaskActionLine(theme types.Theme, state types.ContentState, width int) stri
 	}
 	if timerIdle(state) {
 		hints = append(hints,
-			viewchrome.KeyHint(theme, "f", "focus"),
 			viewchrome.KeyHint(theme, "e", "edit"),
 			viewchrome.KeyHint(theme, "D", "delete"),
 			viewchrome.KeyHint(theme, "m", "log"),

@@ -386,7 +386,7 @@ func TestMomentumEnterOpensDialogAtAnyWidth(t *testing.T) {
 		if !handled || next.dialog != "view_entity" || !strings.Contains(next.dialogViewName, "Focus") {
 			t.Fatalf("width %d: expected enter to open the details dialog, got %q", width, next.dialog)
 		}
-		if !strings.Contains(ansi.Strip(next.dialogViewBody), "Cadence") {
+		if !strings.Contains(ansi.Strip(next.dialogViewBody), "Period") {
 			t.Fatalf("width %d: expected the pane's details in the dialog, got %q", width, next.dialogViewBody)
 		}
 	}

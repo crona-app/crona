@@ -344,7 +344,7 @@ func momentumStatusStyle(theme types.Theme, status string) lipgloss.Style {
 		return lipgloss.NewStyle().Foreground(theme.ColorDullGreen).Bold(true)
 	case "near":
 		return lipgloss.NewStyle().Foreground(theme.ColorYellow)
-	case "paused":
+	case "paused", "nothing counted":
 		return theme.StyleDim
 	case "skipped":
 		return theme.StyleDim
@@ -379,50 +379,31 @@ func padRight(value string, width int) string {
 }
 
 func momentumTargetSummary(def sharedtypes.HabitStreakDefinition) string {
-	mode := momentumModeLabel(def.MatchMode)
-	switch sharedtypes.NormalizeMomentumTargetKind(def.TargetKind) {
-	case sharedtypes.MomentumTargetKindContext:
-		if sharedtypes.NormalizeMomentumMatchMode(
-			def.MatchMode,
-		) == sharedtypes.MomentumMatchModeAll {
-			return fmt.Sprintf(
-				"%s · %d contexts, %s each",
-				mode,
-				max(1, len(def.Contexts)),
-				helperpkg.FormatCompactDurationSeconds(max(1, def.RequiredCount)),
-			)
+	def = sharedtypes.NormalizeHabitStreakDefinition(def)
+	period := momentumBucketUnit(def.Period)
+	all := def.MatchMode == sharedtypes.MomentumMatchModeAll
+	if def.TargetKind == sharedtypes.MomentumTargetKindContext {
+		duration := helperpkg.FormatCompactDurationSeconds(def.RequiredCount)
+		if all {
+			return fmt.Sprintf("%s focus per %s in each context", duration, period)
 		}
-		return fmt.Sprintf(
-			"%s · %s work",
-			mode,
-			helperpkg.FormatCompactDurationSeconds(def.RequiredCount),
-		)
-	default:
-		if sharedtypes.NormalizeMomentumMatchMode(
-			def.MatchMode,
-		) == sharedtypes.MomentumMatchModeAll {
-			return fmt.Sprintf(
-				"%s · %d habits, %d each",
-				mode,
-				max(1, len(def.HabitIDs)),
-				max(1, def.RequiredCount),
-			)
-		}
-		return fmt.Sprintf(
-			"%s · %d/%s",
-			mode,
-			max(1, def.RequiredCount),
-			momentumBucketUnit(def.Period),
-		)
+		return fmt.Sprintf("%s focus per %s across contexts", duration, period)
 	}
+	unit := "completions"
+	if def.RequiredCount == 1 {
+		unit = "completion"
+	}
+	if all {
+		return fmt.Sprintf("%d %s per %s for each habit", def.RequiredCount, unit, period)
+	}
+	return fmt.Sprintf("%d %s per %s across habits", def.RequiredCount, unit, period)
 }
 
-func momentumModeLabel(mode sharedtypes.MomentumMatchMode) string {
-	value := sharedtypes.MomentumMatchModeLabel(mode)
-	if value == "" {
-		return ""
+func momentumActivityHint(def sharedtypes.HabitStreakDefinition) string {
+	if sharedtypes.NormalizeHabitStreakDefinition(def).TargetKind == sharedtypes.MomentumTargetKindContext {
+		return "Log matching focus sessions to see progress."
 	}
-	return strings.ToUpper(value[:1]) + value[1:]
+	return "Log matching habit completions to see progress."
 }
 
 func momentumTargetSummaryNames(card sharedtypes.MomentumCard) string {

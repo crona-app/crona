@@ -167,4 +167,33 @@ clipboard substitute and verified that Back restored the selected weekly
 report after visiting its styles. Verified the files and stopped both test
 processes.
 
-Next: column ratios and empty-space use.
+## Task 6 outcome (2026-11-25)
+
+Captured empty Today, Today with a dated issue, and focused issue details at
+60x20, 120x36, and 200x46 in one isolated session. Before the fix, the compact
+week strip cut off Sunday's date at 60 columns, and the selected issue's
+focus hint fell off the end of its action row. The week now uses shorter
+day labels when needed and saves the two blank rows on short screens. The
+issue action row keeps Focus next to Details.
+
+The renderer tests also reproduced the fixed split giving empty Habits six
+rows while 30 issues competed for seven at minimum height. When one list is
+empty and the other needs more space, Today reserves the empty list's heading
+and guidance and gives the remaining rows to the populated list. The wide
+column split keeps the calendar, issue preview, and day summary readable.
+During the keyboard walkthrough, Enter opened the selected issue, resizing
+kept the same issue title in the detail pane, and Escape returned to Issues.
+
+## Task 7 outcome (2026-11-25)
+
+Momentum names the unit it counts and the period it uses, such as focus
+time per week across contexts or completions per day for each habit. The
+chart's arrow hint names the selected day, week, or month. The empty view
+explains what a goal tracks, and filtered results tell the user how to
+clear the filter. A goal with no counted activity in the window explains
+what to log. The status and chart distinguish that state from past periods
+that missed a target after activity was recorded.
+
+The isolated session captured empty Momentum at all three sizes. Renderer
+tests cover zero-count history, the first matching focus session, and
+populated habit and focus goals. Both test processes were stopped.

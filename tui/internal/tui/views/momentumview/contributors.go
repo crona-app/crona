@@ -33,9 +33,9 @@ func bucketName(card sharedtypes.MomentumCard, point sharedtypes.MomentumSeriesP
 func contributorsTitle(theme types.Theme, card sharedtypes.MomentumCard, offset int) (string, string) {
 	point, _, ok := selectedBucket(card, offset)
 	if !ok {
-		return "Contributors", ""
+		return "Activity", ""
 	}
-	status := momentumStatusForPoint(point, card.Definition.Enabled)
+	status := momentumPeriodStatus(card, point)
 	return bucketName(card, point), momentumRatioText(point, card.Definition) + " " +
 		momentumStatusStyle(theme, status).Render(status)
 }
@@ -48,7 +48,7 @@ func ContributorLines(theme types.Theme, detail *sharedtypes.MomentumDetail, wid
 	}
 	lines := []string{}
 	if len(detail.Contributors) == 0 {
-		return append(lines, theme.StyleDim.Render("Nothing counted toward this bucket."))
+		return append(lines, theme.StyleDim.Render("No matching activity in this period."))
 	}
 	date := ""
 	for _, c := range detail.Contributors {
@@ -92,14 +92,21 @@ func bucketFootnote(card sharedtypes.MomentumCard, offset int) string {
 		parts = append(parts, fmt.Sprintf("%s skipped (%d protected days)", bucketName(card, point), point.ProtectedDayCount))
 	} else {
 		parts = append(parts, fmt.Sprintf("%s %s %s", bucketName(card, point), momentumRatioText(point, def),
-			momentumStatusForPoint(point, def.Enabled)))
+			momentumPeriodStatus(card, point)))
 	}
 	if notes := bucketNotes(point, def); notes != "" && !point.Skipped {
 		parts = append(parts, notes)
 	}
 	shared, hasShared := momentumSharedTarget(card.Series)
-	parts = append(parts, bucketSummary(def, card.Series, shared, hasShared), "[←/→] bucket")
+	parts = append(parts, "[←/→] "+momentumBucketUnit(def.Period), bucketSummary(def, card.Series, shared, hasShared))
 	return strings.Join(parts, " · ")
+}
+
+func momentumPeriodStatus(card sharedtypes.MomentumCard, point sharedtypes.MomentumSeriesPoint) string {
+	if card.Definition.Enabled && !point.Skipped && !hasMomentumActivity(card) {
+		return "nothing counted"
+	}
+	return momentumStatusForPoint(point, card.Definition.Enabled)
 }
 
 func selectedIndex(card sharedtypes.MomentumCard, offset int) int {

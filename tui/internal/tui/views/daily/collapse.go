@@ -149,7 +149,7 @@ func weekPane(theme types.Theme, state types.ContentState, width, height int) (s
 	}
 	lines := scoreCalendarLines(theme, state, width-2, true)
 	if len(lines) == 0 || height-(len(lines)+1) < 2*narrowListRows {
-		lines = []string{"", " " + viewcalendar.ScoreWeek(theme, scoreSelection(state)), ""}
+		lines = []string{" " + viewcalendar.ScoreWeek(theme, scoreSelection(state), width-2)}
 	}
 	return viewchrome.RenderSection(theme, viewchrome.Section{
 		Title:  "Week",
